@@ -1,0 +1,37 @@
+{
+  "name": "degit",
+  "version": "1.0.0",
+  "description": "Straightforward project scaffolding",
+  "bin": {
+    "degit": "bin.js"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rich-Harris/degit.git"
+  },
+  "keywords": [
+    "scaffolding",
+    "template",
+    "git"
+  ],
+  "author": "Rich Harris",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Rich-Harris/degit/issues"
+  },
+  "homepage": "https://github.com/Rich-Harris/degit#readme",
+  "dependencies": {
+    "chalk": "^2.0.1",
+    "home-or-tmp": "^3.0.0",
+    "mri": "^1.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.3.0",
+    "eslint-plugin-import": "^2.7.0",
+    "mocha": "^3.4.2",
+    "sander": "^0.6.0"
+  }
+}
