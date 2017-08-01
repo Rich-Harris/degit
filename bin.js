@@ -68,7 +68,7 @@ function checkDirIsEmpty(dir, force) {
 
 async function getRefs(repo) {
 	try {
-		const { stdout } = await exec(`git ls-remote git@github.com:${repo}`);
+		const { stdout } = await exec(`git ls-remote https://github.com/${repo}`);
 
 		return stdout.split('\n').filter(Boolean).map(row => {
 			const [hash, ref] = row.split('\t');
