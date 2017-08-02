@@ -1,6 +1,6 @@
 {
   "name": "degit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Straightforward project scaffolding",
   "bin": {
     "degit": "bin.js"
