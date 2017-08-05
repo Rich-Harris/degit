@@ -10,8 +10,8 @@ function exec(cmd) {
 	return new Promise((fulfil, reject) => {
 		child_process.exec(cmd, (err, stdout, stderr) => {
 			if (err) return reject(err);
-			console.log(stdout);
-			console.error(stderr);
+			console.log({stdout});
+			console.error({stderr});
 			fulfil();
 		});
 	});
