@@ -7,7 +7,7 @@ const tar = require('tar');
 const homeOrTmp = require('home-or-tmp');
 const { checkDirIsEmpty, error, exec, fetch, log, mkdirp, tryRequire } = require('./utils.js');
 
-const base = `${homeOrTmp}/.degit`;
+const base = path.join(homeOrTmp, '.degit');
 
 const args = mri(process.argv.slice(2), {
 	alias: {
@@ -37,8 +37,8 @@ async function degit(src, dest) {
 
 	const repo = parse(src);
 
-	const dir = `${base}/${repo.site}/${repo.user}/${repo.name}`;
-	const cached = tryRequire(`${dir}/map.json`) || {};
+	const dir = path.join(base, repo.site, repo.user, repo.name);
+	const cached = tryRequire(path.join(dir, 'map.json')) || {};
 
 	const hash = args.cache ?
 		getHashFromCache(cached) :
@@ -146,7 +146,7 @@ function updateCache(dir, repo, hash, cached) {
 		if (!used) {
 			// we no longer need this tar file
 			try {
-				fs.unlinkSync(`${dir}/${oldHash}.tar.gz`);
+				fs.unlinkSync(path.join(dir, `${oldHash}.tar.gz`));
 			} catch (err) {
 				// ignore
 			}
@@ -154,7 +154,7 @@ function updateCache(dir, repo, hash, cached) {
 	}
 
 	cached[repo.ref] = hash;
-	fs.writeFileSync(`${dir}/map.json`, JSON.stringify(cached, null, '  '));
+	fs.writeFileSync(path.join(dir, 'map.json'), JSON.stringify(cached, null, '  '));
 }
 
 function selectRef(refs, selector) {
