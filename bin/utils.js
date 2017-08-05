@@ -57,12 +57,12 @@ exports.checkDirIsEmpty = function checkDirIsEmpty(dir, force) {
 	}
 };
 
-exports.getOnlineStatus = function() {
-	return new Promise(fulfil => {
-		dns.lookup('google.com', err => {
-			fulfil(err ? false : true);
-		});
-	});
+exports.tryRequire = function(file) {
+	try {
+		return require(file);
+	} catch (err) {
+		return null;
+	}
 };
 
 exports.log = log;
