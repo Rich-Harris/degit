@@ -1,19 +1,21 @@
 const child_process = require('child_process');
 const chalk = require('chalk');
+const https = require('https');
 const path = require('path');
-const dns = require('dns');
 const fs = require('fs');
 
+chalk.enabled = process.platform !== 'win32';
+
 function error(message, err) {
-	console.error(chalk.redBright(`[!] ${message}`)); // eslint-disable-line no-console
+	process.stderr.write(chalk.redBright(`[!] ${message}\n`));
 	if (err) {
-		console.log(chalk.grey(err.stack)); // eslint-disable-line no-console
+		process.stderr.write(chalk.grey(err.stack) + '\n');
 	}
 	process.exit(1);
 }
 
 function log(message) {
-	console.log(chalk.cyanBright(`[>] ${message}`)); // eslint-disable-line no-console
+	process.stdout.write(chalk.cyanBright(`[>] ${message}\n`));
 }
 
 exports.exec = function exec(command) {
@@ -42,19 +44,38 @@ exports.mkdirp = function mkdirp(dir) {
 	}
 };
 
-exports.checkDirIsEmpty = function checkDirIsEmpty(dir, force) {
+exports.checkDirIsEmpty = function checkDirIsEmpty(dir, args) {
 	try {
 		const files = fs.readdirSync(dir);
 		if (files.length > 0) {
-			if (force) {
-				log(`Destination directory is not empty. Using --force, continuing`);
+			if (args.force) {
+				log(`destination directory is not empty. Using --force, continuing`);
 			} else {
-				error(`Destination directory is not empty, aborting. Use --force to override`);
+				error(`destination directory is not empty, aborting. Use --force to override`);
 			}
+		} else if (args.verbose) {
+			log(`destination directory is empty`);
 		}
 	} catch (err) {
 		if (err.code !== 'ENOENT') error(err.message, err);
 	}
+};
+
+exports.fetch = function fetch(url, dest) {
+	return new Promise((fulfil, reject) => {
+		https.get(url, response => {
+			const code = response.statusCode;
+			if (code >= 400) {
+				reject({ code, message: response.statusMessage });
+			} else if (code >= 300) {
+				fetch(response.headers.location, dest).then(fulfil, reject);
+			} else {
+				response.pipe(fs.createWriteStream(dest))
+					.on('finish', () => fulfil())
+					.on('error', reject);
+			}
+		}).on('error', reject);
+	});
 };
 
 exports.tryRequire = function(file) {

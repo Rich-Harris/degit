@@ -40,5 +40,6 @@ Options:
   `--help`, `-h`     Show this message
   `--cache`, `-c`    Only use local cache
   `--force`, `-f`    Allow non-empty destination directory
+  `--verbose`, `-v`  Extra logging
 
 See https://github.com/Rich-Harris/degit for more information

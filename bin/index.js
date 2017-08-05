@@ -3,15 +3,17 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const mri = require('mri');
+const tar = require('tar');
 const homeOrTmp = require('home-or-tmp');
-const { checkDirIsEmpty, error, log, mkdirp, exec, tryRequire } = require('./utils.js');
+const { checkDirIsEmpty, error, exec, fetch, log, mkdirp, tryRequire } = require('./utils.js');
 
-const base = `${homeOrTmp}/.degit`;
+const base = path.join(homeOrTmp, '.degit');
 
 const args = mri(process.argv.slice(2), {
 	alias: {
 		f: 'force',
-		c: 'cache'
+		c: 'cache',
+		v: 'verbose'
 	}
 });
 
@@ -32,12 +34,14 @@ const supported = new Set(['github', 'gitlab', 'bitbucket']);
 degit(src, dest);
 
 async function degit(src, dest) {
-	checkDirIsEmpty(dest, args.force);
+	if (args.verbose) log(`cloning ${src} to ${dest}`);
+
+	checkDirIsEmpty(dest, args);
 
 	const repo = parse(src);
 
-	const dir = `${base}/${repo.site}/${repo.user}/${repo.name}`;
-	const cached = tryRequire(`${dir}/map.json`) || {};
+	const dir = path.join(base, repo.site, repo.user, repo.name);
+	const cached = tryRequire(path.join(dir, 'map.json')) || {};
 
 	const hash = args.cache ?
 		getHashFromCache(cached) :
@@ -45,7 +49,7 @@ async function degit(src, dest) {
 
 	if (!hash) {
 		// TODO 'did you mean...?'
-		error(`Could not find commit hash for ${chalk.bold(repo.ref)}`);
+		error(`could not find commit hash for ${repo.ref}`);
 	}
 
 	const file = `${dir}/${hash}.tar.gz`;
@@ -58,7 +62,7 @@ async function degit(src, dest) {
 	try {
 		if (!args.cache) await downloadIfNotExists(url, file);
 	} catch (err) {
-		error(`Could not download ${chalk.bold(url)}`, err);
+		error(`could not download ${chalk.bold(url)}`, err);
 	}
 
 	updateCache(dir, repo, hash, cached);
@@ -66,12 +70,12 @@ async function degit(src, dest) {
 	mkdirp(dest);
 	await untar(file, dest);
 
-	log(`Cloned ${chalk.bold(`${repo.user}/${repo.name}#${repo.ref}`)}${dest !== '.' ? ` to ${chalk.bold(dest)}` : ''}`);
+	log(`cloned ${chalk.bold(`${repo.user}/${repo.name}#${repo.ref}`)}${dest !== '.' ? ` to ${chalk.bold(dest)}` : ''}`);
 }
 
 function parse(src) {
 	const match = /^(?:https:\/\/([^/]+)\/|git@([^/]+):|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:#(.+))?/.exec(src);
-	if (!match) error(`Could not parse ${src}`);
+	if (!match) error(`could not parse ${src}`);
 
 	const site = (match[1] || match[2] || match[3] || 'github').replace(/\.(com|org)$/, '');
 	if (!supported.has(site)) error(`degit supports GitHub, GitLab and BitBucket`);
@@ -88,6 +92,7 @@ function parse(src) {
 async function getHash(repo, cached) {
 	try {
 		const refs = await fetchRefs(repo);
+		if (args.verbose) log(`fetched ${refs.length} ${refs.length === 1 ? 'ref' : 'refs'}`);
 		return selectRef(refs, repo.ref);
 	} catch (err) {
 		return getHashFromCache(repo, cached);
@@ -97,7 +102,7 @@ async function getHash(repo, cached) {
 function getHashFromCache(repo, cached) {
 	if (repo.ref in cached) {
 		const hash = cached[repo.ref];
-		log(`Using cached commit hash ${hash}`);
+		log(`using cached commit hash ${hash}`);
 		return hash;
 	}
 }
@@ -116,7 +121,7 @@ async function fetchRefs(repo) {
 		}
 
 		const match = /refs\/(\w+)\/(.+)/.exec(ref);
-		if (!match) throw new Error(`Could not parse ${ref}`);
+		if (!match) error(`could not parse ${ref}`);
 		return {
 			type: (
 				match[1] === 'heads' ? 'branch' :
@@ -145,7 +150,7 @@ function updateCache(dir, repo, hash, cached) {
 		if (!used) {
 			// we no longer need this tar file
 			try {
-				fs.unlinkSync(`${dir}/${oldHash}.tar.gz`);
+				fs.unlinkSync(path.join(dir, `${oldHash}.tar.gz`));
 			} catch (err) {
 				// ignore
 			}
@@ -153,12 +158,15 @@ function updateCache(dir, repo, hash, cached) {
 	}
 
 	cached[repo.ref] = hash;
-	fs.writeFileSync(`${dir}/map.json`, JSON.stringify(cached, null, '  '));
+	fs.writeFileSync(path.join(dir, 'map.json'), JSON.stringify(cached, null, '  '));
 }
 
 function selectRef(refs, selector) {
 	for (const ref of refs) {
-		if (ref.name === selector) return ref.hash;
+		if (ref.name === selector) {
+			if (args.verbose) log(`found matching commit hash: ${ref.hash}`);
+			return ref.hash;
+		}
 	}
 
 	if (selector.length < 8) return null;
@@ -171,12 +179,19 @@ function selectRef(refs, selector) {
 async function downloadIfNotExists(url, file) {
 	try {
 		fs.statSync(file);
+		if (args.verbose) log(`${file} already exists locally`);
 	} catch (err) {
 		mkdirp(path.dirname(file));
-		return await exec(`curl -L ${url} > ${file}`);
+		if (args.verbose) log(`downloading ${url} to ${file}`);
+		return await fetch(url, file);
 	}
 }
 
 async function untar(file, dest) {
-	await exec(`tar -xf ${file} --strip 1 -C ${dest}`);
+	if (args.verbose) log(`extracting ${file} to ${dest}`);
+	return tar.extract({
+		file,
+		strip: 1,
+		C: dest
+	});
 }
