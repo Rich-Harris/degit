@@ -1,6 +1,9 @@
 {
   "name": "degit",
   "version": "1.2.0",
+  "engines": { 
+    "node": ">=8.0.0"
+  },
   "description": "Straightforward project scaffolding",
   "bin": {
     "degit": "bin.js"
