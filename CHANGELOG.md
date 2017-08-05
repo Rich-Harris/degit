@@ -1,5 +1,9 @@
 # degit changelog
 
+## 1.2.1
+
+* Add `engines` field ([#17](https://github.com/Rich-Harris/degit/issues/17))
+
 ## 1.2.0
 
 * Windows support ([#1](https://github.com/Rich-Harris/degit/issues/1))

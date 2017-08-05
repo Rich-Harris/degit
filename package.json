@@ -1,7 +1,7 @@
 {
   "name": "degit",
-  "version": "1.2.0",
-  "engines": { 
+  "version": "1.2.1",
+  "engines": {
     "node": ">=8.0.0"
   },
   "description": "Straightforward project scaffolding",
