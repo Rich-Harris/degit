@@ -26,22 +26,29 @@ if (args.help || !src) {
 	return;
 }
 
-const [repo, selector] = src.split('#');
-degit(repo, selector, dest);
+const supported = new Set(['github', 'gitlab', 'bitbucket']);
 
-async function degit(repo, selector = 'master', dest) {
+degit(src, dest);
+
+async function degit(src, dest) {
 	checkDirIsEmpty(dest, args.force);
 
+	const repo = parse(src);
+
 	const refs = await getRefs(repo);
-	const ref = selectRef(refs, selector);
+	const ref = selectRef(refs, repo.ref);
 
 	if (!ref) {
 		// TODO 'did you mean...?'
-		error(`Could not find ref ${chalk.bold(selector)}`);
+		error(`Could not find ref ${chalk.bold(repo.ref)}`);
 	}
 
-	const file = `${dir}/${repo}/${ref.hash}.tar.gz`;
-	const url = `https://github.com/${repo}/archive/${ref.hash}.tar.gz`;
+	const file = `${dir}/${repo.site}/${repo.user}/${repo.name}/${ref.hash}.tar.gz`;
+	const url = (
+		repo.site === 'gitlab' ? `${repo.url}/repository/archive.tar.gz?ref=${ref.hash}` :
+		repo.site === 'bitbucket' ? `${repo.url}/get/${ref.hash}.tar.gz` :
+		`${repo.url}/archive/${ref.hash}.tar.gz`
+	);
 
 	try {
 		await downloadIfNotExists(url, file);
@@ -52,12 +59,28 @@ async function degit(repo, selector = 'master', dest) {
 	mkdirp(dest);
 	await untar(file, dest);
 
-	log(`Cloned ${chalk.bold(`${repo}#${selector}`)}${dest !== '.' ? ` to ${chalk.bold(dest)}` : ''}`);
+	log(`Cloned ${chalk.bold(`${repo.user}/${repo.name}#${repo.ref}`)}${dest !== '.' ? ` to ${chalk.bold(dest)}` : ''}`);
+}
+
+function parse(src) {
+	const match = /^(?:https:\/\/([^/]+)\/|git@([^/]+):|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:#(.+))?/.exec(src);
+	if (!match) error(`Could not parse ${src}`);
+
+	const site = (match[1] || match[2] || match[3] || 'github').replace(/\.(com|org)$/, '');
+	if (!supported.has(site)) error(`degit supports GitHub, GitLab and BitBucket`);
+
+	const user = match[4];
+	const name = match[5].replace(/\.git$/, '');
+	const ref = match[6] || 'master';
+
+	const url = `https://${site}.${site === 'bitbucket' ? 'org' : 'com'}/${user}/${name}`;
+
+	return { site, user, name, ref, url };
 }
 
 async function getRefs(repo) {
 	try {
-		const { stdout } = await exec(`git ls-remote https://github.com/${repo}`);
+		const { stdout } = await exec(`git ls-remote ${repo.url}`);
 
 		return stdout.split('\n').filter(Boolean).map(row => {
 			const [hash, ref] = row.split('\t');
