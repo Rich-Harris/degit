@@ -4,7 +4,7 @@ const glob = require('glob');
 const assert = require('assert');
 const child_process = require('child_process');
 
-const cmd = path.resolve('bin.js');
+const cmd = path.resolve('bin/index.js');
 
 function exec(cmd) {
 	return new Promise((fulfil, reject) => {
@@ -39,7 +39,7 @@ describe('degit', () => {
 			it(src, async () => {
 				await exec(`${cmd} ${src} .tmp/test-repo`);
 				compare(`.tmp/test-repo`, {
-					'file.txt': 'hello!'
+					'file.txt': 'hello from github!'
 				});
 			});
 		});
