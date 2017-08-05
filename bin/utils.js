@@ -1,7 +1,7 @@
 const child_process = require('child_process');
 const chalk = require('chalk');
+const https = require('https');
 const path = require('path');
-const dns = require('dns');
 const fs = require('fs');
 
 function error(message, err) {
@@ -57,11 +57,18 @@ exports.checkDirIsEmpty = function checkDirIsEmpty(dir, force) {
 	}
 };
 
-exports.getOnlineStatus = function() {
-	return new Promise(fulfil => {
-		dns.lookup('google.com', err => {
-			fulfil(err ? false : true);
-		});
+exports.fetch = function fetch(url, dest) {
+	return new Promise((fulfil, reject) => {
+		https.get(url, response => {
+			const code = response.statusCode;
+			if (code >= 400) {
+				reject({ code, message: response.statusMessage });
+			} else if (code >= 300) {
+				fetch(response.headers.location, dest).then(fulfil, reject);
+			} else {
+				response.pipe(fs.createWriteStream(dest));
+			}
+		}).on('error', reject);
 	});
 };
 

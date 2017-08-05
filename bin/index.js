@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const mri = require('mri');
+const tar = require('tar');
 const homeOrTmp = require('home-or-tmp');
-const { checkDirIsEmpty, error, log, mkdirp, exec } = require('./utils.js');
+const { checkDirIsEmpty, error, exec, fetch, log, mkdirp } = require('./utils.js');
 
 const dir = `${homeOrTmp}/.degit`;
 
@@ -126,10 +127,14 @@ async function downloadIfNotExists(url, file) {
 		fs.statSync(file);
 	} catch (err) {
 		mkdirp(path.dirname(file));
-		return await exec(`curl -L ${url} > ${file}`);
+		return await fetch(url, file);
 	}
 }
 
 async function untar(file, dest) {
-	await exec(`tar -xf ${file} --strip 1 -C ${dest}`);
+	return tar.extract({
+		file,
+		strip: 1,
+		C: dest
+	});
 }
