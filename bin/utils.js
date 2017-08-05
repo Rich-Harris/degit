@@ -15,7 +15,7 @@ function error(message, err) {
 }
 
 function log(message) {
-	process.stdout(chalk.cyanBright(`[>] ${message}\n`));
+	process.stdout.write(chalk.cyanBright(`[>] ${message}\n`));
 }
 
 exports.exec = function exec(command) {

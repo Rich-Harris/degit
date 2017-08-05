@@ -9,11 +9,10 @@ const degit = path.resolve('bin/index.js');
 
 function exec(cmd) {
 	return new Promise((fulfil, reject) => {
-		console.log({ cmd });
 		child_process.exec(cmd, (err, stdout, stderr) => {
 			if (err) return reject(err);
-			console.log({stdout});
-			console.error({stderr});
+			console.log(stdout);
+			console.error(stderr);
 			fulfil();
 		});
 	});
@@ -21,7 +20,6 @@ function exec(cmd) {
 
 describe('degit', () => {
 	function compare(dir, files) {
-		console.log('files: ', fs.readdirSync(dir));
 		const expected = glob.sync('**', { cwd: dir });
 		assert.deepEqual(Object.keys(files).sort(), expected.sort());
 
