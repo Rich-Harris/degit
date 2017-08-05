@@ -4,7 +4,7 @@ const path = require('path');
 const chalk = require('chalk');
 const mri = require('mri');
 const homeOrTmp = require('home-or-tmp');
-const { error, log, mkdirp, exec } = require('./utils.js');
+const { checkDirIsEmpty, error, log, mkdirp, exec } = require('./utils.js');
 
 const dir = `${homeOrTmp}/.degit`;
 
@@ -14,17 +14,22 @@ const args = mri(process.argv.slice(2), {
 	}
 });
 
-const [src, dest] = args._;
+const [src, dest = '.'] = args._;
 
-if (!src) {
-	// TODO print help
-	process.exit(1);
+if (args.help || !src) {
+	const help = fs.readFileSync(path.join(__dirname, 'help.md'), 'utf-8')
+		.replace(/^(\s*)#+ (.+)/gm, (m, s, _) => s + chalk.bold(_))
+		.replace(/_([^_]+)_/g, (m, _) => chalk.underline(_))
+		.replace(/`([^`]+)`/g, (m, _) => chalk.cyan(_));
+
+	process.stdout.write(`\n${help}\n`);
+	return;
 }
 
 const [repo, selector] = src.split('#');
 degit(repo, selector, dest);
 
-async function degit(repo, selector = 'master', dest = '.') {
+async function degit(repo, selector = 'master', dest) {
 	checkDirIsEmpty(dest, args.force);
 
 	const refs = await getRefs(repo);
@@ -47,23 +52,7 @@ async function degit(repo, selector = 'master', dest = '.') {
 	mkdirp(dest);
 	await untar(file, dest);
 
-	log(`Cloned ${chalk.bold(`${repo}#${selector}`)} to ${chalk.bold(dest)}`);
-}
-
-function checkDirIsEmpty(dir, force) {
-	try {
-		const files = fs.readdirSync(dir);
-		if (files.length > 0) {
-			if (force) {
-				log(`Destination directory is not empty. Using --force, continuing`);
-			} else {
-				error(`Destination directory is not empty, aborting. Use --force to override`);
-			}
-		}
-	} catch (err) {
-		if (err.code !== 'ENOENT') throw err;
-		return true;
-	}
+	log(`Cloned ${chalk.bold(`${repo}#${selector}`)}${dest !== '.' ? ` to ${chalk.bold(dest)}` : ''}`);
 }
 
 async function getRefs(repo) {
