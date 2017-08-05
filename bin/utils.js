@@ -42,15 +42,17 @@ exports.mkdirp = function mkdirp(dir) {
 	}
 };
 
-exports.checkDirIsEmpty = function checkDirIsEmpty(dir, force) {
+exports.checkDirIsEmpty = function checkDirIsEmpty(dir, args) {
 	try {
 		const files = fs.readdirSync(dir);
 		if (files.length > 0) {
-			if (force) {
-				log(`Destination directory is not empty. Using --force, continuing`);
+			if (args.force) {
+				log(`destination directory is not empty. Using --force, continuing`);
 			} else {
-				error(`Destination directory is not empty, aborting. Use --force to override`);
+				error(`destination directory is not empty, aborting. Use --force to override`);
 			}
+		} else if (args.verbose) {
+			log(`destination directory is empty`);
 		}
 	} catch (err) {
 		if (err.code !== 'ENOENT') error(err.message, err);
