@@ -2,6 +2,8 @@
 
 **degit** makes copies of git repositories. When you run `degit some-user/some-repo`, it will find the latest commit on https://github.com/some-user/some-repo and download the associated tar file to `~/.degit/some-user/some-repo/commithash.tar.gz` if it doesn't already exist locally. (This is much quicker than using `git clone`, because you're not downloading the entire git history.)
 
+*Requires Node 8 or above, because `async` and `await` are the cat's pyjamas*
+
 
 ## Installation
 
