@@ -1,16 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
-const rimraf = require('rimraf');
+const rimraf = require('rimraf').sync;
 const assert = require('assert');
 const child_process = require('child_process');
 
 const degit = path.resolve('bin/index.js');
-console.log({ degit });
 
 function exec(cmd) {
 	return new Promise((fulfil, reject) => {
-		console.log({ cmd });
 		child_process.exec(cmd, (err, stdout, stderr) => {
 			if (err) return reject(err);
 			console.log({stdout});
@@ -49,7 +47,7 @@ describe('degit', () => {
 	});
 
 	describe('gitlab', () => {
-		beforeEach(() => exec('rm -rf .tmp'));
+		beforeEach(() => rimraf('.tmp'));
 
 		[
 			'gitlab:Rich-Harris/degit-test-repo',
@@ -66,7 +64,7 @@ describe('degit', () => {
 	});
 
 	describe('bitbucket', () => {
-		beforeEach(() => exec('rm -rf .tmp'));
+		beforeEach(() => rimraf('.tmp'));
 
 		[
 			'bitbucket:Rich_Harris/degit-test-repo',
