@@ -78,6 +78,25 @@ describe('degit', () => {
 			});
 		});
 	});
+
+	describe('non-empty directories', () => {
+		it('fails without --force', async () => {
+			let succeeded;
+
+			try {
+				await exec(`${cmd} Rich-Harris/degit-test-repo .tmp/test-repo`);
+				succeeded = true;
+			} catch (err) {
+				assert.equal(err.message.trim(), `Command failed: ${cmd} Rich-Harris/degit-test-repo .tmp/test-repo\n[!] Destination directory is not empty, aborting. Use --force to override`.trim());
+			}
+
+			assert.ok(!succeeded);
+		});
+
+		it('succeeds with --force', async () => {
+			await exec(`${cmd} Rich-Harris/degit-test-repo .tmp/test-repo -f`);
+		});
+	});
 });
 
 function read(file) {
