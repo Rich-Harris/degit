@@ -43,6 +43,12 @@ A few salient differences:
 * Future capabilities — [interactive mode](https://github.com/Rich-Harris/degit/issues/4), [friendly onboarding and postinstall scripts](https://github.com/Rich-Harris/degit/issues/6)
 
 
+## See also
+
+* [zel](https://github.com/vutran/zel) by [Vu Tran](https://twitter.com/tranvu)
+* [gittar](https://github.com/lukeed/gittar) by [Luke Edwards](https://twitter.com/lukeed05)
+
+
 ## License
 
 [MIT](LICENSE).
