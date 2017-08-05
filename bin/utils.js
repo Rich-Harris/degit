@@ -4,16 +4,18 @@ const https = require('https');
 const path = require('path');
 const fs = require('fs');
 
+chalk.enabled = process.platform !== 'win32';
+
 function error(message, err) {
-	console.error(chalk.redBright(`[!] ${message}`)); // eslint-disable-line no-console
+	process.stderr.write(chalk.redBright(`[!] ${message}\n`));
 	if (err) {
-		console.log(chalk.grey(err.stack)); // eslint-disable-line no-console
+		process.stderr.write(chalk.grey(err.stack) + '\n');
 	}
 	process.exit(1);
 }
 
 function log(message) {
-	console.log(chalk.cyanBright(`[>] ${message}`)); // eslint-disable-line no-console
+	process.stdout(chalk.cyanBright(`[>] ${message}\n`));
 }
 
 exports.exec = function exec(command) {
