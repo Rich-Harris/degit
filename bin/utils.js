@@ -66,7 +66,9 @@ exports.fetch = function fetch(url, dest) {
 			} else if (code >= 300) {
 				fetch(response.headers.location, dest).then(fulfil, reject);
 			} else {
-				response.pipe(fs.createWriteStream(dest));
+				response.pipe(fs.createWriteStream(dest))
+					.on('finish', () => fulfil())
+					.on('error', reject);
 			}
 		}).on('error', reject);
 	});
