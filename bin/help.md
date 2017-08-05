@@ -21,7 +21,7 @@ The `src` argument can be any of the following:
   bitbucket:user/repo
   https://bitbucket.com/user/repo
 
-You can a #ref to any of the above:
+You can append a #ref to any of the above:
 
   ## Branches (defaults to master)
   user/repo#dev
@@ -38,6 +38,7 @@ unless the `--force` option is used.
 Options:
 
   `--help`, `-h`     Show this message
+  `--cache`, `-c`    Only use local cache
   `--force`, `-f`    Allow non-empty destination directory
 
 See https://github.com/Rich-Harris/degit for more information
