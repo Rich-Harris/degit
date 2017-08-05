@@ -40,7 +40,7 @@ describe('degit', () => {
 			'https://github.com/Rich-Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
-				await exec(`${degit} ${src} .tmp/test-repo -v`);
+				await exec(`node ${degit} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
 					'file.txt': 'hello from github!'
 				});
@@ -57,7 +57,7 @@ describe('degit', () => {
 			'https://gitlab.com/Rich-Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
-				await exec(`${degit} ${src} .tmp/test-repo -v`);
+				await exec(`node ${degit} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
 					'file.txt': 'hello from gitlab!'
 				});
@@ -74,7 +74,7 @@ describe('degit', () => {
 			'https://bitbucket.org/Rich_Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
-				await exec(`${degit} ${src} .tmp/test-repo -v`);
+				await exec(`node ${degit} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
 					'file.txt': 'hello from bitbucket'
 				});
@@ -87,17 +87,17 @@ describe('degit', () => {
 			let succeeded;
 
 			try {
-				await exec(`${degit} Rich-Harris/degit-test-repo .tmp/test-repo -v`);
+				await exec(`node ${degit} Rich-Harris/degit-test-repo .tmp/test-repo -v`);
 				succeeded = true;
 			} catch (err) {
-				assert.equal(err.message.trim(), `Command failed: ${degit} Rich-Harris/degit-test-repo .tmp/test-repo -v\n[!] destination directory is not empty, aborting. Use --force to override`.trim());
+				assert.equal(err.message.trim(), `Command failed: node ${degit} Rich-Harris/degit-test-repo .tmp/test-repo -v\n[!] destination directory is not empty, aborting. Use --force to override`.trim());
 			}
 
 			assert.ok(!succeeded);
 		});
 
 		it('succeeds with --force', async () => {
-			await exec(`${degit} Rich-Harris/degit-test-repo .tmp/test-repo -fv`);
+			await exec(`node ${degit} Rich-Harris/degit-test-repo .tmp/test-repo -fv`);
 		});
 	});
 });
