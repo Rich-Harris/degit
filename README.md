@@ -18,6 +18,14 @@ degit some-user/some-repo my-new-project
 
 ...and that's it. As simple as possible, and no simpler.
 
+Degit works with github , gitlab, bitbucket, or custom git servers:
+
+```bash
+degit github:some-user/some-repo   # same as degit some-user/some-repo
+degit gitlab:some-user/some-repo
+degit bitbucket:some-user/some-repo
+degit https://some-custom-git-server.org/some-path/repo.git
+```
 
 ## Installation
 
