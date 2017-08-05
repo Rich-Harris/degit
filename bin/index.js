@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-throw new Error(`testing... (god i hate windows)`)
-
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
