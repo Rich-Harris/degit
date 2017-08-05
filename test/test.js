@@ -88,7 +88,7 @@ describe('degit', () => {
 				await exec(`node ${degit} Rich-Harris/degit-test-repo .tmp/test-repo -v`);
 				succeeded = true;
 			} catch (err) {
-				assert.equal(err.message.trim(), `Command failed: node ${degit} Rich-Harris/degit-test-repo .tmp/test-repo -v\n[!] destination directory is not empty, aborting. Use --force to override`.trim());
+				assert.ok(/destination directory is not empty/.test(err.message));
 			}
 
 			assert.ok(!succeeded);
