@@ -72,5 +72,13 @@ exports.fetch = function fetch(url, dest) {
 	});
 };
 
+exports.tryRequire = function(file) {
+	try {
+		return require(file);
+	} catch (err) {
+		return null;
+	}
+};
+
 exports.log = log;
 exports.error = error;

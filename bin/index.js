@@ -5,13 +5,14 @@ const chalk = require('chalk');
 const mri = require('mri');
 const tar = require('tar');
 const homeOrTmp = require('home-or-tmp');
-const { checkDirIsEmpty, error, exec, fetch, log, mkdirp } = require('./utils.js');
+const { checkDirIsEmpty, error, exec, fetch, log, mkdirp, tryRequire } = require('./utils.js');
 
-const dir = `${homeOrTmp}/.degit`;
+const base = `${homeOrTmp}/.degit`;
 
 const args = mri(process.argv.slice(2), {
 	alias: {
-		f: 'force'
+		f: 'force',
+		c: 'cache'
 	}
 });
 
@@ -36,26 +37,32 @@ async function degit(src, dest) {
 
 	const repo = parse(src);
 
-	const refs = await getRefs(repo);
-	const ref = selectRef(refs, repo.ref);
+	const dir = `${base}/${repo.site}/${repo.user}/${repo.name}`;
+	const cached = tryRequire(`${dir}/map.json`) || {};
 
-	if (!ref) {
+	const hash = args.cache ?
+		getHashFromCache(cached) :
+		await getHash(repo, cached);
+
+	if (!hash) {
 		// TODO 'did you mean...?'
-		error(`Could not find ref ${chalk.bold(repo.ref)}`);
+		error(`Could not find commit hash for ${chalk.bold(repo.ref)}`);
 	}
 
-	const file = `${dir}/${repo.site}/${repo.user}/${repo.name}/${ref.hash}.tar.gz`;
+	const file = `${dir}/${hash}.tar.gz`;
 	const url = (
-		repo.site === 'gitlab' ? `${repo.url}/repository/archive.tar.gz?ref=${ref.hash}` :
-		repo.site === 'bitbucket' ? `${repo.url}/get/${ref.hash}.tar.gz` :
-		`${repo.url}/archive/${ref.hash}.tar.gz`
+		repo.site === 'gitlab' ? `${repo.url}/repository/archive.tar.gz?ref=${hash}` :
+		repo.site === 'bitbucket' ? `${repo.url}/get/${hash}.tar.gz` :
+		`${repo.url}/archive/${hash}.tar.gz`
 	);
 
 	try {
-		await downloadIfNotExists(url, file);
+		if (!args.cache) await downloadIfNotExists(url, file);
 	} catch (err) {
 		error(`Could not download ${chalk.bold(url)}`, err);
 	}
+
+	updateCache(dir, repo, hash, cached);
 
 	mkdirp(dest);
 	await untar(file, dest);
@@ -79,46 +86,86 @@ function parse(src) {
 	return { site, user, name, ref, url };
 }
 
-async function getRefs(repo) {
+async function getHash(repo, cached) {
 	try {
-		const { stdout } = await exec(`git ls-remote ${repo.url}`);
+		const refs = await fetchRefs(repo);
+		return selectRef(refs, repo.ref);
+	} catch (err) {
+		return getHashFromCache(repo, cached);
+	}
+}
 
-		return stdout.split('\n').filter(Boolean).map(row => {
-			const [hash, ref] = row.split('\t');
+function getHashFromCache(repo, cached) {
+	if (repo.ref in cached) {
+		const hash = cached[repo.ref];
+		log(`Using cached commit hash ${hash}`);
+		return hash;
+	}
+}
 
-			if (ref === 'HEAD') {
-				return {
-					type: 'HEAD',
-					hash
-				};
-			}
+async function fetchRefs(repo) {
+	const { stdout } = await exec(`git ls-remote ${repo.url}`);
 
-			const match = /refs\/(\w+)\/(.+)/.exec(ref);
-			if (!match) throw new Error(`Could not parse ${ref}`);
+	return stdout.split('\n').filter(Boolean).map(row => {
+		const [hash, ref] = row.split('\t');
+
+		if (ref === 'HEAD') {
 			return {
-				type: (
-					match[1] === 'heads' ? 'branch' :
-					match[1] === 'refs' ? 'ref' :
-					match[1]
-				),
-				name: match[2],
+				type: 'HEAD',
 				hash
 			};
-		});
-	} catch (err) {
-		error(`Could not get refs for ${chalk.bold(repo)}`, err);
+		}
+
+		const match = /refs\/(\w+)\/(.+)/.exec(ref);
+		if (!match) throw new Error(`Could not parse ${ref}`);
+		return {
+			type: (
+				match[1] === 'heads' ? 'branch' :
+				match[1] === 'refs' ? 'ref' :
+				match[1]
+			),
+			name: match[2],
+			hash
+		};
+	});
+}
+
+function updateCache(dir, repo, hash, cached) {
+	if (cached[repo.ref] === hash) return;
+
+	const oldHash = cached[repo.ref];
+	if (oldHash) {
+		let used = false;
+		for (const key in cached) {
+			if (cached[key] === hash) {
+				used = true;
+				break;
+			}
+		}
+
+		if (!used) {
+			// we no longer need this tar file
+			try {
+				fs.unlinkSync(`${dir}/${oldHash}.tar.gz`);
+			} catch (err) {
+				// ignore
+			}
+		}
 	}
+
+	cached[repo.ref] = hash;
+	fs.writeFileSync(`${dir}/map.json`, JSON.stringify(cached, null, '  '));
 }
 
 function selectRef(refs, selector) {
 	for (const ref of refs) {
-		if (ref.name === selector) return ref;
+		if (ref.name === selector) return ref.hash;
 	}
 
 	if (selector.length < 8) return null;
 
 	for (const ref of refs) {
-		if (ref.hash.startsWith(selector)) return ref;
+		if (ref.hash.startsWith(selector)) return ref.hash;
 	}
 }
 
