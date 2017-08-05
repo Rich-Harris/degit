@@ -2,27 +2,67 @@
 
 **degit** makes copies of git repositories. When you run `degit some-user/some-repo`, it will find the latest commit on https://github.com/some-user/some-repo and download the associated tar file to `~/.degit/some-user/some-repo/commithash.tar.gz` if it doesn't already exist locally. (This is much quicker than using `git clone`, because you're not downloading the entire git history.)
 
-You can specify a specific branch, tag or commit hash...
-
-```bash
-degit some-user/some-repo#some-feature # branch
-degit some-user/some-repo#v1.0.0       # tag
-degit some-user/some-repo#1234abcd     # commit hash
-```
-
-...or create a new folder for the project...
-
-```bash
-degit some-user/some-repo my-new-project
-```
-
-...and that's it. As simple as possible, and no simpler.
-
 
 ## Installation
 
 ```bash
 npm install -g degit
+```
+
+## Usage
+
+### Basics
+
+The simplest use of degit is to download the master branch of a repo from GitHub to the current working directory:
+
+```bash
+degit user/repo
+
+# these commands are equivalent
+degit github:user/repo
+degit git@github.com:user/repo
+degit https://github.com/user/repo
+```
+
+Or you can download from GitLab and BitBucket:
+
+```bash
+# download from GitLab
+degit gitlab:user/repo
+degit git@gitlab.com:user/repo
+degit https://gitlab.com/user/repo
+
+# download from BitBucket
+degit bitbucket:user/repo
+degit git@bitbucket.org:user/repo
+degit https://bitbucket.org/user/repo
+```
+
+
+### Specify a tag, branch or commit
+
+The default branch is `master`.
+
+```bash
+degit user/repo#dev       # branch
+degit user/repo#v1.2.3    # release tag
+degit user/repo#1234abcd  # commit hash
+```
+
+
+### Create a new folder for the project
+
+If the second argument is omitted, the repo will be cloned to the current directory.
+
+```bash
+degit user/repo my-new-project
+```
+
+
+### See all options
+
+```bash
+degit --help
 ```
 
 
