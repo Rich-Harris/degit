@@ -28,9 +28,7 @@ npm install -g degit
 
 ## Not supported
 
-* Windows
 * Private repositories
-* Anything that isn't GitHub
 
 Pull requests are very welcome!
 
