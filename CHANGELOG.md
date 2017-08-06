@@ -1,5 +1,9 @@
 # degit changelog
 
+## 1.2.2
+
+* Fix `files` in package.json
+
 ## 1.2.1
 
 * Add `engines` field ([#17](https://github.com/Rich-Harris/degit/issues/17))

@@ -6,7 +6,7 @@
   },
   "description": "Straightforward project scaffolding",
   "bin": {
-    "degit": "bin.js"
+    "degit": "bin/index.js"
   },
   "scripts": {
     "test": "mocha"
@@ -41,6 +41,6 @@
     "sander": "^0.6.0"
   },
   "files": [
-    "*.js"
+    "bin"
   ]
 }
