@@ -85,6 +85,29 @@ A few salient differences:
 * Future capabilities — [interactive mode](https://github.com/Rich-Harris/degit/issues/4), [friendly onboarding and postinstall scripts](https://github.com/Rich-Harris/degit/issues/6)
 
 
+## JavaScript API
+
+You can also use degit inside a Node script:
+
+```js
+const degit = require('degit');
+
+const emitter = degit('user/repo', {
+	cache: true,
+	force: true,
+	verbose: true
+});
+
+emitter.on('info', info => {
+	console.log(info.message);
+});
+
+emitter.clone('path/to/dest').then(() => {
+	console.log('done');
+});
+```
+
+
 ## See also
 
 * [zel](https://github.com/vutran/zel) by [Vu Tran](https://twitter.com/tranvu)

@@ -1,3 +1,5 @@
+require('source-map-support').install();
+
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
@@ -5,7 +7,8 @@ const rimraf = require('rimraf').sync;
 const assert = require('assert');
 const child_process = require('child_process');
 
-const degit = path.resolve('bin/index.js');
+const degit = require('../index.js');
+const degitPath = path.resolve('bin.js');
 
 function exec(cmd) {
 	return new Promise((fulfil, reject) => {
@@ -38,7 +41,7 @@ describe('degit', () => {
 			'https://github.com/Rich-Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
-				await exec(`node ${degit} ${src} .tmp/test-repo -v`);
+				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
 					'file.txt': 'hello from github!'
 				});
@@ -55,7 +58,7 @@ describe('degit', () => {
 			'https://gitlab.com/Rich-Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
-				await exec(`node ${degit} ${src} .tmp/test-repo -v`);
+				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
 					'file.txt': 'hello from gitlab!'
 				});
@@ -72,7 +75,7 @@ describe('degit', () => {
 			'https://bitbucket.org/Rich_Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
-				await exec(`node ${degit} ${src} .tmp/test-repo -v`);
+				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
 					'file.txt': 'hello from bitbucket'
 				});
@@ -85,7 +88,8 @@ describe('degit', () => {
 			let succeeded;
 
 			try {
-				await exec(`node ${degit} Rich-Harris/degit-test-repo .tmp/test-repo -v`);
+				await exec(`echo "not empty" > .tmp/test-repo/file.txt`);
+				await exec(`node ${degitPath} Rich-Harris/degit-test-repo .tmp/test-repo -v`);
 				succeeded = true;
 			} catch (err) {
 				assert.ok(/destination directory is not empty/.test(err.message));
@@ -95,7 +99,17 @@ describe('degit', () => {
 		});
 
 		it('succeeds with --force', async () => {
-			await exec(`node ${degit} Rich-Harris/degit-test-repo .tmp/test-repo -fv`);
+			await exec(`node ${degitPath} Rich-Harris/degit-test-repo .tmp/test-repo -fv`);
+		});
+	});
+
+	describe('api', () => {
+		it('is usable from node scripts', async () => {
+			await degit('Rich-Harris/degit-test-repo', { force: true }).clone('.tmp/test-repo');
+
+			compare(`.tmp/test-repo`, {
+				'file.txt': 'hello from github!'
+			});
 		});
 	});
 });

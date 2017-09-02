@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.0.0
+
+* Expose API for use in Node scripts ([#23](https://github.com/Rich-Harris/degit/issues/23))
+
 ## 1.2.2
 
 * Fix `files` in package.json

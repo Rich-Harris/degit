@@ -1,15 +1,18 @@
 {
   "name": "degit",
-  "version": "1.2.2",
+  "version": "2.0.0",
   "engines": {
     "node": ">=8.0.0"
   },
   "description": "Straightforward project scaffolding",
+  "main": "index.js",
   "bin": {
-    "degit": "bin/index.js"
+    "degit": "bin.js"
   },
   "scripts": {
-    "test": "mocha"
+    "build": "rollup -c",
+    "test": "mocha",
+    "pretest": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -38,9 +41,16 @@
     "glob": "^7.1.2",
     "mocha": "^3.4.2",
     "rimraf": "^2.6.1",
-    "sander": "^0.6.0"
+    "rollup": "^0.49.2",
+    "rollup-plugin-commonjs": "^8.2.0",
+    "rollup-plugin-typescript": "^0.8.1",
+    "sander": "^0.6.0",
+    "source-map-support": "^0.4.17",
+    "typescript": "^2.5.2"
   },
   "files": [
-    "bin"
+    "index.js",
+    "bin.js",
+    "help.md"
   ]
 }
