@@ -3,3 +3,5 @@ node_modules
 .tmp
 index.js*
 bin.js*
+!src/index.js
+!src/bin.js

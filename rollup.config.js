@@ -1,5 +1,3 @@
-import commonjs from 'rollup-plugin-commonjs';
-import typescript from 'rollup-plugin-typescript';
 import pkg from './package.json';
 
 export default [
@@ -11,10 +9,7 @@ export default [
 			format: 'cjs',
 			sourcemap: true
 		},
-		external: Object.keys(pkg.dependencies).concat(['fs', 'path', 'os']),
-		plugins: [
-			// commonjs()
-		]
+		external: Object.keys(pkg.dependencies).concat(['fs', 'path', 'os'])
 	},
 
 	/* bin.js */
