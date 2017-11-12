@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.0.1
+
+* Update node-tar for Node 9 compatibility
+
 ## 2.0.0
 
 * Expose API for use in Node scripts ([#23](https://github.com/Rich-Harris/degit/issues/23))
