@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import child_process from 'child_process';
+import URL from 'url';
+import httpsProxyAgent from 'https-proxy-agent';
 
 export class DegitError extends Error {
 	constructor(message, opts) {
@@ -44,14 +46,26 @@ export function mkdirp(dir) {
 	}
 }
 
-export function fetch(url, dest) {
+export function fetch(url, dest, proxy) {
 	return new Promise((fulfil, reject) => {
-		https.get(url, response => {
+
+		let options = url;
+
+		if (proxy) {
+			const parsedUrl = URL.parse(url);
+			options = {
+				hostname: parsedUrl.host,
+				path: parsedUrl.path,
+				agent: new httpsProxyAgent(proxy)
+			};
+		}
+
+		https.get(options, response => {
 			const code = response.statusCode;
 			if (code >= 400) {
 				reject({ code, message: response.statusMessage });
 			} else if (code >= 300) {
-				fetch(response.headers.location, dest).then(fulfil, reject);
+				fetch(response.headers.location, dest, proxy).then(fulfil, reject);
 			} else {
 				response.pipe(fs.createWriteStream(dest))
 					.on('finish', () => fulfil())
