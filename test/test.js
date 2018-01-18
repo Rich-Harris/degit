@@ -103,6 +103,17 @@ describe('degit', () => {
 		});
 	});
 
+	describe('command line arguments', () => {
+		it('allows flags wherever', async () => {
+			await rimraf('.tmp');
+
+			await exec(`node ${degitPath} -v Rich-Harris/degit-test-repo .tmp/test-repo`);
+			compare(`.tmp/test-repo`, {
+				'file.txt': 'hello from github!'
+			});
+		});
+	});
+
 	describe('api', () => {
 		it('is usable from node scripts', async () => {
 			await degit('Rich-Harris/degit-test-repo', { force: true }).clone('.tmp/test-repo');
