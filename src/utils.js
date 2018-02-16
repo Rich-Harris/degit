@@ -3,6 +3,8 @@ import path from 'path';
 import https from 'https';
 import child_process from 'child_process';
 
+const tmpDirName = 'tmp';
+
 export class DegitError extends Error {
 	constructor(message, opts) {
 		super(message);
@@ -10,8 +12,11 @@ export class DegitError extends Error {
 	}
 }
 
-export function tryRequire(file) {
+export function tryRequire(file, opts) {
 	try {
+		if (opts && opts.clearCache === true) {
+			delete require.cache[require.resolve(file)];
+		}
 		return require(file);
 	} catch (err) {
 		return null;
@@ -59,4 +64,28 @@ export function fetch(url, dest) {
 			}
 		}).on('error', reject);
 	});
+}
+
+// TODO, move folders, too
+export function stashFiles(dir, dest) {
+	const tmpDir = path.join(dir, tmpDirName);
+	mkdirp(tmpDir);
+	fs.readdirSync(dest).forEach(file => {
+		fs.copyFileSync(file, path.join(tmpDir, file));
+		fs.unlinkSync(file);
+	});
+}
+
+// TODO, move folders, too
+export function unstashFiles(dir, dest) {
+	const tmpDir = path.join(dir, tmpDirName);
+	fs.readdirSync(tmpDir).forEach(filename => {
+		const tmpFile = path.join(tmpDir, filename);
+		if (filename !== 'degit.json') {
+			const file = path.join(dest, filename);
+			fs.copyFileSync(tmpFile, file);
+		}
+		fs.unlinkSync(tmpFile);
+	});
+	fs.rmdirSync(tmpDir);
 }

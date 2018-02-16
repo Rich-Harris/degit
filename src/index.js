@@ -3,7 +3,8 @@ import path from 'path';
 import homeOrTmp from 'home-or-tmp';
 import tar from 'tar';
 import EventEmitter from 'events';
-import { DegitError, exec, fetch, mkdirp, tryRequire } from './utils';
+import chalk from 'chalk';
+import { DegitError, exec, fetch, mkdirp, tryRequire, stashFiles, unstashFiles } from './utils';
 
 const base = path.join(homeOrTmp, '.degit');
 
@@ -21,6 +22,20 @@ class Degit extends EventEmitter {
 		this.verbose = opts.verbose;
 
 		this.repo = parse(src);
+
+		this.directiveActions = {
+			clone: (dest, list) => {
+				for (const item of list) {
+					const d = degit(item.src, item.opts);
+					d.clone(dest)
+						.catch(err => {
+							console.error(chalk.red(`! ${err.message}`));
+							process.exit(1);
+						});
+				}
+			},
+			remove: this.remove
+		};
 	}
 
 	async clone(dest) {
@@ -92,6 +107,24 @@ class Degit extends EventEmitter {
 			repo,
 			dest
 		});
+
+		// TODO, put the config file into a parameter or stored somewhere better
+		const directives = tryRequire(path.resolve(dest, 'degit.json'), {clearCache: true}) || false;
+		if (directives) {
+			stashFiles(dir, dest);
+			// TODO, timing here is not correct, items in this loop need to run synchronously
+			for (const d of directives) {
+				this.directiveActions[d.action](dest, d.values);
+			}
+			unstashFiles(dir, dest);
+		}
+	}
+
+	// TODO, remove folders, too
+	remove(dest, files) {
+		files.map(file => {
+	    fs.unlinkSync(path.resolve(dest, file));
+	  });
 	}
 
 	_checkDirIsEmpty(dir) {
