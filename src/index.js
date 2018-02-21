@@ -24,17 +24,26 @@ class Degit extends EventEmitter {
 		this.repo = parse(src);
 
 		this.directiveActions = {
-			clone: (dest, list) => {
+			clone: async (dest, list) => {
 				for (const item of list) {
 					const d = degit(item.src, item.opts);
-					d.clone(dest)
+
+					d.on('info', event => {
+						console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
+					});
+
+					d.on('warn', event => {
+						console.error(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
+					});
+
+					await d.clone(dest)
 						.catch(err => {
 							console.error(chalk.red(`! ${err.message}`));
 							process.exit(1);
 						});
 				}
 			},
-			remove: this.remove
+			remove: this.remove.bind(this)
 		};
 	}
 
@@ -103,7 +112,7 @@ class Degit extends EventEmitter {
 
 		this._info({
 			code: 'SUCCESS',
-			message: `cloned ${repo.user}/${repo.name}#${repo.ref}${dest !== '.' ? ` to ${dest}` : ''}`,
+			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
 			repo,
 			dest
 		});
@@ -112,9 +121,8 @@ class Degit extends EventEmitter {
 		const directives = tryRequire(path.resolve(dest, 'degit.json'), {clearCache: true}) || false;
 		if (directives) {
 			stashFiles(dir, dest);
-			// TODO, timing here is not correct, items in this loop need to run synchronously
 			for (const d of directives) {
-				this.directiveActions[d.action](dest, d.values);
+				await this.directiveActions[d.action](dest, d.values);
 			}
 			unstashFiles(dir, dest);
 		}
@@ -123,8 +131,21 @@ class Degit extends EventEmitter {
 	// TODO, remove folders, too
 	remove(dest, files) {
 		files.map(file => {
-	    fs.unlinkSync(path.resolve(dest, file));
+			const filePath = path.resolve(dest, file);
+			if (fs.existsSync(filePath)) {
+		    fs.unlinkSync(filePath);
+			} else {
+				this._warn({
+					code: 'FILE_DOES_NOT_EXIST',
+					message: `action wants to remove ${chalk.bold(file)} but it does not exist`
+				});
+			}
 	  });
+	  this._info({
+			code: 'REMOVED',
+			message: `removed file${files.length > 1 ? 's' : ''}: ${chalk.bold(files.map(d => chalk.bold(d)).join(', '))}`
+	  });
+
 	}
 
 	_checkDirIsEmpty(dir) {
@@ -154,6 +175,10 @@ class Degit extends EventEmitter {
 
 	_info(info) {
 		this.emit('info', info);
+	}
+
+	_warn(info) {
+		this.emit('warn', info);
 	}
 
 	_verbose(info) {

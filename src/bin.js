@@ -29,6 +29,10 @@ if (args.help || !src) {
 		console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
 	});
 
+	d.on('warn', event => {
+		console.error(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
+	});
+
 	d.clone(dest)
 		// .then(() => {
 
