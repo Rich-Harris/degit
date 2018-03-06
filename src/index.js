@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import homeOrTmp from 'home-or-tmp';
 import tar from 'tar';
+import git from 'nodegit';
 import EventEmitter from 'events';
 import { DegitError, exec, fetch, mkdirp, tryRequire } from './utils';
 
@@ -21,6 +22,7 @@ class Degit extends EventEmitter {
 		this.verbose = opts.verbose;
 
 		this.repo = parse(src);
+		this.mode = opts.mode || this.repo.mode;
 	}
 
 	async clone(dest) {
@@ -28,70 +30,112 @@ class Degit extends EventEmitter {
 
 		const repo = this.repo;
 
-		const dir = path.join(base, repo.site, repo.user, repo.name);
-		const cached = tryRequire(path.join(dir, 'map.json')) || {};
+		switch (this.mode) {
+			// TAR mode means we can get an archive of the repo. It's much
+			// quicker, but can't handle all cases
+			case 'tar': {
+			const dir = path.join(base, repo.site, repo.user, repo.name);
+			const cached = tryRequire(path.join(dir, 'map.json')) || {};
 
-		const hash = this.cache ?
-			this._getHashFromCache(repo, cached) :
-			await this._getHash(repo, cached);
+					const hash = this.cache ? this._getHashFromCache(repo, cached) : await this._getHash(repo, cached);
 
-		if (!hash) {
-			// TODO 'did you mean...?'
-			throw new DegitError(`could not find commit hash for ${repo.ref}`, {
-				code: 'MISSING_REF',
-				ref: repo.ref
+			if (!hash) {
+				// TODO 'did you mean...?'
+				throw new DegitError(`could not find commit hash for ${repo.ref}`, {
+					code: 'MISSING_REF',
+					ref: repo.ref
+				});
+			}
+
+			const file = `${dir}/${hash}.tar.gz`;
+			const url = (
+				repo.site === 'gitlab' ? `${repo.url}/repository/archive.tar.gz?ref=${hash}` :
+				repo.site === 'bitbucket' ? `${repo.url}/get/${hash}.tar.gz` :
+				`${repo.url}/archive/${hash}.tar.gz`
+			);
+
+			try {
+				if (!this.cache) {
+					try {
+						fs.statSync(file);
+						this._verbose({
+							code: 'FILE_EXISTS',
+							message: `${file} already exists locally`
+						});
+					} catch (err) {
+						mkdirp(path.dirname(file));
+						this._verbose({
+							code: 'DOWNLOADING',
+							message: `downloading ${url} to ${file}`
+						});
+
+						await fetch(url, file);
+					}
+				}
+			} catch (err) {
+				throw new DegitError(`could not download ${url}`, {
+					code: 'COULD_NOT_DOWNLOAD',
+					url,
+					original: err
+				});
+			}
+
+			updateCache(dir, repo, hash, cached);
+
+			this._verbose({
+				code: 'EXTRACTING',
+				message: `extracting ${file} to ${dest}`
 			});
-		}
 
-		const file = `${dir}/${hash}.tar.gz`;
-		const url = (
-			repo.site === 'gitlab' ? `${repo.url}/repository/archive.tar.gz?ref=${hash}` :
-			repo.site === 'bitbucket' ? `${repo.url}/get/${hash}.tar.gz` :
-			`${repo.url}/archive/${hash}.tar.gz`
-		);
+			mkdirp(dest);
+			await untar(file, dest);
 
-		try {
-			if (!this.cache) {
+			this._info({
+				code: 'SUCCESS',
+				message: `cloned ${repo.user}/${repo.name}#${repo.ref}${dest !== '.' ? ` to ${dest}` : ''}`,
+				repo,
+				dest
+			});
+
+			break;
+	}
+			// GIT mode means we lack a straightforward way to get an archive
+			// of the repo, so we'll just clone the repo and then clear away git
+			default:
+			case 'git': {
 				try {
-					fs.statSync(file);
-					this._verbose({
-						code: 'FILE_EXISTS',
-						message: `${file} already exists locally`
+					await git.Clone(repo.src, dest, {
+						fetchOpts: {
+							callbacks: {
+								certificateCheck() {
+									// github will fail cert check on some OSX machines
+									// this overrides that check
+									return 1;
+								},
+								credentials(url, username) {
+									return git.Cred.sshKeyFromAgent(username);
+								}
+							}
+						}
 					});
 				} catch (err) {
-					mkdirp(path.dirname(file));
-					this._verbose({
-						code: 'DOWNLOADING',
-						message: `downloading ${url} to ${file}`
+					throw new DegitError(`could not clone repository ${repo.src}`, {
+						CODE: 'CLONE_FAILURE',
+						src: repo.src,
+						original: err
 					});
-
-					await fetch(url, file);
 				}
+
+				await exec(`rm -rf ${path.resolve(dest, '.git')}`);
+
+				this._info({
+					code: 'SUCCESS',
+					message: `cloned ${repo.src} ${dest !== '.' ? `to ${dest}` : ''}`,
+					repo,
+					dest
+				});
 			}
-		} catch (err) {
-			throw new DegitError(`could not download ${url}`, {
-				code: 'COULD_NOT_DOWNLOAD',
-				url,
-				original: err
-			});
 		}
-
-		updateCache(dir, repo, hash, cached);
-
-		this._verbose({
-			code: 'EXTRACTING',
-			message: `extracting ${file} to ${dest}`
-		});
-
-		mkdirp(dest);
-		await untar(file, dest);
-
-		this._info({
-			code: 'SUCCESS',
-			message: `cloned ${repo.user}/${repo.name}#${repo.ref}${dest !== '.' ? ` to ${dest}` : ''}`,
-			repo,
-			dest
-		});
 	}
 
 	_checkDirIsEmpty(dir) {
@@ -177,11 +221,8 @@ function parse(src) {
 	}
 
 	const site = (match[1] || match[2] || match[3] || 'github').replace(/\.(com|org)$/, '');
-	if (!supported.has(site)) {
-		throw new DegitError(`degit supports GitHub, GitLab and BitBucket`, {
-			code: 'UNSUPPORTED_HOST'
-		});
-	}
+
+	const mode = supported.has(site) ? 'tar' : 'git';
 
 	const user = match[4];
 	const name = match[5].replace(/\.git$/, '');
@@ -189,7 +230,7 @@ function parse(src) {
 
 	const url = `https://${site}.${site === 'bitbucket' ? 'org' : 'com'}/${user}/${name}`;
 
-	return { site, user, name, ref, url };
+	return { site, user, name, ref, url, mode, src };
 }
 
 async function untar(file, dest) {
@@ -203,7 +244,10 @@ async function untar(file, dest) {
 async function fetchRefs(repo) {
 	const { stdout } = await exec(`git ls-remote ${repo.url}`);
 
-	return stdout.split('\n').filter(Boolean).map(row => {
+	return stdout
+		.split('\n')
+		.filter(Boolean)
+		.map(row => {
 		const [hash, ref] = row.split('\t');
 
 		if (ref === 'HEAD') {
@@ -217,11 +261,7 @@ async function fetchRefs(repo) {
 		if (!match) throw new DegitError(`could not parse ${ref}`, { code: 'BAD_REF' });
 
 		return {
-			type: (
-				match[1] === 'heads' ? 'branch' :
-				match[1] === 'refs' ? 'ref' :
-				match[1]
-			),
+				type: match[1] === 'heads' ? 'branch' : match[1] === 'refs' ? 'ref' : match[1],
 			name: match[2],
 			hash
 		};

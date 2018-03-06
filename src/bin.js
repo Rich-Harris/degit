@@ -8,7 +8,8 @@ const args = mri(process.argv.slice(2), {
 	alias: {
 		f: 'force',
 		c: 'cache',
-		v: 'verbose'
+		v: 'verbose',
+		m: 'mode',
 	},
 	boolean: ['force', 'cache', 'verbose']
 });

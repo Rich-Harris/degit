@@ -33,6 +33,7 @@
     "chalk": "^2.0.1",
     "home-or-tmp": "^3.0.0",
     "mri": "^1.1.0",
+    "nodegit": "^0.21.1",
     "tar": "^4.0.2"
   },
   "devDependencies": {

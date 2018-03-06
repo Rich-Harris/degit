@@ -123,6 +123,17 @@ describe('degit', () => {
 			});
 		});
 	});
+
+	describe('git mode', () => {
+		it('is able to clone correctly using git mode', async () => {
+			await rimraf('.tmp');
+
+			await exec(`node ${degitPath} --mode=git git@github.com:Rich-Harris/degit-test-repo.git .tmp/test-repo`);
+			compare('.tmp/test-repo', {
+				'file.txt': 'hello from github!'
+			});
+		});
+	});
 });
 
 function read(file) {
