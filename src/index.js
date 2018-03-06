@@ -244,10 +244,7 @@ async function untar(file, dest) {
 async function fetchRefs(repo) {
 	const { stdout } = await exec(`git ls-remote ${repo.url}`);
 
-	return stdout
-		.split('\n')
-		.filter(Boolean)
-		.map(row => {
+	return stdout.split('\n').filter(Boolean).map(row => {
 		const [hash, ref] = row.split('\t');
 
 		if (ref === 'HEAD') {
@@ -261,7 +258,11 @@ async function fetchRefs(repo) {
 		if (!match) throw new DegitError(`could not parse ${ref}`, { code: 'BAD_REF' });
 
 		return {
-				type: match[1] === 'heads' ? 'branch' : match[1] === 'refs' ? 'ref' : match[1],
+			type: (
+				match[1] === 'heads' ? 'branch' :
+				match[1] === 'refs' ? 'ref' :
+				match[1]
+			),
 			name: match[2],
 			hash
 		};
