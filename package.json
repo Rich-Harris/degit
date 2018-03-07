@@ -10,6 +10,7 @@
     "degit": "bin.js"
   },
   "scripts": {
+    "dev": "npm run build -- --watch",
     "build": "rollup -c",
     "test": "mocha",
     "pretest": "npm run build"
