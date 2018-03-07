@@ -2,8 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import child_process from 'child_process';
+import { rimrafSync, copydirSync } from 'sander';
 
 const tmpDirName = 'tmp';
+const degitConfigName = 'degit.json';
+
+export {degitConfigName};
 
 export class DegitError extends Error {
 	constructor(message, opts) {
@@ -66,26 +70,37 @@ export function fetch(url, dest) {
 	});
 }
 
-// TODO, move folders, too
 export function stashFiles(dir, dest) {
 	const tmpDir = path.join(dir, tmpDirName);
 	mkdirp(tmpDir);
 	fs.readdirSync(dest).forEach(file => {
-		fs.copyFileSync(file, path.join(tmpDir, file));
-		fs.unlinkSync(file);
+		const targetPath = path.join(tmpDir, file);
+		const isDir = fs.lstatSync(file).isDirectory();
+		if (isDir) {
+			copydirSync(file).to(targetPath);
+			rimrafSync(file);
+		} else {
+			fs.copyFileSync(file, targetPath);
+			fs.unlinkSync(file);
+		}
 	});
 }
 
-// TODO, move folders, too
 export function unstashFiles(dir, dest) {
 	const tmpDir = path.join(dir, tmpDirName);
 	fs.readdirSync(tmpDir).forEach(filename => {
 		const tmpFile = path.join(tmpDir, filename);
-		if (filename !== 'degit.json') {
-			const file = path.join(dest, filename);
-			fs.copyFileSync(tmpFile, file);
+		const targetPath = path.join(dest, filename);
+		const isDir = fs.lstatSync(tmpFile).isDirectory();
+		if (isDir) {
+			copydirSync(tmpFile).to(targetPath);
+			rimrafSync(tmpFile);
+		} else {
+			if (filename !== 'degit.json') {
+				fs.copyFileSync(tmpFile, targetPath);
+			}
+			fs.unlinkSync(tmpFile);
 		}
-		fs.unlinkSync(tmpFile);
 	});
-	fs.rmdirSync(tmpDir);
+	rimrafSync(tmpDir);
 }

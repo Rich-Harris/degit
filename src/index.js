@@ -4,11 +4,10 @@ import homeOrTmp from 'home-or-tmp';
 import tar from 'tar';
 import EventEmitter from 'events';
 import chalk from 'chalk';
-import {rimrafSync} from 'sander';
-import { DegitError, exec, fetch, mkdirp, tryRequire, stashFiles, unstashFiles } from './utils';
+import { rimrafSync } from 'sander';
+import { DegitError, exec, fetch, mkdirp, tryRequire, stashFiles, unstashFiles, degitConfigName } from './utils';
 
 const base = path.join(homeOrTmp, '.degit');
-const DEGIT_CONFIG = 'degit.json';
 
 export default function degit(src, opts) {
 	return new Degit(src, opts);
@@ -118,7 +117,7 @@ class Degit extends EventEmitter {
 			dest
 		});
 
-		const directives = tryRequire(path.resolve(dest, DEGIT_CONFIG), {clearCache: true}) || false;
+		const directives = tryRequire(path.resolve(dest, degitConfigName), {clearCache: true}) || false;
 		if (directives) {
 			stashFiles(dir, dest);
 			for (const d of directives) {
