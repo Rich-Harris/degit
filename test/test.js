@@ -125,6 +125,11 @@ describe('degit', () => {
 	});
 
 	describe('git mode', () => {
+		beforeEach(function() {
+			// this method is notably slower
+			this.timeout(750);
+		});
+
 		it('is able to clone correctly using git mode', async () => {
 			await rimraf('.tmp');
 
