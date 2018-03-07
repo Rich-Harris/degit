@@ -4,9 +4,11 @@ import homeOrTmp from 'home-or-tmp';
 import tar from 'tar';
 import EventEmitter from 'events';
 import chalk from 'chalk';
+import {rimrafSync} from 'sander';
 import { DegitError, exec, fetch, mkdirp, tryRequire, stashFiles, unstashFiles } from './utils';
 
 const base = path.join(homeOrTmp, '.degit');
+const DEGIT_CONFIG = 'degit.json';
 
 export default function degit(src, opts) {
 	return new Degit(src, opts);
@@ -116,34 +118,41 @@ class Degit extends EventEmitter {
 			dest
 		});
 
-		// TODO, put the config file into a parameter or stored somewhere better
-		const directives = tryRequire(path.resolve(dest, 'degit.json'), {clearCache: true}) || false;
+		const directives = tryRequire(path.resolve(dest, DEGIT_CONFIG), {clearCache: true}) || false;
 		if (directives) {
 			stashFiles(dir, dest);
 			for (const d of directives) {
+        // TODO, can this be a loop with an index to pass for better error messages?
 				await this.directiveActions[d.action](dest, d);
 			}
 			unstashFiles(dir, dest);
 		}
 	}
 
-	// TODO, remove folders, too
 	remove(dest, action) {
     const files = action.files;
-		files.map(file => {
+		const removedFiles = files.map(file => {
 			const filePath = path.resolve(dest, file);
 			if (fs.existsSync(filePath)) {
-		    fs.unlinkSync(filePath);
+        const isDir = fs.lstatSync(filePath).isDirectory();
+        if (isDir) {
+          rimrafSync(filePath);
+          return file + '/';
+        } else {
+          fs.unlinkSync(filePath);
+          return file;
+        }
 			} else {
 				this._warn({
 					code: 'FILE_DOES_NOT_EXIST',
 					message: `action wants to remove ${chalk.bold(file)} but it does not exist`
 				});
+        return null;
 			}
-	  });
+	  }).filter(d => d);
 	  this._info({
 			code: 'REMOVED',
-			message: `removed file${files.length > 1 ? 's' : ''}: ${chalk.bold(files.map(d => chalk.bold(d)).join(', '))}`
+			message: `removed: ${chalk.bold(removedFiles.map(d => chalk.bold(d)).join(', '))}`
 	  });
 
 	}
