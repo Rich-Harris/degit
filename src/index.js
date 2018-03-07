@@ -24,24 +24,23 @@ class Degit extends EventEmitter {
 		this.repo = parse(src);
 
 		this.directiveActions = {
-			clone: async (dest, list) => {
-				for (const item of list) {
-					const d = degit(item.src, item.opts);
+			clone: async (dest, action) => {
+        const opts = Object.assign({force: true}, {cache: action.cache, verbose: action.verbose});
+				const d = degit(action.src, opts);
 
-					d.on('info', event => {
-						console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
+				d.on('info', event => {
+					console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
+				});
+
+				d.on('warn', event => {
+					console.error(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
+				});
+
+				await d.clone(dest)
+					.catch(err => {
+						console.error(chalk.red(`! ${err.message}`));
+						process.exit(1);
 					});
-
-					d.on('warn', event => {
-						console.error(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
-					});
-
-					await d.clone(dest)
-						.catch(err => {
-							console.error(chalk.red(`! ${err.message}`));
-							process.exit(1);
-						});
-				}
 			},
 			remove: this.remove.bind(this)
 		};
@@ -122,14 +121,15 @@ class Degit extends EventEmitter {
 		if (directives) {
 			stashFiles(dir, dest);
 			for (const d of directives) {
-				await this.directiveActions[d.action](dest, d.values);
+				await this.directiveActions[d.action](dest, d);
 			}
 			unstashFiles(dir, dest);
 		}
 	}
 
 	// TODO, remove folders, too
-	remove(dest, files) {
+	remove(dest, action) {
+    const files = action.files;
 		files.map(file => {
 			const filePath = path.resolve(dest, file);
 			if (fs.existsSync(filePath)) {
