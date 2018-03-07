@@ -22,6 +22,11 @@ function exec(cmd) {
 }
 
 describe('degit', () => {
+	beforeEach(function() {
+		// CI takes a while to churn through these.
+		this.timeout(7500);
+	});
+
 	function compare(dir, files) {
 		const expected = glob.sync('**', { cwd: dir });
 		assert.deepEqual(Object.keys(files).sort(), expected.sort());
@@ -125,11 +130,6 @@ describe('degit', () => {
 	});
 
 	describe('git mode', () => {
-		beforeEach(function() {
-			// this method is notably slower
-			this.timeout(750);
-		});
-
 		it('is able to clone correctly using git mode', async () => {
 			await rimraf('.tmp');
 
