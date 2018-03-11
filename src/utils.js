@@ -72,16 +72,18 @@ export function fetch(url, dest) {
 
 export function stashFiles(dir, dest) {
 	const tmpDir = path.join(dir, tmpDirName);
+	rimrafSync(tmpDir);
 	mkdirp(tmpDir);
 	fs.readdirSync(dest).forEach(file => {
+		const filePath = path.join(dest, file);
 		const targetPath = path.join(tmpDir, file);
-		const isDir = fs.lstatSync(file).isDirectory();
+		const isDir = fs.lstatSync(filePath).isDirectory();
 		if (isDir) {
-			copydirSync(file).to(targetPath);
-			rimrafSync(file);
+			copydirSync(filePath).to(targetPath);
+			rimrafSync(filePath);
 		} else {
-			fs.copyFileSync(file, targetPath);
-			fs.unlinkSync(file);
+			fs.copyFileSync(filePath, targetPath);
+			fs.unlinkSync(filePath);
 		}
 	});
 }

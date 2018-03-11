@@ -35,6 +35,7 @@ describe('degit', () => {
 		beforeEach(() => rimraf('.tmp'));
 
 		[
+			'mhkeller/degit-test-repo-compose',
 			'Rich-Harris/degit-test-repo',
 			'github:Rich-Harris/degit-test-repo',
 			'git@github.com:Rich-Harris/degit-test-repo',
