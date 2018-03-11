@@ -27,7 +27,9 @@ describe('degit', () => {
 		assert.deepEqual(Object.keys(files).sort(), expected.sort());
 
 		expected.forEach(file => {
-			assert.equal(files[file].trim(), read(`${dir}/${file}`).trim());
+			if (!fs.lstatSync(`${dir}/${file}`).isDirectory()) {
+				assert.equal(files[file].trim(), read(`${dir}/${file}`).trim());
+			}
 		});
 	}
 
@@ -121,6 +123,29 @@ describe('degit', () => {
 
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from github!'
+			});
+		});
+	});
+
+	describe('actions', () => {
+		it('removes specified files', async () => {
+			await rimraf('.tmp');
+
+			await exec(`node ${degitPath} -v mhkeller/degit-test-repo-remove .tmp/test-repo`);
+			compare(`.tmp/test-repo`, {
+				'other.txt': 'hello from github!'
+			});
+		});
+		it('removes and adds nested files', async function () {
+			this.timeout(5000);
+			await rimraf('.tmp');
+
+			await exec(`node ${degitPath} -v mhkeller/degit-test-repo-nested-actions .tmp/test-repo`);
+			compare(`.tmp/test-repo`, {
+				dir: '',
+				folder: '',
+				'folder/file.txt': 'hello from clobber file!',
+				'folder/other.txt': 'hello from other file!'
 			});
 		});
 	});

@@ -129,7 +129,10 @@ class Degit extends EventEmitter {
 	}
 
 	remove(dest, action) {
-    const files = action.files;
+    let files = action.files;
+    if (!Array.isArray(files)) {
+      files = [files];
+    }
 		const removedFiles = files.map(file => {
 			const filePath = path.resolve(dest, file);
 			if (fs.existsSync(filePath)) {
