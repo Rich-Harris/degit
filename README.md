@@ -82,6 +82,7 @@ A few salient differences:
 * If you `git clone`, you get a `.git` folder that pertains to the project template, rather than your project. You can easily forget to re-init the repository, and end up confusing yourself
 * Caching and offline support (if you already have a `.tar.gz` file for a specific commit, you don't need to fetch it again).
 * Less to type (`degit user/repo` instead of `git clone --depth 1 git@github.com:user/repo`)
+* Composability via [actions](#actions)
 * Future capabilities — [interactive mode](https://github.com/Rich-Harris/degit/issues/4), [friendly onboarding and postinstall scripts](https://github.com/Rich-Harris/degit/issues/6)
 
 
@@ -106,6 +107,41 @@ emitter.clone('path/to/dest').then(() => {
 	console.log('done');
 });
 ```
+
+
+## Actions
+
+You can manipulate repositories after they have been cloned with *actions*, specified in a `degit.json` file. Currently, there are two actions — `clone` and `remove`.
+
+### clone
+
+```js
+// degit.json
+[
+  {
+    "action": "clone",
+	"src": "user/another-repo"
+  }
+]
+```
+
+This will clone the contents of `user/another-repo` on top of the existing repo. The cloned repo can contain its own `degit.json` actions.
+
+### remove
+
+```js
+// degit.json
+[
+  {
+    "action": "remove",
+    "files": [
+      "LICENSE"
+    ]
+  }
+]
+```
+
+Additional actions may be added in future.
 
 
 ## See also

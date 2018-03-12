@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.1.0
+
+* Add actions ([#28](https://github.com/Rich-Harris/degit/pull/28))
+
 ## 2.0.2
 
 * Allow flags like `-v` before argument ([#25](https://github.com/Rich-Harris/degit/issues/25))
