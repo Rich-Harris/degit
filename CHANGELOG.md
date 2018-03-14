@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.1.1
+
+* Oops, managed to publish 2.1.0 without building
+
 ## 2.1.0
 
 * Add actions ([#28](https://github.com/Rich-Harris/degit/pull/28))
