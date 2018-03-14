@@ -72,7 +72,6 @@ export function fetch(url, dest) {
 
 export function stashFiles(dir, dest) {
 	const tmpDir = path.join(dir, tmpDirName);
-	console.log('tmpDir', tmpDir)
 	rimrafSync(tmpDir);
 	mkdirp(tmpDir);
 	fs.readdirSync(dest).forEach(file => {
