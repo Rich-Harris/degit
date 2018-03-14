@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.1.2
+
+* Remove `console.log`
+
 ## 2.1.1
 
 * Oops, managed to publish 2.1.0 without building
