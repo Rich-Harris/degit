@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.1.3
+
+* Install `sander` ([#34](https://github.com/Rich-Harris/degit/issues/34))
+
 ## 2.1.2
 
 * Remove `console.log`
