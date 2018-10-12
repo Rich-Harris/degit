@@ -40,6 +40,10 @@ export function exec(command) {
   });
 }
 
+export function execSync(cmd, dest) {
+  return child_process.execSync(cmd, { stdio: [0, 1, 2], cwd: dest });
+}
+
 export function mkdirp(dir) {
   const parent = path.dirname(dir);
   if (parent === dir) return;
@@ -109,3 +113,7 @@ export function unstashFiles(dir, dest) {
   });
   rimrafSync(tmpDir);
 }
+
+// shell: true needed for windows
+export const getInstaller = () =>
+  ['yarn', 'pnpm', 'npm'].find(client => !child_process.spawnSync(client, ['--version'], { shell: true }).error);

@@ -5,7 +5,18 @@ import tar from 'tar';
 import EventEmitter from 'events';
 import chalk from 'chalk';
 import { rimrafSync } from 'sander';
-import { DegitError, exec, fetch, mkdirp, tryRequire, stashFiles, unstashFiles, degitConfigName } from './utils';
+import {
+  DegitError,
+  exec,
+  fetch,
+  mkdirp,
+  tryRequire,
+  stashFiles,
+  unstashFiles,
+  degitConfigName,
+  getInstaller,
+  execSync
+} from './utils';
 
 const base = path.join(homeOrTmp, '.degit');
 
@@ -42,7 +53,8 @@ class Degit extends EventEmitter {
           process.exit(1);
         });
       },
-      remove: this.remove.bind(this)
+      remove: this.remove.bind(this),
+      install: this.install.bind(this)
     };
   }
 
@@ -126,6 +138,15 @@ class Degit extends EventEmitter {
       }
       unstashFiles(dir, dest);
     }
+  }
+
+  install(dest) {
+    const installer = getInstaller();
+    this._info({
+      code: 'INSTALLING',
+      message: `installing dependencies using ${installer}`
+    });
+    return execSync(`${installer} install`, dest);
   }
 
   remove(dest, action) {
