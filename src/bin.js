@@ -7,10 +7,11 @@ import degit from 'degit';
 const args = mri(process.argv.slice(2), {
 	alias: {
 		f: 'force',
+		m: 'force-merge',
 		c: 'cache',
 		v: 'verbose'
 	},
-	boolean: ['force', 'cache', 'verbose']
+	boolean: ['force', 'force-merge', 'cache', 'verbose']
 });
 
 const [src, dest = '.'] = args._;

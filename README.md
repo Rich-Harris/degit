@@ -95,7 +95,8 @@ const degit = require('degit');
 
 const emitter = degit('user/repo', {
 	cache: true,
-	force: true,
+  force: true,
+  'force-merge': true,
 	verbose: true
 });
 

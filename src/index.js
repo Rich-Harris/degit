@@ -6,6 +6,9 @@ import EventEmitter from 'events';
 import chalk from 'chalk';
 import { rimrafSync } from 'sander';
 import { DegitError, exec, fetch, mkdirp, tryRequire, stashFiles, unstashFiles, degitConfigName } from './utils';
+import mergePackageJson from 'merge-package.json';
+import getStream from 'get-stream';
+import toReadableStream from 'to-readable-stream';
 
 const base = path.join(homeOrTmp, '.degit');
 
@@ -19,14 +22,15 @@ class Degit extends EventEmitter {
 
 		this.src = src;
 		this.cache = opts.cache;
-		this.force = opts.force;
+		this.forceMerge = opts['force-merge'];
+		this.force = this.forceMerge || opts.force;
 		this.verbose = opts.verbose;
 
 		this.repo = parse(src);
 
 		this.directiveActions = {
 			clone: async (dest, action) => {
-        const opts = Object.assign({force: true}, {cache: action.cache, verbose: action.verbose});
+				const opts = Object.assign({ force: true }, { cache: action.cache, verbose: action.verbose });
 				const d = degit(action.src, opts);
 
 				d.on('info', event => {
@@ -70,8 +74,8 @@ class Degit extends EventEmitter {
 		const file = `${dir}/${hash}.tar.gz`;
 		const url = (
 			repo.site === 'gitlab' ? `${repo.url}/repository/archive.tar.gz?ref=${hash}` :
-			repo.site === 'bitbucket' ? `${repo.url}/get/${hash}.tar.gz` :
-			`${repo.url}/archive/${hash}.tar.gz`
+				repo.site === 'bitbucket' ? `${repo.url}/get/${hash}.tar.gz` :
+					`${repo.url}/archive/${hash}.tar.gz`
 		);
 
 		try {
@@ -108,7 +112,7 @@ class Degit extends EventEmitter {
 		});
 
 		mkdirp(dest);
-		await untar(file, dest);
+		await untar(file, dest, this.forceMerge);
 
 		this._info({
 			code: 'SUCCESS',
@@ -117,7 +121,7 @@ class Degit extends EventEmitter {
 			dest
 		});
 
-		const directives = tryRequire(path.resolve(dest, degitConfigName), {clearCache: true}) || false;
+		const directives = tryRequire(path.resolve(dest, degitConfigName), { clearCache: true }) || false;
 		if (directives) {
 			stashFiles(dir, dest);
 			for (const d of directives) {
@@ -129,10 +133,10 @@ class Degit extends EventEmitter {
 	}
 
 	remove(dest, action) {
-    let files = action.files;
-    if (!Array.isArray(files)) {
-      files = [files];
-    }
+		let files = action.files;
+		if (!Array.isArray(files)) {
+			files = [files];
+		}
 		const removedFiles = files.map(file => {
 			const filePath = path.resolve(dest, file);
 			if (fs.existsSync(filePath)) {
@@ -261,12 +265,27 @@ function parse(src) {
 	return { site, user, name, ref, url };
 }
 
-async function untar(file, dest) {
-	return tar.extract({
+async function untar(file, dest, forceMerge) {
+	const packagePath = forceMerge && path.resolve(dest, './package.json');
+	//todo check can read
+	const localPackageContent = forceMerge && fs.existsSync(packagePath) && fs.readFileSync(packagePath, 'utf-8');
+	let remotePackageStream = null;
+	await tar.extract({
 		file,
 		strip: 1,
-		C: dest
+		C: dest,
+		//@ts-ignore
+		transform: localPackageContent ? function (entry) {
+			if (entry.path === 'package.json' && entry.type === 'File') {
+				remotePackageStream = getStream(entry);
+				return toReadableStream('');
+			}
+			return false;
+		} : undefined
 	});
+	if (remotePackageStream) {
+		fs.writeFileSync(packagePath, mergePackageJson(localPackageContent, '{}' /*todo some base object?*/, await remotePackageStream));
+	}
 }
 
 async function fetchRefs(repo) {
@@ -288,8 +307,8 @@ async function fetchRefs(repo) {
 		return {
 			type: (
 				match[1] === 'heads' ? 'branch' :
-				match[1] === 'refs' ? 'ref' :
-				match[1]
+					match[1] === 'refs' ? 'ref' :
+						match[1]
 			),
 			name: match[2],
 			hash

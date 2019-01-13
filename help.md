@@ -37,9 +37,10 @@ unless the `--force` option is used.
 
 Options:
 
-  `--help`, `-h`     Show this message
-  `--cache`, `-c`    Only use local cache
-  `--force`, `-f`    Allow non-empty destination directory
-  `--verbose`, `-v`  Extra logging
+  `--help`, `-h`        Show this message
+  `--cache`, `-c`       Only use local cache
+  `--force`, `-f`       Allow non-empty destination directory
+  `--force-merge`, `-m` Like --force but with package.json merging in root
+  `--verbose`, `-v`     Extra logging
 
 See https://github.com/Rich-Harris/degit for more information
