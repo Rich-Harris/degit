@@ -120,7 +120,7 @@ You can manipulate repositories after they have been cloned with *actions*, spec
 [
   {
     "action": "clone",
-	"src": "user/another-repo"
+    "src": "user/another-repo"
   }
 ]
 ```
