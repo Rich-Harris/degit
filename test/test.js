@@ -128,7 +128,8 @@ describe('degit', () => {
 	});
 
 	describe('actions', () => {
-		it('removes specified files', async () => {
+		it('removes specified files', async function () {
+			this.timeout(5000);
 			await rimraf('.tmp');
 
 			await exec(`node ${degitPath} -v mhkeller/degit-test-repo-remove .tmp/test-repo`);
