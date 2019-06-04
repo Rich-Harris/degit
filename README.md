@@ -94,17 +94,17 @@ You can also use degit inside a Node script:
 const degit = require('degit');
 
 const emitter = degit('user/repo', {
-	cache: true,
-	force: true,
-	verbose: true
+  cache: true,
+  force: true,
+  verbose: true
 });
 
 emitter.on('info', info => {
-	console.log(info.message);
+  console.log(info.message);
 });
 
 emitter.clone('path/to/dest').then(() => {
-	console.log('done');
+  console.log('done');
 });
 ```
 

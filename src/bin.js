@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import mri from 'mri';
+// eslint-disable-next-line import/no-unresolved
 import degit from 'degit';
 
 const args = mri(process.argv.slice(2), {

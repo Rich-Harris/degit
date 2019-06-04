@@ -1,7 +1,5 @@
 .DS_Store
 node_modules
 .tmp
-index.js*
-bin.js*
-!src/index.js
-!src/bin.js
+/index.js*
+/bin.js*
