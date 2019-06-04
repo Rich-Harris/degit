@@ -33,6 +33,8 @@ describe('degit', () => {
 		});
 	}
 
+	after(async () => await rimraf('.tmp'));
+
 	describe('github', () => {
 		beforeEach(() => rimraf('.tmp'));
 
@@ -137,6 +139,7 @@ describe('degit', () => {
 				'other.txt': 'hello from github!'
 			});
 		});
+
 		it('removes and adds nested files', async function () {
 			this.timeout(5000);
 			await rimraf('.tmp');
