@@ -38,7 +38,7 @@ if (args.help || !src) {
 
 		// })
 		.catch(err => {
-			console.error(chalk.red(`! ${err.message}`));
+			console.error(chalk.red(`! ${err.message.replace('options.', '--')}`));
 			process.exit(1);
 		});
 }
