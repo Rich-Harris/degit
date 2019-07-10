@@ -201,6 +201,8 @@ class Degit extends EventEmitter {
 			const refs = await fetchRefs(repo);
 			return this._selectRef(refs, repo.ref);
 		} catch (err) {
+			this._warn(err);
+			this._verbose(err.original);
 			return this._getHashFromCache(repo, cached);
 		}
 	}
@@ -270,7 +272,13 @@ async function untar(file, dest) {
 }
 
 async function fetchRefs(repo) {
-	const { stdout } = await exec(`git ls-remote ${repo.url}`);
+	const { stdout } = await exec(`git ls-remote ${repo.url}`).catch(err => {
+		throw new DegitError(`could not fetch remote ${repo.url}`, {
+			code: 'COULD_NOT_FETCH',
+			url: repo.url,
+			original: err
+		});
+	});
 
 	return stdout.split('\n').filter(Boolean).map(row => {
 		const [hash, ref] = row.split('\t');
