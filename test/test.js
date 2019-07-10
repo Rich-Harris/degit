@@ -21,7 +21,9 @@ function exec(cmd) {
 	});
 }
 
-describe('degit', () => {
+describe('degit', function() {
+	this.timeout(5000)
+
 	function compare(dir, files) {
 		const expected = glob.sync('**', { cwd: dir });
 		assert.deepEqual(Object.keys(files).sort(), expected.sort());
@@ -137,7 +139,6 @@ describe('degit', () => {
 			});
 		});
 		it('removes and adds nested files', async function () {
-			this.timeout(5000);
 			await rimraf('.tmp');
 
 			await exec(`node ${degitPath} -v mhkeller/degit-test-repo-nested-actions .tmp/test-repo`);
