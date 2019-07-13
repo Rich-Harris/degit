@@ -115,9 +115,11 @@ class Degit extends EventEmitter {
 						message: `downloading ${repo.url} to ${file}`,
 					});
 
-					await exec(`git clone --depth 1 ${repo.url} ${file}`);
-					await exec(`cd ${file} && git checkout ${hash}`);
-					rimrafSync(`${file}/.git`);
+          await exec(`git clone --depth 1 ${repo.url} ${file}`);
+          await exec(
+            `cd ${file} && git fetch origin ${hash} && git checkout ${hash}`
+          );
+          rimrafSync(`${file}/.git`);
 				}
 			}
 		} catch (err) {
