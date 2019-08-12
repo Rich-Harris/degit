@@ -26,7 +26,7 @@ class Degit extends EventEmitter {
 
 		this.directiveActions = {
 			clone: async (dest, action) => {
-        const opts = Object.assign({force: true}, {cache: action.cache, verbose: action.verbose});
+				const opts = Object.assign({force: true}, {cache: action.cache, verbose: action.verbose});
 				const d = degit(action.src, opts);
 
 				d.on('info', event => {
@@ -129,10 +129,10 @@ class Degit extends EventEmitter {
 	}
 
 	remove(dest, action) {
-    let files = action.files;
-    if (!Array.isArray(files)) {
-      files = [files];
-    }
+		let files = action.files;
+		if (!Array.isArray(files)) {
+			files = [files];
+		}
 		const removedFiles = files.map(file => {
 			const filePath = path.resolve(dest, file);
 			if (fs.existsSync(filePath)) {

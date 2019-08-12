@@ -10,6 +10,7 @@
     "degit": "bin.js"
   },
   "scripts": {
+    "lint": "eslint .",
     "dev": "npm run build -- --watch",
     "build": "rollup -c",
     "test": "mocha",
@@ -32,23 +33,23 @@
   },
   "homepage": "https://github.com/Rich-Harris/degit#readme",
   "dependencies": {
-    "chalk": "^2.0.1",
+    "chalk": "^2.4.2",
     "home-or-tmp": "^3.0.0",
-    "mri": "^1.1.0",
+    "mri": "^1.1.4",
     "sander": "^0.6.0",
-    "tar": "^4.0.2"
+    "tar": "^4.4.9"
   },
   "devDependencies": {
-    "eslint": "^4.3.0",
-    "eslint-plugin-import": "^2.7.0",
-    "glob": "^7.1.2",
-    "mocha": "^4.0.1",
-    "rimraf": "^2.6.1",
-    "rollup": "^0.51.5",
-    "rollup-plugin-commonjs": "^8.2.0",
-    "rollup-plugin-typescript": "^0.8.1",
-    "source-map-support": "^0.5.0",
-    "typescript": "^2.5.2"
+    "eslint": "^5.16.0",
+    "eslint-plugin-import": "^2.17.3",
+    "glob": "^7.1.4",
+    "mocha": "^6.1.4",
+    "rimraf": "^2.6.3",
+    "rollup": "^1.13.1",
+    "rollup-plugin-commonjs": "^10.0.0",
+    "rollup-plugin-typescript": "^1.0.1",
+    "source-map-support": "^0.5.12",
+    "typescript": "^3.5.1"
   },
   "files": [
     "index.js",

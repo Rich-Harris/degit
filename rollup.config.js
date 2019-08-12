@@ -1,3 +1,4 @@
+import { builtinModules } from 'module';
 import pkg from './package.json';
 
 export default [
@@ -9,7 +10,7 @@ export default [
 			format: 'cjs',
 			sourcemap: true
 		},
-		external: Object.keys(pkg.dependencies).concat(['fs', 'path', 'os'])
+		external: Object.keys(pkg.dependencies).concat(builtinModules)
 	},
 
 	/* bin.js */
@@ -24,6 +25,6 @@ export default [
 			},
 			sourcemap: true
 		},
-		external: Object.keys(pkg.dependencies).concat(['fs', 'path', 'os'])
+		external: Object.keys(pkg.dependencies).concat(builtinModules, ['degit'])
 	}
 ];

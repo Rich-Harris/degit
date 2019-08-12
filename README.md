@@ -1,5 +1,7 @@
 # degit — straightforward project scaffolding
 
+[![Travis CI build status](https://badgen.net/travis/Rich-Harris/degit/master)](https://travis-ci.org/Rich-Harris/degit) [![AppVeyor build status](https://badgen.net/appveyor/ci/Rich-Harris/degit/master)](https://ci.appveyor.com/project/Rich-Harris/degit/branch/master)  [![install size](https://badgen.net/packagephobia/install/degit)](https://packagephobia.now.sh/result?p=degit) [![npm package version](https://badgen.net/npm/v/degit)](https://npm.im/degit)
+
 **degit** makes copies of git repositories. When you run `degit some-user/some-repo`, it will find the latest commit on https://github.com/some-user/some-repo and download the associated tar file to `~/.degit/some-user/some-repo/commithash.tar.gz` if it doesn't already exist locally. (This is much quicker than using `git clone`, because you're not downloading the entire git history.)
 
 *Requires Node 8 or above, because `async` and `await` are the cat's pyjamas*
@@ -94,17 +96,17 @@ You can also use degit inside a Node script:
 const degit = require('degit');
 
 const emitter = degit('user/repo', {
-	cache: true,
-	force: true,
-	verbose: true
+  cache: true,
+  force: true,
+  verbose: true
 });
 
 emitter.on('info', info => {
-	console.log(info.message);
+  console.log(info.message);
 });
 
 emitter.clone('path/to/dest').then(() => {
-	console.log('done');
+  console.log('done');
 });
 ```
 
