@@ -46,7 +46,7 @@
     "mocha": "6.2.0",
     "rimraf": "2.6.3",
     "rollup": "1.19.4",
-    "rollup-plugin-commonjs": "10.0.0",
+    "rollup-plugin-commonjs": "10.0.2",
     "rollup-plugin-typescript": "1.0.1",
     "source-map-support": "0.5.12",
     "typescript": "3.5.3"
