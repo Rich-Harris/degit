@@ -10,6 +10,8 @@ const child_process = require("child_process");
 const degit = require("../index.js");
 const degitPath = path.resolve("bin.js");
 
+const timeout = 30000;
+
 function exec(cmd) {
 	return new Promise((fulfil, reject) => {
 		child_process.exec(cmd, (err, stdout, stderr) => {
@@ -22,7 +24,7 @@ function exec(cmd) {
 }
 
 describe("degit", function() {
-	this.timeout(10000);
+	this.timeout(timeout);
 
 	function compare(dir, files) {
 		const expected = glob.sync("**", { cwd: dir });
