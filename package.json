@@ -57,5 +57,20 @@
     "index.js",
     "bin.js",
     "help.md"
-  ]
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js}": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.{js, json, yml, md}": [
+      "prettier --write",
+      "git add"
+    ]
+  }
 }
