@@ -84,8 +84,6 @@ class Degit extends EventEmitter {
     }
 
     async clone(dest) {
-        // Grab a directive file, if it exists then get rid of it
-        const directives = this._getDirectives(dest);
         this._checkDirIsEmpty(dest);
 
         const repo = this.repo;
@@ -158,9 +156,9 @@ class Degit extends EventEmitter {
             dest,
         });
 
-        const newDirectives = directives || this._getDirectives(dest);
-        if (newDirectives) {
-            for (const d of newDirectives) {
+        const directives = this._getDirectives(dest);
+        if (directives) {
+            for (const d of directives) {
                 // TODO, can this be a loop with an index to pass for better error messages?
                 await this.directiveActions[d.action](dir, dest, d);
             }
