@@ -2,6 +2,7 @@
 
 [![Travis CI build status](https://badgen.net/travis/Rich-Harris/degit/master)](https://travis-ci.org/Rich-Harris/degit)
 [![AppVeyor build status](https://badgen.net/appveyor/ci/Rich-Harris/degit/master)](https://ci.appveyor.com/project/Rich-Harris/degit/branch/master)
+[![Known Vulnerabilities](https://snyk.io/test/npm/degit/badge.svg)](https://snyk.io/test/npm/degit)
 [![install size](https://badgen.net/packagephobia/install/degit)](https://packagephobia.now.sh/result?p=degit)
 [![npm package version](https://badgen.net/npm/v/degit)](https://npm.im/degit)
 
