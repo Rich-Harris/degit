@@ -71,7 +71,7 @@ degit --help
 
 ## Not supported
 
-- Private repositories
+-   Private repositories
 
 Pull requests are very welcome!
 
@@ -79,31 +79,31 @@ Pull requests are very welcome!
 
 A few salient differences:
 
-- If you `git clone`, you get a `.git` folder that pertains to the project template, rather than your project. You can easily forget to re-init the repository, and end up confusing yourself
-- Caching and offline support (if you already have a `.tar.gz` file for a specific commit, you don't need to fetch it again).
-- Less to type (`degit user/repo` instead of `git clone --depth 1 git@github.com:user/repo`)
-- Composability via [actions](#actions)
-- Future capabilities — [interactive mode](https://github.com/Rich-Harris/degit/issues/4), [friendly onboarding and postinstall scripts](https://github.com/Rich-Harris/degit/issues/6)
+-   If you `git clone`, you get a `.git` folder that pertains to the project template, rather than your project. You can easily forget to re-init the repository, and end up confusing yourself
+-   Caching and offline support (if you already have a `.tar.gz` file for a specific commit, you don't need to fetch it again).
+-   Less to type (`degit user/repo` instead of `git clone --depth 1 git@github.com:user/repo`)
+-   Composability via [actions](#actions)
+-   Future capabilities — [interactive mode](https://github.com/Rich-Harris/degit/issues/4), [friendly onboarding and postinstall scripts](https://github.com/Rich-Harris/degit/issues/6)
 
 ## JavaScript API
 
 You can also use degit inside a Node script:
 
 ```js
-const degit = require("degit");
+const degit = require('degit');
 
-const emitter = degit("user/repo", {
-  cache: true,
-  force: true,
-  verbose: true
+const emitter = degit('user/repo', {
+	cache: true,
+	force: true,
+	verbose: true,
 });
 
-emitter.on("info", info => {
-  console.log(info.message);
+emitter.on('info', info => {
+	console.log(info.message);
 });
 
-emitter.clone("path/to/dest").then(() => {
-  console.log("done");
+emitter.clone('path/to/dest').then(() => {
+	console.log('done');
 });
 ```
 
@@ -116,10 +116,10 @@ You can manipulate repositories after they have been cloned with _actions_, spec
 ```js
 // degit.json
 [
-  {
-    action: "clone",
-    src: "user/another-repo"
-  }
+	{
+		action: 'clone',
+		src: 'user/another-repo',
+	},
 ];
 ```
 
@@ -130,10 +130,10 @@ This will clone the contents of `user/another-repo` on top of the existing repo.
 ```js
 // degit.json
 [
-  {
-    action: "remove",
-    files: ["LICENSE"]
-  }
+	{
+		action: 'remove',
+		files: ['LICENSE'],
+	},
 ];
 ```
 
@@ -141,8 +141,8 @@ Additional actions may be added in future.
 
 ## See also
 
-- [zel](https://github.com/vutran/zel) by [Vu Tran](https://twitter.com/tranvu)
-- [gittar](https://github.com/lukeed/gittar) by [Luke Edwards](https://twitter.com/lukeed05)
+-   [zel](https://github.com/vutran/zel) by [Vu Tran](https://twitter.com/tranvu)
+-   [gittar](https://github.com/lukeed/gittar) by [Luke Edwards](https://twitter.com/lukeed05)
 
 ## License
 
