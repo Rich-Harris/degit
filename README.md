@@ -109,35 +109,35 @@ emitter.clone('path/to/dest').then(() => {
 
 ## Actions
 
-You can manipulate repositories after they have been cloned with _actions_, specified in a `degit.json` file. Currently, there are two actions — `clone` and `remove`.
+You can manipulate repositories after they have been cloned with _actions_, specified in a `degit.json` file that lives at the top level of the working directory. Currently, there are two actions — `clone` and `remove`. Additional actions may be added in future.
 
 ### clone
 
-```js
+```json
 // degit.json
 [
 	{
-		action: 'clone',
-		src: 'user/another-repo',
-	},
-];
+		"action": "clone",
+		"src": "user/another-repo"
+	}
+]
 ```
 
-This will clone the contents of `user/another-repo` on top of the existing repo. The cloned repo can contain its own `degit.json` actions.
+This will clone `user/another-repo`, preserving the contents of the existing working directory. This allows you to, say, add a new README.md or starter file to a repo that you do not control. The cloned repo can contain its own `degit.json` actions.
 
 ### remove
 
-```js
+```json
 // degit.json
 [
 	{
-		action: 'remove',
-		files: ['LICENSE'],
-	},
-];
+		"action": "remove",
+		"files": ["LICENSE"]
+	}
+]
 ```
 
-Additional actions may be added in future.
+Remove a file at the specified path.
 
 ## See also
 
