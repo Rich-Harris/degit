@@ -49,17 +49,13 @@ class Degit extends EventEmitter {
 
 				d.on('info', event => {
 					console.error(
-						chalk.cyan(
-							`> ${event.message.replace('options.', '--')}`
-						)
+						chalk.cyan(`> ${event.message.replace('options.', '--')}`)
 					);
 				});
 
 				d.on('warn', event => {
 					console.error(
-						chalk.magenta(
-							`! ${event.message.replace('options.', '--')}`
-						)
+						chalk.magenta(`! ${event.message.replace('options.', '--')}`)
 					);
 				});
 
@@ -149,9 +145,9 @@ class Degit extends EventEmitter {
 
 		this._info({
 			code: 'SUCCESS',
-			message: `cloned ${chalk.bold(
-				repo.user + '/' + repo.name
-			)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(
+				repo.ref
+			)}${dest !== '.' ? ` to ${dest}` : ''}`,
 			repo,
 			dest,
 		});

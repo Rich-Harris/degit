@@ -28,9 +28,7 @@ if (args.help || !src) {
 	const d = degit(src, args);
 
 	d.on('info', event => {
-		console.error(
-			chalk.cyan(`> ${event.message.replace('options.', '--')}`)
-		);
+		console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
 	});
 
 	d.on('warn', event => {
@@ -44,9 +42,7 @@ if (args.help || !src) {
 
 		// })
 		.catch(err => {
-			console.error(
-				chalk.red(`! ${err.message.replace('options.', '--')}`)
-			);
+			console.error(chalk.red(`! ${err.message.replace('options.', '--')}`));
 			process.exit(1);
 		});
 }

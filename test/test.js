@@ -103,9 +103,7 @@ describe('degit', function() {
 				);
 				succeeded = true;
 			} catch (err) {
-				assert.ok(
-					/destination directory is not empty/.test(err.message)
-				);
+				assert.ok(/destination directory is not empty/.test(err.message));
 			}
 
 			assert.ok(!succeeded);

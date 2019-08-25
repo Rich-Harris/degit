@@ -25,8 +25,6 @@ export default [
 			},
 			sourcemap: true,
 		},
-		external: Object.keys(pkg.dependencies).concat(builtinModules, [
-			'degit',
-		]),
+		external: Object.keys(pkg.dependencies).concat(builtinModules, ['degit']),
 	},
 ];
