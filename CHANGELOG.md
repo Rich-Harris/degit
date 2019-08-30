@@ -1,5 +1,10 @@
 # degit changelog
 
+## 2.1.4
+
+* Fix actions ([#65](https://github.com/Rich-Harris/degit/pull/65))
+* Improve CLI error logging ([#46](https://github.com/Rich-Harris/degit/pull/46))
+
 ## 2.1.3
 
 - Install `sander` ([#34](https://github.com/Rich-Harris/degit/issues/34))
