@@ -53,7 +53,7 @@
     "rollup-plugin-commonjs": "10.0.2",
     "rollup-plugin-typescript": "1.0.1",
     "source-map-support": "0.5.13",
-    "typescript": "3.5.3"
+    "typescript": "3.6.2"
   },
   "files": [
     "index.js",
