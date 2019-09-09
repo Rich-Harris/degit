@@ -86,9 +86,10 @@ class Degit extends EventEmitter {
 		const dir = path.join(base, repo.site, repo.user, repo.name);
 		const cached = tryRequire(path.join(dir, 'map.json')) || {};
 
-		const hash = this.cache
-			? this._getHashFromCache(repo, cached)
-			: await this._getHash(repo, cached);
+		const hash =
+			(this.cache
+				? this._getHashFromCache(repo, cached)
+				: await this._getHash(repo, cached)) || repo.ref;
 
 		if (!hash) {
 			// TODO 'did you mean...?'
@@ -115,11 +116,11 @@ class Degit extends EventEmitter {
 						message: `downloading ${repo.url} to ${file}`,
 					});
 
-          await exec(`git clone --depth 1 ${repo.url} ${file}`);
-          await exec(
-            `cd ${file} && git fetch origin ${hash} && git checkout ${hash}`
-          );
-          rimrafSync(`${file}/.git`);
+					await exec(`git clone --depth 1 ${repo.url} ${file}`);
+					await exec(
+						`cd ${file} && git fetch origin ${hash} && git checkout ${hash}`
+					);
+					rimrafSync(`${file}/.git`);
 				}
 			}
 		} catch (err) {
