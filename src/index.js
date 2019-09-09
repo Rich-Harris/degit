@@ -1,10 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import homeOrTmp from 'home-or-tmp';
-import tar from 'tar';
 import EventEmitter from 'events';
 import chalk from 'chalk';
-import { rimrafSync } from 'sander';
+import { rimrafSync, copydirSync } from 'sander';
 import {
 	DegitError,
 	exec,
@@ -311,14 +310,6 @@ function parse(src) {
 	}/${user}/${name}`;
 
 	return { site, user, name, ref, url };
-}
-
-async function untar(file, dest) {
-	return tar.extract({
-		file,
-		strip: 1,
-		C: dest,
-	});
 }
 
 async function fetchRefs(repo) {
