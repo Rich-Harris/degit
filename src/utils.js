@@ -53,26 +53,6 @@ export function mkdirp(dir) {
 	}
 }
 
-export function fetch(url, dest) {
-	return new Promise((fulfil, reject) => {
-		https
-			.get(url, response => {
-				const code = response.statusCode;
-				if (code >= 400) {
-					reject({ code, message: response.statusMessage });
-				} else if (code >= 300) {
-					fetch(response.headers.location, dest).then(fulfil, reject);
-				} else {
-					response
-						.pipe(fs.createWriteStream(dest))
-						.on('finish', () => fulfil())
-						.on('error', reject);
-				}
-			})
-			.on('error', reject);
-	});
-}
-
 export function stashFiles(dir, dest) {
 	const tmpDir = path.join(dir, tmpDirName);
 	rimrafSync(tmpDir);

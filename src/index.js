@@ -8,7 +8,6 @@ import { rimrafSync } from 'sander';
 import {
 	DegitError,
 	exec,
-	fetch,
 	mkdirp,
 	tryRequire,
 	stashFiles,
@@ -99,13 +98,7 @@ class Degit extends EventEmitter {
 			});
 		}
 
-		const file = `${dir}/${hash}.tar.gz`;
-		const url =
-			repo.site === 'gitlab'
-				? `${repo.url}/repository/archive.tar.gz?ref=${hash}`
-				: repo.site === 'bitbucket'
-				? `${repo.url}/get/${hash}.tar.gz`
-				: `${repo.url}/archive/${hash}.tar.gz`;
+		const file = `${dir}/${hash}/`;
 
 		try {
 			if (!this.cache) {
@@ -119,16 +112,18 @@ class Degit extends EventEmitter {
 					mkdirp(path.dirname(file));
 					this._verbose({
 						code: 'DOWNLOADING',
-						message: `downloading ${url} to ${file}`,
+						message: `downloading ${repo.url} to ${file}`,
 					});
 
-					await fetch(url, file);
+					await exec(`git clone --depth 1 ${repo.url} ${file}`);
+					await exec(`cd ${file} && git checkout ${hash}`);
+					rimrafSync(`${file}/.git`);
 				}
 			}
 		} catch (err) {
-			throw new DegitError(`could not download ${url}`, {
+			throw new DegitError(`could not download ${repo.url}`, {
 				code: 'COULD_NOT_DOWNLOAD',
-				url,
+				repo,
 				original: err,
 			});
 		}
@@ -141,7 +136,7 @@ class Degit extends EventEmitter {
 		});
 
 		mkdirp(dest);
-		await untar(file, dest);
+		copydirSync(file).to(dest);
 
 		this._info({
 			code: 'SUCCESS',
@@ -298,7 +293,7 @@ function parse(src) {
 		/\.(com|org)$/,
 		''
 	);
-	if (!supported.has(site)) {
+	if (!supported.has(site) && !site.includes('github')) {
 		throw new DegitError(`degit supports GitHub, GitLab and BitBucket`, {
 			code: 'UNSUPPORTED_HOST',
 		});
