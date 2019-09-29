@@ -300,7 +300,7 @@ function parse(src) {
 	);
 	if (!supported.has(site)) {
 		throw new DegitError(
-			`degit supports GitHub, GitLab, Sourehat and BitBucket`,
+			`degit supports GitHub, GitLab, sourehut and BitBucket`,
 			{
 				code: 'UNSUPPORTED_HOST',
 			}

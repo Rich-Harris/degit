@@ -92,7 +92,7 @@ describe('degit', function() {
 		});
 	});
 
-	describe('sourcehat', () => {
+	describe('sourcehut', () => {
 		beforeEach(() => rimraf('.tmp'));
 
 		[
@@ -103,7 +103,7 @@ describe('degit', function() {
 			it(src, async () => {
 				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
-					'file.txt': 'hello from sourcehat!',
+					'file.txt': 'hello from sourcehut!',
 				});
 			});
 		});
