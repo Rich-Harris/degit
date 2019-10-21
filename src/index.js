@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import homeOrTmp from 'home-or-tmp';
 import EventEmitter from 'events';
+import gu from 'githuburl';
 import chalk from 'chalk';
 import { rimrafSync, copydirSync } from 'sander';
 import {
@@ -114,8 +115,18 @@ class Degit extends EventEmitter {
 						code: 'DOWNLOADING',
 						message: `downloading ${repo.url} to ${file}`,
 					});
+					const urls = gu(repo.url);
 
-					await exec(`git clone --depth 1 ${repo.url} ${file}`);
+					try {
+						try {
+							await exec(`git clone --depth 1 ${urls.https_clone_url} ${file}`);
+						} catch (error) {
+							await exec(`git clone --depth 1 ${urls.ssh_clone_url} ${file}`);
+						}
+					} catch (error) {
+						console.log(`Could not clone repo with HTTPS or SSH: ${repo.url}`);
+					}
+
 					await exec(
 						`cd ${file} && git fetch origin ${hash} && git checkout ${hash}`
 					);
