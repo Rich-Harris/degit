@@ -119,9 +119,9 @@ class Degit extends EventEmitter {
 
 					try {
 						try {
-							await exec(`git clone --depth 1 ${urls.https_clone_url} ${file}`);
+							await exec(`git clone ${urls.https_clone_url} ${file}`);
 						} catch (error) {
-							await exec(`git clone --depth 1 ${urls.ssh_clone_url} ${file}`);
+							await exec(`git clone ${urls.ssh_clone_url} ${file}`);
 						}
 					} catch (error) {
 						console.log(`Could not clone repo with HTTPS or SSH: ${repo.url}`);
