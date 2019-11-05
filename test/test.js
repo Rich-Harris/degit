@@ -92,6 +92,23 @@ describe('degit', function() {
 		});
 	});
 
+	describe('sourcehut', () => {
+		beforeEach(() => rimraf('.tmp'));
+
+		[
+			'git.sr.ht/~satotake/degit-test-repo',
+			'https://git.sr.ht/~satotake/degit-test-repo',
+			'git@git.sr.ht:~satotake/degit-test-repo',
+		].forEach(src => {
+			it(src, async () => {
+				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+				compare(`.tmp/test-repo`, {
+					'file.txt': 'hello from sourcehut!',
+				});
+			});
+		});
+	});
+
 	describe('non-empty directories', () => {
 		it('fails without --force', async () => {
 			let succeeded;

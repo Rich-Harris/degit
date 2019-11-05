@@ -282,10 +282,10 @@ class Degit extends EventEmitter {
 	}
 }
 
-const supported = new Set(['github', 'gitlab', 'bitbucket']);
+const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
 
 function parse(src) {
-	const match = /^(?:https:\/\/([^/]+)\/|git@([^/]+):|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:#(.+))?/.exec(
+	const match = /^(?:https:\/\/([^/]+)\/|git@([^/]+)[:/]|([^/]+)[:/])?([^/\s]+)\/([^/\s#]+)(?:#(.+))?/.exec(
 		src
 	);
 	if (!match) {
@@ -299,9 +299,12 @@ function parse(src) {
 		''
 	);
 	if (!supported.has(site)) {
-		throw new DegitError(`degit supports GitHub, GitLab and BitBucket`, {
-			code: 'UNSUPPORTED_HOST',
-		});
+		throw new DegitError(
+			`degit supports GitHub, GitLab, Sourcehut and BitBucket`,
+			{
+				code: 'UNSUPPORTED_HOST',
+			}
+		);
 	}
 
 	const user = match[4];
@@ -309,7 +312,7 @@ function parse(src) {
 	const ref = match[6] || 'master';
 
 	const url = `https://${site}.${
-		site === 'bitbucket' ? 'org' : 'com'
+		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
 	}/${user}/${name}`;
 
 	return { site, user, name, ref, url };
