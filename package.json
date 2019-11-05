@@ -1,6 +1,6 @@
 {
 	"name": "degit",
-	"version": "2.2.0",
+	"version": "2.2.1",
 	"engines": {
 		"node": ">=8.0.0"
 	},
