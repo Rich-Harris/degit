@@ -24,6 +24,12 @@ https://gitlab.com/user/repo
 bitbucket:user/repo
 https://bitbucket.com/user/repo
 
+## Sourcehut repos
+
+git.sr.ht/user/repo
+git@git.sr.ht:user/repo
+https://git.sr.ht/user/repo
+
 You can append a #ref to any of the above:
 
 ## Branches (defaults to master)
