@@ -103,7 +103,7 @@ describe('degit', function() {
 			it(src, async () => {
 				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
-					'file.txt': 'hello from Sourcehut!',
+					'file.txt': 'hello from sourcehut!',
 				});
 			});
 		});
