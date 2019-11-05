@@ -47,6 +47,14 @@ degit git@bitbucket.org:user/repo
 degit https://bitbucket.org/user/repo
 ```
 
+# download from Sourcehut
+
+degit git.sr.ht/user/repo
+degit git@git.sr.ht:user/repo
+degit https://git.sr.ht/user/repo
+
+````
+
 ### Specify a tag, branch or commit
 
 The default branch is `master`.
@@ -55,7 +63,7 @@ The default branch is `master`.
 degit user/repo#dev       # branch
 degit user/repo#v1.2.3    # release tag
 degit user/repo#1234abcd  # commit hash
-```
+````
 
 ### Create a new folder for the project
 
