@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.2.1
+
+- Update `help.md` for Sourcehut support
+
 ## 2.2.0
 
 - Sourcehut support ([#85](https://github.com/Rich-Harris/degit/pull/85))
