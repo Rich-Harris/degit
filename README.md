@@ -47,7 +47,6 @@ degit git@bitbucket.org:user/repo
 degit https://bitbucket.org/user/repo
 
 # download from Sourcehut
-
 degit git.sr.ht/user/repo
 degit git@git.sr.ht:user/repo
 degit https://git.sr.ht/user/repo
