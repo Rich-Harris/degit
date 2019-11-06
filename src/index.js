@@ -272,14 +272,17 @@ async function untar(file, dest) {
 }
 
 async function fetchRefs(repo) {
-	const { stdout } = await exec(`git ls-remote ${repo.url}`).catch(err => {
+	try {
+		const { stdout } = await exec(`git ls-remote ${repo.url}`);
+	}
+	catch(error) {
 		throw new DegitError(`could not fetch remote ${repo.url}`, {
 			code: 'COULD_NOT_FETCH',
 			url: repo.url,
 			original: err
 		});
-	});
-
+	}
+	
 	return stdout.split('\n').filter(Boolean).map(row => {
 		const [hash, ref] = row.split('\t');
 
