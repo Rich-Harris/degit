@@ -7,7 +7,7 @@ import { rimrafSync, copydirSync } from 'sander';
 const tmpDirName = 'tmp';
 const degitConfigName = 'degit.json';
 
-export {degitConfigName};
+export { degitConfigName };
 
 export class DegitError extends Error {
 	constructor(message, opts) {
@@ -55,18 +55,21 @@ export function mkdirp(dir) {
 
 export function fetch(url, dest) {
 	return new Promise((fulfil, reject) => {
-		https.get(url, response => {
-			const code = response.statusCode;
-			if (code >= 400) {
-				reject({ code, message: response.statusMessage });
-			} else if (code >= 300) {
-				fetch(response.headers.location, dest).then(fulfil, reject);
-			} else {
-				response.pipe(fs.createWriteStream(dest))
-					.on('finish', () => fulfil())
-					.on('error', reject);
-			}
-		}).on('error', reject);
+		https
+			.get(url, response => {
+				const code = response.statusCode;
+				if (code >= 400) {
+					reject({ code, message: response.statusMessage });
+				} else if (code >= 300) {
+					fetch(response.headers.location, dest).then(fulfil, reject);
+				} else {
+					response
+						.pipe(fs.createWriteStream(dest))
+						.on('finish', () => fulfil())
+						.on('error', reject);
+				}
+			})
+			.on('error', reject);
 	});
 }
 

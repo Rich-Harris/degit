@@ -1,58 +1,78 @@
 {
-  "name": "degit",
-  "version": "2.1.3",
-  "engines": {
-    "node": ">=8.0.0"
-  },
-  "description": "Straightforward project scaffolding",
-  "main": "index.js",
-  "bin": {
-    "degit": "bin.js"
-  },
-  "scripts": {
-    "dev": "npm run build -- --watch",
-    "build": "rollup -c",
-    "test": "mocha",
-    "pretest": "npm run build",
-    "prepublishOnly": "npm test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Rich-Harris/degit.git"
-  },
-  "keywords": [
-    "scaffolding",
-    "template",
-    "git"
-  ],
-  "author": "Rich Harris",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Rich-Harris/degit/issues"
-  },
-  "homepage": "https://github.com/Rich-Harris/degit#readme",
-  "dependencies": {
-    "chalk": "^2.0.1",
-    "home-or-tmp": "^3.0.0",
-    "mri": "^1.1.0",
-    "sander": "^0.6.0",
-    "tar": "^4.0.2"
-  },
-  "devDependencies": {
-    "eslint": "^4.3.0",
-    "eslint-plugin-import": "^2.7.0",
-    "glob": "^7.1.2",
-    "mocha": "^4.0.1",
-    "rimraf": "^2.6.1",
-    "rollup": "^0.51.5",
-    "rollup-plugin-commonjs": "^8.2.0",
-    "rollup-plugin-typescript": "^0.8.1",
-    "source-map-support": "^0.5.0",
-    "typescript": "^2.5.2"
-  },
-  "files": [
-    "index.js",
-    "bin.js",
-    "help.md"
-  ]
+	"name": "degit",
+	"version": "2.2.1",
+	"engines": {
+		"node": ">=8.0.0"
+	},
+	"description": "Straightforward project scaffolding",
+	"main": "index.js",
+	"bin": {
+		"degit": "bin.js"
+	},
+	"scripts": {
+		"lint": "eslint .",
+		"dev": "npm run build -- --watch",
+		"build": "rollup -c",
+		"test": "mocha",
+		"pretest": "npm run build",
+		"prepublishOnly": "npm test"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Rich-Harris/degit.git"
+	},
+	"keywords": [
+		"scaffolding",
+		"template",
+		"git"
+	],
+	"author": "Rich Harris",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/Rich-Harris/degit/issues"
+	},
+	"homepage": "https://github.com/Rich-Harris/degit#readme",
+	"dependencies": {
+		"chalk": "2.4.2",
+		"home-or-tmp": "3.0.0",
+		"mri": "1.1.4",
+		"sander": "0.6.0",
+		"tar": "5.0.5"
+	},
+	"devDependencies": {
+		"eslint": "6.6.0",
+		"eslint-config-prettier": "6.5.0",
+		"eslint-plugin-import": "2.18.2",
+		"glob": "7.1.5",
+		"husky": "3.0.9",
+		"lint-staged": "9.4.2",
+		"mocha": "6.2.2",
+		"prettier": "1.18.2",
+		"rimraf": "3.0.0",
+		"rollup": "1.26.0",
+		"rollup-plugin-commonjs": "10.1.0",
+		"rollup-plugin-typescript": "1.0.1",
+		"source-map-support": "0.5.13",
+		"typescript": "3.6.4"
+	},
+	"files": [
+		"index.js",
+		"bin.js",
+		"help.md"
+	],
+	"husky": {
+		"hooks": {
+			"pre-commit": "lint-staged"
+		}
+	},
+	"lint-staged": {
+		"*.{js}": [
+			"eslint --fix",
+			"git add"
+		],
+		"*.{js, json, yml, md}": [
+			"prettier --write",
+			"git add"
+		]
+	}
 }

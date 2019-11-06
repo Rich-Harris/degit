@@ -5,7 +5,16 @@ import tar from 'tar';
 import EventEmitter from 'events';
 import chalk from 'chalk';
 import { rimrafSync } from 'sander';
-import { DegitError, exec, fetch, mkdirp, tryRequire, stashFiles, unstashFiles, degitConfigName } from './utils';
+import {
+	DegitError,
+	exec,
+	fetch,
+	mkdirp,
+	tryRequire,
+	stashFiles,
+	unstashFiles,
+	degitConfigName,
+} from './utils';
 
 const base = path.join(homeOrTmp, '.degit');
 
@@ -24,27 +33,50 @@ class Degit extends EventEmitter {
 
 		this.repo = parse(src);
 
+		this._hasStashed = false;
+
 		this.directiveActions = {
-			clone: async (dest, action) => {
-        const opts = Object.assign({force: true}, {cache: action.cache, verbose: action.verbose});
+			clone: async (dir, dest, action) => {
+				if (this._hasStashed === false) {
+					stashFiles(dir, dest);
+					this._hasStashed = true;
+				}
+				const opts = Object.assign(
+					{ force: true },
+					{ cache: action.cache, verbose: action.verbose }
+				);
 				const d = degit(action.src, opts);
 
 				d.on('info', event => {
-					console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
+					console.error(
+						chalk.cyan(`> ${event.message.replace('options.', '--')}`)
+					);
 				});
 
 				d.on('warn', event => {
-					console.error(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
+					console.error(
+						chalk.magenta(`! ${event.message.replace('options.', '--')}`)
+					);
 				});
 
-				await d.clone(dest)
-					.catch(err => {
-						console.error(chalk.red(`! ${err.message}`));
-						process.exit(1);
-					});
+				await d.clone(dest).catch(err => {
+					console.error(chalk.red(`! ${err.message}`));
+					process.exit(1);
+				});
 			},
-			remove: this.remove.bind(this)
+			remove: this.remove.bind(this),
 		};
+	}
+
+	_getDirectives(dest) {
+		const directivesPath = path.resolve(dest, degitConfigName);
+		const directives =
+			tryRequire(directivesPath, { clearCache: true }) || false;
+		if (directives) {
+			fs.unlinkSync(directivesPath);
+		}
+
+		return directives;
 	}
 
 	async clone(dest) {
@@ -55,24 +87,25 @@ class Degit extends EventEmitter {
 		const dir = path.join(base, repo.site, repo.user, repo.name);
 		const cached = tryRequire(path.join(dir, 'map.json')) || {};
 
-		const hash = this.cache ?
-			this._getHashFromCache(repo, cached) :
-			await this._getHash(repo, cached);
+		const hash = this.cache
+			? this._getHashFromCache(repo, cached)
+			: await this._getHash(repo, cached);
 
 		if (!hash) {
 			// TODO 'did you mean...?'
 			throw new DegitError(`could not find commit hash for ${repo.ref}`, {
 				code: 'MISSING_REF',
-				ref: repo.ref
+				ref: repo.ref,
 			});
 		}
 
 		const file = `${dir}/${hash}.tar.gz`;
-		const url = (
-			repo.site === 'gitlab' ? `${repo.url}/repository/archive.tar.gz?ref=${hash}` :
-			repo.site === 'bitbucket' ? `${repo.url}/get/${hash}.tar.gz` :
-			`${repo.url}/archive/${hash}.tar.gz`
-		);
+		const url =
+			repo.site === 'gitlab'
+				? `${repo.url}/repository/archive.tar.gz?ref=${hash}`
+				: repo.site === 'bitbucket'
+				? `${repo.url}/get/${hash}.tar.gz`
+				: `${repo.url}/archive/${hash}.tar.gz`;
 
 		try {
 			if (!this.cache) {
@@ -80,13 +113,13 @@ class Degit extends EventEmitter {
 					fs.statSync(file);
 					this._verbose({
 						code: 'FILE_EXISTS',
-						message: `${file} already exists locally`
+						message: `${file} already exists locally`,
 					});
 				} catch (err) {
 					mkdirp(path.dirname(file));
 					this._verbose({
 						code: 'DOWNLOADING',
-						message: `downloading ${url} to ${file}`
+						message: `downloading ${url} to ${file}`,
 					});
 
 					await fetch(url, file);
@@ -96,7 +129,7 @@ class Degit extends EventEmitter {
 			throw new DegitError(`could not download ${url}`, {
 				code: 'COULD_NOT_DOWNLOAD',
 				url,
-				original: err
+				original: err,
 			});
 		}
 
@@ -104,7 +137,7 @@ class Degit extends EventEmitter {
 
 		this._verbose({
 			code: 'EXTRACTING',
-			message: `extracting ${file} to ${dest}`
+			message: `extracting ${file} to ${dest}`,
 		});
 
 		mkdirp(dest);
@@ -112,51 +145,62 @@ class Degit extends EventEmitter {
 
 		this._info({
 			code: 'SUCCESS',
-			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(
+				repo.ref
+			)}${dest !== '.' ? ` to ${dest}` : ''}`,
 			repo,
-			dest
+			dest,
 		});
 
-		const directives = tryRequire(path.resolve(dest, degitConfigName), {clearCache: true}) || false;
+		const directives = this._getDirectives(dest);
 		if (directives) {
-			stashFiles(dir, dest);
 			for (const d of directives) {
 				// TODO, can this be a loop with an index to pass for better error messages?
-				await this.directiveActions[d.action](dest, d);
+				await this.directiveActions[d.action](dir, dest, d);
 			}
-			unstashFiles(dir, dest);
+			if (this._hasStashed === true) {
+				unstashFiles(dir, dest);
+			}
 		}
 	}
 
-	remove(dest, action) {
-    let files = action.files;
-    if (!Array.isArray(files)) {
-      files = [files];
-    }
-		const removedFiles = files.map(file => {
-			const filePath = path.resolve(dest, file);
-			if (fs.existsSync(filePath)) {
-				const isDir = fs.lstatSync(filePath).isDirectory();
-				if (isDir) {
-					rimrafSync(filePath);
-					return file + '/';
+	remove(dir, dest, action) {
+		let files = action.files;
+		if (!Array.isArray(files)) {
+			files = [files];
+		}
+		const removedFiles = files
+			.map(file => {
+				const filePath = path.resolve(dest, file);
+				if (fs.existsSync(filePath)) {
+					const isDir = fs.lstatSync(filePath).isDirectory();
+					if (isDir) {
+						rimrafSync(filePath);
+						return file + '/';
+					} else {
+						fs.unlinkSync(filePath);
+						return file;
+					}
 				} else {
-					fs.unlinkSync(filePath);
-					return file;
+					this._warn({
+						code: 'FILE_DOES_NOT_EXIST',
+						message: `action wants to remove ${chalk.bold(
+							file
+						)} but it does not exist`,
+					});
+					return null;
 				}
-			} else {
-				this._warn({
-					code: 'FILE_DOES_NOT_EXIST',
-					message: `action wants to remove ${chalk.bold(file)} but it does not exist`
-				});
-				return null;
-			}
-		}).filter(d => d);
+			})
+			.filter(d => d);
 
-		this._info({
-			code: 'REMOVED',
-			message: `removed: ${chalk.bold(removedFiles.map(d => chalk.bold(d)).join(', '))}`
-		});
+		if (removedFiles.length > 0) {
+			this._info({
+				code: 'REMOVED',
+				message: `removed: ${chalk.bold(
+					removedFiles.map(d => chalk.bold(d)).join(', ')
+				)}`,
+			});
+		}
 	}
 
 	_checkDirIsEmpty(dir) {
@@ -166,17 +210,20 @@ class Degit extends EventEmitter {
 				if (this.force) {
 					this._info({
 						code: 'DEST_NOT_EMPTY',
-						message: `destination directory is not empty. Using options.force, continuing`
+						message: `destination directory is not empty. Using options.force, continuing`,
 					});
 				} else {
-					throw new DegitError(`destination directory is not empty, aborting. Use options.force to override`, {
-						code: 'DEST_NOT_EMPTY'
-					});
+					throw new DegitError(
+						`destination directory is not empty, aborting. Use options.force to override`,
+						{
+							code: 'DEST_NOT_EMPTY',
+						}
+					);
 				}
 			} else {
 				this._verbose({
 					code: 'DEST_IS_EMPTY',
-					message: `destination directory is empty`
+					message: `destination directory is empty`,
 				});
 			}
 		} catch (err) {
@@ -203,6 +250,7 @@ class Degit extends EventEmitter {
 		} catch (err) {
 			this._warn(err);
 			this._verbose(err.original);
+
 			return this._getHashFromCache(repo, cached);
 		}
 	}
@@ -212,7 +260,7 @@ class Degit extends EventEmitter {
 			const hash = cached[repo.ref];
 			this._info({
 				code: 'USING_CACHE',
-				message: `using cached commit hash ${hash}`
+				message: `using cached commit hash ${hash}`,
 			});
 			return hash;
 		}
@@ -223,7 +271,7 @@ class Degit extends EventEmitter {
 			if (ref.name === selector) {
 				this._verbose({
 					code: 'FOUND_MATCH',
-					message: `found matching commit hash: ${ref.hash}`
+					message: `found matching commit hash: ${ref.hash}`,
 				});
 				return ref.hash;
 			}
@@ -237,28 +285,38 @@ class Degit extends EventEmitter {
 	}
 }
 
-const supported = new Set(['github', 'gitlab', 'bitbucket']);
+const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
 
 function parse(src) {
-	const match = /^(?:https:\/\/([^/]+)\/|git@([^/]+):|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:#(.+))?/.exec(src);
+	const match = /^(?:https:\/\/([^/]+)\/|git@([^/]+)[:/]|([^/]+)[:/])?([^/\s]+)\/([^/\s#]+)(?:#(.+))?/.exec(
+		src
+	);
 	if (!match) {
 		throw new DegitError(`could not parse ${src}`, {
-			code: 'BAD_SRC'
+			code: 'BAD_SRC',
 		});
 	}
 
-	const site = (match[1] || match[2] || match[3] || 'github').replace(/\.(com|org)$/, '');
+	const site = (match[1] || match[2] || match[3] || 'github').replace(
+		/\.(com|org)$/,
+		''
+	);
 	if (!supported.has(site)) {
-		throw new DegitError(`degit supports GitHub, GitLab and BitBucket`, {
-			code: 'UNSUPPORTED_HOST'
-		});
+		throw new DegitError(
+			`degit supports GitHub, GitLab, Sourcehut and BitBucket`,
+			{
+				code: 'UNSUPPORTED_HOST',
+			}
+		);
 	}
 
 	const user = match[4];
 	const name = match[5].replace(/\.git$/, '');
 	const ref = match[6] || 'master';
 
-	const url = `https://${site}.${site === 'bitbucket' ? 'org' : 'com'}/${user}/${name}`;
+	const url = `https://${site}.${
+		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
+	}/${user}/${name}`;
 
 	return { site, user, name, ref, url };
 }
@@ -267,45 +325,51 @@ async function untar(file, dest) {
 	return tar.extract({
 		file,
 		strip: 1,
-		C: dest
+		C: dest,
 	});
 }
 
 async function fetchRefs(repo) {
 	try {
 		const { stdout } = await exec(`git ls-remote ${repo.url}`);
-	}
-	catch(error) {
+	} catch (error) {
 		throw new DegitError(`could not fetch remote ${repo.url}`, {
 			code: 'COULD_NOT_FETCH',
 			url: repo.url,
-			original: err
+			original: err,
 		});
 	}
-	
-	return stdout.split('\n').filter(Boolean).map(row => {
-		const [hash, ref] = row.split('\t');
 
-		if (ref === 'HEAD') {
+	return stdout
+		.split('\n')
+		.filter(Boolean)
+		.map(row => {
+			const [hash, ref] = row.split('\t');
+
+			if (ref === 'HEAD') {
+				return {
+					type: 'HEAD',
+					hash,
+				};
+			}
+
+			const match = /refs\/(\w+)\/(.+)/.exec(ref);
+			if (!match)
+				throw new DegitError(`could not parse ${ref}`, {
+					code: 'BAD_REF',
+				});
+
 			return {
-				type: 'HEAD',
-				hash
+				type:
+					match[1] === 'heads'
+						? 'branch'
+						: match[1] === 'refs'
+						? 'ref'
+						: match[1],
+				name: match[2],
+				hash,
 			};
-		}
-
-		const match = /refs\/(\w+)\/(.+)/.exec(ref);
-		if (!match) throw new DegitError(`could not parse ${ref}`, { code: 'BAD_REF' });
-
-		return {
-			type: (
-				match[1] === 'heads' ? 'branch' :
-				match[1] === 'refs' ? 'ref' :
-				match[1]
-			),
-			name: match[2],
-			hash
-		};
-	});
+		});
 }
 
 function updateCache(dir, repo, hash, cached) {
@@ -332,5 +396,8 @@ function updateCache(dir, repo, hash, cached) {
 	}
 
 	cached[repo.ref] = hash;
-	fs.writeFileSync(path.join(dir, 'map.json'), JSON.stringify(cached, null, '  '));
+	fs.writeFileSync(
+		path.join(dir, 'map.json'),
+		JSON.stringify(cached, null, '  ')
+	);
 }

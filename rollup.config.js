@@ -1,3 +1,4 @@
+import { builtinModules } from 'module';
 import pkg from './package.json';
 
 export default [
@@ -7,9 +8,9 @@ export default [
 		output: {
 			file: 'index.js',
 			format: 'cjs',
-			sourcemap: true
+			sourcemap: true,
 		},
-		external: Object.keys(pkg.dependencies).concat(['fs', 'path', 'os'])
+		external: Object.keys(pkg.dependencies).concat(builtinModules),
 	},
 
 	/* bin.js */
@@ -20,10 +21,10 @@ export default [
 			format: 'cjs',
 			banner: '#!/usr/bin/env node',
 			paths: {
-				degit: './index.js'
+				degit: './index.js',
 			},
-			sourcemap: true
+			sourcemap: true,
 		},
-		external: Object.keys(pkg.dependencies).concat(['fs', 'path', 'os'])
-	}
+		external: Object.keys(pkg.dependencies).concat(builtinModules, ['degit']),
+	},
 ];

@@ -1,6 +1,6 @@
 # http://www.appveyor.com/docs/appveyor-yml
 
-version: "{build}"
+version: '{build}'
 
 clone_depth: 10
 
@@ -20,11 +20,11 @@ build: off
 
 test_script:
   - node --version && npm --version
+  - npm run lint
   - npm test
 
 matrix:
   fast_finish: false
-
 # cache:
 #   - C:\Users\appveyor\AppData\Roaming\npm-cache -> package.json     # npm cache
 #   - node_modules -> package.json                                    # local npm modules
