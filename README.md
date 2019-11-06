@@ -154,4 +154,4 @@ Remove a file at the specified path.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE.md).
