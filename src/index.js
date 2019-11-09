@@ -16,7 +16,7 @@ import {
 	degitConfigName,
 } from './utils';
 
-const base = path.join(homeOrTmp, '.degit');
+export const base = path.join(homeOrTmp, '.degit');
 
 export default function degit(src, opts) {
 	return new Degit(src, opts);
