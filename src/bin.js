@@ -6,8 +6,8 @@ import fg from 'fast-glob';
 import { prompt } from 'enquirer';
 
 // eslint-disable-next-line import/no-unresolved
-import degit, { base } from 'degit';
-import { tryRequire } from './utils';
+import degit from 'degit';
+import { tryRequire, base } from './utils';
 
 const args = mri(process.argv.slice(2), {
 	alias: {

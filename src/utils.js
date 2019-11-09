@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import homeOrTmp from 'home-or-tmp';
 import https from 'https';
 import child_process from 'child_process';
 import { rimrafSync, copydirSync } from 'sander';
@@ -109,3 +110,5 @@ export function unstashFiles(dir, dest) {
 	});
 	rimrafSync(tmpDir);
 }
+
+export const base = path.join(homeOrTmp, '.degit');

@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import homeOrTmp from 'home-or-tmp';
 import tar from 'tar';
 import EventEmitter from 'events';
 import chalk from 'chalk';
@@ -14,9 +13,8 @@ import {
 	stashFiles,
 	unstashFiles,
 	degitConfigName,
+	base,
 } from './utils';
-
-export const base = path.join(homeOrTmp, '.degit');
 
 export default function degit(src, opts) {
 	return new Degit(src, opts);
