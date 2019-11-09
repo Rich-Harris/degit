@@ -246,6 +246,9 @@ class Degit extends EventEmitter {
 			const refs = await fetchRefs(repo);
 			return this._selectRef(refs, repo.ref);
 		} catch (err) {
+			this._warn(err);
+			this._verbose(err.original);
+
 			return this._getHashFromCache(repo, cached);
 		}
 	}
@@ -325,38 +328,46 @@ async function untar(file, dest) {
 }
 
 async function fetchRefs(repo) {
-	const { stdout } = await exec(`git ls-remote ${repo.url}`);
+	try {
+		const { stdout } = await exec(`git ls-remote ${repo.url}`);
 
-	return stdout
-		.split('\n')
-		.filter(Boolean)
-		.map(row => {
-			const [hash, ref] = row.split('\t');
+		return stdout
+			.split('\n')
+			.filter(Boolean)
+			.map(row => {
+				const [hash, ref] = row.split('\t');
 
-			if (ref === 'HEAD') {
+				if (ref === 'HEAD') {
+					return {
+						type: 'HEAD',
+						hash,
+					};
+				}
+
+				const match = /refs\/(\w+)\/(.+)/.exec(ref);
+				if (!match)
+					throw new DegitError(`could not parse ${ref}`, {
+						code: 'BAD_REF',
+					});
+
 				return {
-					type: 'HEAD',
+					type:
+						match[1] === 'heads'
+							? 'branch'
+							: match[1] === 'refs'
+							? 'ref'
+							: match[1],
+					name: match[2],
 					hash,
 				};
-			}
-
-			const match = /refs\/(\w+)\/(.+)/.exec(ref);
-			if (!match)
-				throw new DegitError(`could not parse ${ref}`, {
-					code: 'BAD_REF',
-				});
-
-			return {
-				type:
-					match[1] === 'heads'
-						? 'branch'
-						: match[1] === 'refs'
-						? 'ref'
-						: match[1],
-				name: match[2],
-				hash,
-			};
+			});
+	} catch (error) {
+		throw new DegitError(`could not fetch remote ${repo.url}`, {
+			code: 'COULD_NOT_FETCH',
+			url: repo.url,
+			original: error,
 		});
+	}
 }
 
 function updateCache(dir, repo, hash, cached) {
