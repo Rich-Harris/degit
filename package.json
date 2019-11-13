@@ -52,7 +52,7 @@
 		"rollup": "1.26.0",
 		"rollup-plugin-commonjs": "10.1.0",
 		"rollup-plugin-typescript": "1.0.1",
-		"source-map-support": "0.5.13",
+		"source-map-support": "0.5.16",
 		"typescript": "3.6.4"
 	},
 	"files": [
