@@ -40,7 +40,7 @@
 		"tar": "5.0.5"
 	},
 	"devDependencies": {
-		"eslint": "6.6.0",
+		"eslint": "6.7.1",
 		"eslint-config-prettier": "6.5.0",
 		"eslint-plugin-import": "2.18.2",
 		"glob": "7.1.6",
