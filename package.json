@@ -46,7 +46,7 @@
 		"glob": "7.1.6",
 		"husky": "3.1.0",
 		"lint-staged": "9.5.0",
-		"mocha": "6.2.2",
+		"mocha": "7.0.0",
 		"prettier": "1.19.1",
 		"rimraf": "3.0.0",
 		"rollup": "1.27.14",
