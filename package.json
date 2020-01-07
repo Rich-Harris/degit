@@ -49,7 +49,7 @@
 		"mocha": "7.0.0",
 		"prettier": "1.19.1",
 		"rimraf": "3.0.0",
-		"rollup": "1.27.14",
+		"rollup": "1.28.0",
 		"rollup-plugin-commonjs": "10.1.0",
 		"rollup-plugin-typescript": "1.0.1",
 		"source-map-support": "0.5.16",
