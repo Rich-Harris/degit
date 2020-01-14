@@ -52,7 +52,6 @@ degit git@git.sr.ht:user/repo
 degit https://git.sr.ht/user/repo
 ```
 
-````
 ### Specify a tag, branch or commit
 
 The default branch is `master`.
