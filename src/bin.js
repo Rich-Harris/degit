@@ -3,6 +3,7 @@ import path from 'path';
 import chalk from 'chalk';
 import mri from 'mri';
 import fg from 'fast-glob';
+import fuzzysearch from 'fuzzysearch';
 import { prompt } from 'enquirer';
 
 // eslint-disable-next-line import/no-unresolved
@@ -49,6 +50,8 @@ if (args.help) {
 			type: 'autocomplete',
 			name: 'src',
 			message: 'Search from history',
+			suggest: (input, choices) =>
+				choices.filter(({ value }) => fuzzysearch(input, value)),
 			choices,
 		},
 		{
