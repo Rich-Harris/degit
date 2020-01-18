@@ -33,7 +33,7 @@
 	},
 	"homepage": "https://github.com/Rich-Harris/degit#readme",
 	"dependencies": {
-		"chalk": "2.4.2",
+		"chalk": "3.0.0",
 		"enquirer": "2.3.4",
 		"fast-glob": "3.1.0",
 		"fuzzysearch": "1.0.3",
@@ -43,20 +43,20 @@
 		"tar": "5.0.5"
 	},
 	"devDependencies": {
-		"eslint": "6.6.0",
-		"eslint-config-prettier": "6.5.0",
-		"eslint-plugin-import": "2.18.2",
-		"glob": "7.1.5",
-		"husky": "3.0.9",
-		"lint-staged": "9.4.2",
-		"mocha": "6.2.2",
-		"prettier": "1.18.2",
+		"eslint": "6.8.0",
+		"eslint-config-prettier": "6.9.0",
+		"eslint-plugin-import": "2.19.1",
+		"glob": "7.1.6",
+		"husky": "3.1.0",
+		"lint-staged": "9.5.0",
+		"mocha": "7.0.0",
+		"prettier": "1.19.1",
 		"rimraf": "3.0.0",
-		"rollup": "1.26.0",
+		"rollup": "1.28.0",
 		"rollup-plugin-commonjs": "10.1.0",
 		"rollup-plugin-typescript": "1.0.1",
-		"source-map-support": "0.5.13",
-		"typescript": "3.6.4"
+		"source-map-support": "0.5.16",
+		"typescript": "3.7.4"
 	},
 	"files": [
 		"index.js",
