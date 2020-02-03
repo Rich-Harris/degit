@@ -45,7 +45,7 @@
 		"eslint-plugin-import": "2.19.1",
 		"glob": "7.1.6",
 		"husky": "3.1.0",
-		"lint-staged": "9.5.0",
+		"lint-staged": "10.0.7",
 		"mocha": "7.0.0",
 		"prettier": "1.19.1",
 		"rimraf": "3.0.0",
