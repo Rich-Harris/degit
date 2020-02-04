@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.7.0
+
+* Bundle for a faster install
+
 ## 2.6.0
 
 * Add an interactive mode ([#4](https://github.com/Rich-Harris/degit/issues/4))
