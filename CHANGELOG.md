@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.3.0
+
+* Support HTTPS proxying where `https_proxy` env var is supplied ([#26](https://github.com/Rich-Harris/degit/issues/26))
+
 ## 2.2.2
 
 - Improve CLI error logging ([#49](https://github.com/Rich-Harris/degit/pull/49))
