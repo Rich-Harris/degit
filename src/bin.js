@@ -51,7 +51,7 @@ async function main() {
 			{
 				type: 'autocomplete',
 				name: 'src',
-				message: 'Search from history',
+				message: 'Repo to clone?',
 				suggest: (input, choices) =>
 					choices.filter(({ value }) => fuzzysearch(input, value)),
 				choices
@@ -59,23 +59,36 @@ async function main() {
 			{
 				type: 'input',
 				name: 'dest',
-				message: 'Dest? (default ".")',
+				message: 'Destination directory?',
 				initial: '.'
 			},
 			{
 				type: 'toggle',
-				name: 'force',
-				message: 'Force overriding?'
-			},
-			{
-				type: 'toggle',
 				name: 'cache',
-				message: 'From cache?'
+				message: 'Use cached version?'
 			}
 		]);
 
+		const empty =
+			!fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
+
+		if (!empty) {
+			const { force } = await prompt([
+				{
+					type: 'toggle',
+					name: 'force',
+					message: 'Overwrite existing files?'
+				}
+			]);
+
+			if (!force) {
+				console.error(chalk.magenta(`! Directory not empty — aborting`));
+				return;
+			}
+		}
+
 		run(options.src, options.dest, {
-			force: options.force,
+			force: true,
 			cache: options.cache
 		});
 	} else {
