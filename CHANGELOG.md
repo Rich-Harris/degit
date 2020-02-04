@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.4.0
+
+* Clone subdirectories from repos (`user/repo/subdir`)
+
 ## 2.3.0
 
 * Support HTTPS proxying where `https_proxy` env var is supplied ([#26](https://github.com/Rich-Harris/degit/issues/26))

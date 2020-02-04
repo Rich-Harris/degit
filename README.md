@@ -70,6 +70,18 @@ If the second argument is omitted, the repo will be cloned to the current direct
 degit user/repo my-new-project
 ```
 
+### Specify a subdirectory
+
+To clone a specific subdirectory instead of the entire repo, just add it to the argument:
+
+```bash
+degit user/repo/subdirectory
+```
+
+### HTTPS proxying
+
+If you have an `https_proxy` environment variable, Degit will use it.
+
 ### See all options
 
 ```bash
