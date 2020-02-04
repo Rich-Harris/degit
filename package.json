@@ -44,7 +44,7 @@
 		"eslint-config-prettier": "6.10.0",
 		"eslint-plugin-import": "2.20.1",
 		"glob": "7.1.6",
-		"husky": "3.1.0",
+		"husky": "4.2.1",
 		"lint-staged": "10.0.7",
 		"mocha": "7.0.1",
 		"prettier": "1.19.1",
