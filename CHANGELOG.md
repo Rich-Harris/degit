@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.6.0
+
+* Add an interactive mode ([#4](https://github.com/Rich-Harris/degit/issues/4))
+
 ## 2.5.0
 
 * Add `--mode=git` for cloning private repos ([#29](https://github.com/Rich-Harris/degit/pull/29))

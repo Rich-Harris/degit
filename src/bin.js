@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import mri from 'mri';
-import fg from 'fast-glob';
+import glob from 'tiny-glob/sync.js';
 import fuzzysearch from 'fuzzysearch';
 import { prompt } from 'enquirer';
 
@@ -33,19 +33,22 @@ async function main() {
 		process.stdout.write(`\n${help}\n`);
 	} else if (!src) {
 		// interactive mode
-
 		const getChoice = mapJsonPath => {
-			const sliced = mapJsonPath.slice(base.length + 1, -'/map.json'.length);
+			const sliced = mapJsonPath.slice(0, -'/map.json'.length);
 			const [host, user, repo] = sliced.split(path.sep);
 
-			return Object.entries(tryRequire(mapJsonPath)).map(([ref, hash]) => ({
-				name: hash,
-				message: `${host}/${user}/${repo}#${ref}`,
-				value: `${host}/${user}/${repo}#${ref}`
-			}));
+			return Object.entries(tryRequire(`${base}/${mapJsonPath}`)).map(
+				([ref, hash]) => ({
+					name: hash,
+					message: `${host}:${user}/${repo}#${ref}`,
+					value: `${host}:${user}/${repo}#${ref}`
+				})
+			);
 		};
 
-		const choices = [].concat(...fg.sync(`${base}/**/map.json`).map(getChoice));
+		const choices = glob(`**/map.json`, { cwd: base })
+			.map(getChoice)
+			.flat();
 
 		const options = await prompt([
 			{

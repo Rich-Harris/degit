@@ -1,6 +1,6 @@
 {
   "name": "degit",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "engines": {
     "node": ">=8.0.0"
   },
@@ -35,19 +35,20 @@
   "dependencies": {
     "chalk": "3.0.0",
     "enquirer": "2.3.4",
-    "fast-glob": "3.1.0",
     "fuzzysearch": "1.0.3",
     "home-or-tmp": "3.0.0",
     "https-proxy-agent": "4.0.0",
     "mri": "1.1.4",
     "sander": "0.6.0",
-    "tar": "6.0.1"
+    "tar": "6.0.1",
+    "tiny-glob": "0.2.6"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "11.0.2",
+    "@rollup/plugin-node-resolve": "7.1.1",
     "eslint": "6.8.0",
     "eslint-config-prettier": "6.10.0",
     "eslint-plugin-import": "2.20.1",
-    "glob": "7.1.6",
     "husky": "4.2.1",
     "lint-staged": "10.0.7",
     "mocha": "7.0.1",

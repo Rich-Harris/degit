@@ -373,7 +373,7 @@ async function untar(file, dest, subdir = null) {
 
 async function fetchRefs(repo) {
 	try {
-		const { stdout } = await exec(`git ls-remote ${repo.url}`);
+		const { stdout } = await exec(`git ls-remote ${repo.ssh}`);
 
 		return stdout
 			.split('\n')

@@ -2,7 +2,7 @@ require('source-map-support').install();
 
 const fs = require('fs');
 const path = require('path');
-const glob = require('glob');
+const glob = require('tiny-glob/sync');
 const rimraf = require('rimraf').sync;
 const assert = require('assert');
 const child_process = require('child_process');
@@ -27,7 +27,7 @@ describe('degit', function() {
 	this.timeout(timeout);
 
 	function compare(dir, files) {
-		const expected = glob.sync('**', { cwd: dir });
+		const expected = glob('**', { cwd: dir });
 		assert.deepEqual(Object.keys(files).sort(), expected.sort());
 
 		expected.forEach(file => {
