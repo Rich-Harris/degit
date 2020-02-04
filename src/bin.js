@@ -4,11 +4,11 @@ import chalk from 'chalk';
 import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
 import fuzzysearch from 'fuzzysearch';
-import { prompt } from 'enquirer';
+import enquirer from 'enquirer';
 
 // eslint-disable-next-line import/no-unresolved
-import degit from 'degit';
-import { tryRequire, base } from './utils';
+import degit from './index.js';
+import { tryRequire, base } from './utils.js';
 
 const args = mri(process.argv.slice(2), {
 	alias: {
@@ -50,7 +50,7 @@ async function main() {
 			.map(getChoice)
 			.flat();
 
-		const options = await prompt([
+		const options = await enquirer.prompt([
 			{
 				type: 'autocomplete',
 				name: 'src',
@@ -76,7 +76,7 @@ async function main() {
 			!fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
 
 		if (!empty) {
-			const { force } = await prompt([
+			const { force } = await enquirer.prompt([
 				{
 					type: 'toggle',
 					name: 'force',

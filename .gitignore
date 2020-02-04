@@ -3,3 +3,4 @@ node_modules
 .tmp
 /index.js*
 /bin.js*
+/dist

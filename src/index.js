@@ -14,7 +14,7 @@ import {
 	unstashFiles,
 	degitConfigName,
 	base
-} from './utils';
+} from './utils.js';
 
 const validModes = new Set(['tar', 'git']);
 

@@ -1,30 +1,19 @@
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
 import { builtinModules } from 'module';
 import pkg from './package.json';
 
-export default [
-	/* index.js */
-	{
-		input: 'src/index.js',
-		output: {
-			file: 'index.js',
-			format: 'cjs',
-			sourcemap: true,
-		},
-		external: Object.keys(pkg.dependencies).concat(builtinModules),
+export default {
+	input: {
+		index: 'src/index.js',
+		bin: 'src/bin.js'
 	},
-
-	/* bin.js */
-	{
-		input: 'src/bin.js',
-		output: {
-			file: 'bin.js',
-			format: 'cjs',
-			banner: '#!/usr/bin/env node',
-			paths: {
-				degit: './index.js',
-			},
-			sourcemap: true,
-		},
-		external: Object.keys(pkg.dependencies).concat(builtinModules, ['degit']),
+	output: {
+		dir: 'dist',
+		name: '[name].js',
+		format: 'cjs',
+		sourcemap: true
 	},
-];
+	external: Object.keys(pkg.dependencies || {}).concat(builtinModules),
+	plugins: [resolve(), commonjs()]
+};
