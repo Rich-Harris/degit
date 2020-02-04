@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.5.0
+
+* Add `--mode=git` for cloning private repos ([#29](https://github.com/Rich-Harris/degit/pull/29))
+
 ## 2.4.0
 
 * Clone subdirectories from repos (`user/repo/subdir`)
