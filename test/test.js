@@ -37,73 +37,68 @@ describe('degit', function() {
 		});
 	}
 
-	after(async () => await rimraf('.tmp'));
+	beforeEach(async () => await rimraf('.tmp'));
+	afterEach(async () => await rimraf('.tmp'));
 
 	describe('github', () => {
-		beforeEach(() => rimraf('.tmp'));
-
 		[
 			'mhkeller/degit-test-repo-compose',
 			'Rich-Harris/degit-test-repo',
 			'github:Rich-Harris/degit-test-repo',
 			'git@github.com:Rich-Harris/degit-test-repo',
-			'https://github.com/Rich-Harris/degit-test-repo.git',
+			'https://github.com/Rich-Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
 				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
 					'file.txt': 'hello from github!',
+					subdir: null,
+					'subdir/file.txt': 'hello from a subdirectory!'
 				});
 			});
 		});
 	});
 
 	describe('gitlab', () => {
-		beforeEach(() => rimraf('.tmp'));
-
 		[
 			'gitlab:Rich-Harris/degit-test-repo',
 			'git@gitlab.com:Rich-Harris/degit-test-repo',
-			'https://gitlab.com/Rich-Harris/degit-test-repo.git',
+			'https://gitlab.com/Rich-Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
 				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
-					'file.txt': 'hello from gitlab!',
+					'file.txt': 'hello from gitlab!'
 				});
 			});
 		});
 	});
 
 	describe('bitbucket', () => {
-		beforeEach(() => rimraf('.tmp'));
-
 		[
 			'bitbucket:Rich_Harris/degit-test-repo',
 			'git@bitbucket.org:Rich_Harris/degit-test-repo',
-			'https://bitbucket.org/Rich_Harris/degit-test-repo.git',
+			'https://bitbucket.org/Rich_Harris/degit-test-repo.git'
 		].forEach(src => {
 			it(src, async () => {
 				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
-					'file.txt': 'hello from bitbucket',
+					'file.txt': 'hello from bitbucket'
 				});
 			});
 		});
 	});
 
 	describe('Sourcehut', () => {
-		beforeEach(() => rimraf('.tmp'));
-
 		[
 			'git.sr.ht/~satotake/degit-test-repo',
 			'https://git.sr.ht/~satotake/degit-test-repo',
-			'git@git.sr.ht:~satotake/degit-test-repo',
+			'git@git.sr.ht:~satotake/degit-test-repo'
 		].forEach(src => {
 			it(src, async () => {
 				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
 				compare(`.tmp/test-repo`, {
-					'file.txt': 'hello from sourcehut!',
+					'file.txt': 'hello from sourcehut!'
 				});
 			});
 		});
@@ -114,6 +109,7 @@ describe('degit', function() {
 			let succeeded;
 
 			try {
+				await exec(`mkdir -p .tmp/test-repo`);
 				await exec(`echo "not empty" > .tmp/test-repo/file.txt`);
 				await exec(
 					`node ${degitPath} Rich-Harris/degit-test-repo .tmp/test-repo -v`
@@ -135,13 +131,13 @@ describe('degit', function() {
 
 	describe('command line arguments', () => {
 		it('allows flags wherever', async () => {
-			await rimraf('.tmp');
-
 			await exec(
 				`node ${degitPath} -v Rich-Harris/degit-test-repo .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from github!',
+				subdir: null,
+				'subdir/file.txt': 'hello from a subdirectory!'
 			});
 		});
 	});
@@ -154,14 +150,14 @@ describe('degit', function() {
 
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from github!',
+				subdir: null,
+				'subdir/file.txt': 'hello from a subdirectory!'
 			});
 		});
 	});
 
 	describe('actions', () => {
 		it('removes specified file', async () => {
-			await rimraf('.tmp');
-
 			await exec(
 				`node ${degitPath} -v mhkeller/degit-test-repo-remove-only .tmp/test-repo`
 			);
@@ -169,13 +165,13 @@ describe('degit', function() {
 		});
 
 		it('clones repo and removes specified file', async () => {
-			await rimraf('.tmp');
-
 			await exec(
 				`node ${degitPath} -v mhkeller/degit-test-repo-remove .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {
 				'other.txt': 'hello from github!',
+				subdir: null,
+				'subdir/file.txt': 'hello from a subdirectory!'
 			});
 		});
 
@@ -186,10 +182,12 @@ describe('degit', function() {
 				`node ${degitPath} -v mhkeller/degit-test-repo-nested-actions .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {
-				dir: '',
-				folder: '',
+				dir: null,
+				folder: null,
+				subdir: null,
 				'folder/file.txt': 'hello from clobber file!',
 				'folder/other.txt': 'hello from other file!',
+				'subdir/file.txt': 'hello from a subdirectory!'
 			});
 		});
 	});
