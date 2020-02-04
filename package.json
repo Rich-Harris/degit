@@ -34,6 +34,9 @@
   "homepage": "https://github.com/Rich-Harris/degit#readme",
   "dependencies": {
     "chalk": "3.0.0",
+    "enquirer": "2.3.4",
+    "fast-glob": "3.1.0",
+    "fuzzysearch": "1.0.3",
     "home-or-tmp": "3.0.0",
     "https-proxy-agent": "4.0.0",
     "mri": "1.1.4",

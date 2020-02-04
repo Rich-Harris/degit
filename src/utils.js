@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import homeOrTmp from 'home-or-tmp';
 import https from 'https';
 import child_process from 'child_process';
 import URL from 'url';
@@ -64,7 +65,7 @@ export function fetch(url, dest, proxy) {
 			options = {
 				hostname: parsedUrl.host,
 				path: parsedUrl.path,
-				agent: new Agent(proxy),
+				agent: new Agent(proxy)
 			};
 		}
 
@@ -122,3 +123,5 @@ export function unstashFiles(dir, dest) {
 	});
 	rimrafSync(tmpDir);
 }
+
+export const base = path.join(homeOrTmp, '.degit');

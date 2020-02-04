@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import homeOrTmp from 'home-or-tmp';
 import tar from 'tar';
 import EventEmitter from 'events';
 import chalk from 'chalk';
@@ -13,10 +12,9 @@ import {
 	tryRequire,
 	stashFiles,
 	unstashFiles,
-	degitConfigName
+	degitConfigName,
+	base
 } from './utils';
-
-const base = path.join(homeOrTmp, '.degit');
 
 const validModes = new Set(['tar', 'git']);
 
