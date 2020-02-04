@@ -104,6 +104,22 @@ describe('degit', function() {
 		});
 	});
 
+	describe('Subdirectories', () => {
+		[
+			'Rich-Harris/degit-test-repo/subdir',
+			'github:Rich-Harris/degit-test-repo/subdir',
+			'git@github.com:Rich-Harris/degit-test-repo/subdir',
+			'https://github.com/Rich-Harris/degit-test-repo.git/subdir'
+		].forEach(src => {
+			it(src, async () => {
+				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+				compare(`.tmp/test-repo`, {
+					'file.txt': 'hello from a subdirectory!'
+				});
+			});
+		});
+	});
+
 	describe('non-empty directories', () => {
 		it('fails without --force', async () => {
 			let succeeded;
