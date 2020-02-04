@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.8.0
+
+* Sort by recency in interactive mode
+
 ## 2.7.0
 
 * Bundle for a faster install
