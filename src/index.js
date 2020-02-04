@@ -92,6 +92,8 @@ class Degit extends EventEmitter {
 			? this._getHashFromCache(repo, cached)
 			: await this._getHash(repo, cached);
 
+		const subdir = repo.subdir ? `${repo.name}-${hash}${repo.subdir}` : null;
+
 		if (!hash) {
 			// TODO 'did you mean...?'
 			throw new DegitError(`could not find commit hash for ${repo.ref}`, {
@@ -146,11 +148,13 @@ class Degit extends EventEmitter {
 
 		this._verbose({
 			code: 'EXTRACTING',
-			message: `extracting ${file} to ${dest}`,
+			message: `extracting ${
+				subdir ? repo.subdir + ' from ' : ''
+			}${file} to ${dest}`,
 		});
 
 		mkdirp(dest);
-		await untar(file, dest);
+		await untar(file, dest, subdir);
 
 		this._info({
 			code: 'SUCCESS',
@@ -297,7 +301,7 @@ class Degit extends EventEmitter {
 const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
 
 function parse(src) {
-	const match = /^(?:https:\/\/([^/]+)\/|git@([^/]+)[:/]|([^/]+)[:/])?([^/\s]+)\/([^/\s#]+)(?:#(.+))?/.exec(
+	const match = /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
 		src
 	);
 	if (!match) {
@@ -321,21 +325,25 @@ function parse(src) {
 
 	const user = match[4];
 	const name = match[5].replace(/\.git$/, '');
-	const ref = match[6] || 'master';
+	const subdir = match[6];
+	const ref = match[7] || 'master';
 
 	const url = `https://${site}.${
 		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
 	}/${user}/${name}`;
 
-	return { site, user, name, ref, url };
+	return { site, user, name, ref, url, subdir };
 }
 
-async function untar(file, dest) {
-	return tar.extract({
-		file,
-		strip: 1,
-		C: dest,
-	});
+async function untar(file, dest, subdir = null) {
+	return tar.extract(
+		{
+			file,
+			strip: subdir ? subdir.split('/').length : 1,
+			C: dest,
+		},
+		subdir ? [subdir] : []
+	);
 }
 
 async function fetchRefs(repo) {
