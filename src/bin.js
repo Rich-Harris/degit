@@ -10,8 +10,9 @@ const args = mri(process.argv.slice(2), {
 		f: 'force',
 		c: 'cache',
 		v: 'verbose',
+		m: 'mode'
 	},
-	boolean: ['force', 'cache', 'verbose'],
+	boolean: ['force', 'cache', 'verbose']
 });
 
 const [src, dest = '.'] = args._;

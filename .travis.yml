@@ -5,6 +5,13 @@ node_js:
   - lts/*
   - node
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - libstdc++-4.9-dev
+
 script:
   - npm run lint
   - npm test
