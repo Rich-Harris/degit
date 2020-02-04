@@ -35,6 +35,7 @@
 	"dependencies": {
 		"chalk": "3.0.0",
 		"home-or-tmp": "3.0.0",
+		"https-proxy-agent": "4.0.0",
 		"mri": "1.1.4",
 		"sander": "0.6.0",
 		"tar": "6.0.1"

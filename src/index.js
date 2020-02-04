@@ -30,6 +30,7 @@ class Degit extends EventEmitter {
 		this.cache = opts.cache;
 		this.force = opts.force;
 		this.verbose = opts.verbose;
+		this.proxy = process.env.https_proxy; // TODO allow setting via --proxy
 
 		this.repo = parse(src);
 
@@ -117,12 +118,20 @@ class Degit extends EventEmitter {
 					});
 				} catch (err) {
 					mkdirp(path.dirname(file));
+
+					if (this.proxy) {
+						this._verbose({
+							code: 'PROXY',
+							message: `using proxy ${this.proxy}`,
+						});
+					}
+
 					this._verbose({
 						code: 'DOWNLOADING',
 						message: `downloading ${url} to ${file}`,
 					});
 
-					await fetch(url, file);
+					await fetch(url, file, this.proxy);
 				}
 			}
 		} catch (err) {
