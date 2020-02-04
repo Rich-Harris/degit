@@ -82,6 +82,12 @@ degit user/repo/subdirectory
 
 If you have an `https_proxy` environment variable, Degit will use it.
 
+### Private repositories
+
+Private repos can be cloned by specifying `--mode=git` (the default is `tar`). In this mode, Degit will use `git` under the hood. It's much slower than fetching a tarball, which is why it's not the default.
+
+Note: this clones over SSH, not HTTPS.
+
 ### See all options
 
 ```bash
