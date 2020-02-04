@@ -1,79 +1,79 @@
 {
-	"name": "degit",
-	"version": "2.3.0",
-	"engines": {
-		"node": ">=8.0.0"
-	},
-	"description": "Straightforward project scaffolding",
-	"main": "index.js",
-	"bin": {
-		"degit": "bin.js"
-	},
-	"scripts": {
-		"lint": "eslint .",
-		"dev": "npm run build -- --watch",
-		"build": "rollup -c",
-		"test": "mocha",
-		"pretest": "npm run build",
-		"prepublishOnly": "npm test"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/Rich-Harris/degit.git"
-	},
-	"keywords": [
-		"scaffolding",
-		"template",
-		"git"
-	],
-	"author": "Rich Harris",
-	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/Rich-Harris/degit/issues"
-	},
-	"homepage": "https://github.com/Rich-Harris/degit#readme",
-	"dependencies": {
-		"chalk": "3.0.0",
-		"home-or-tmp": "3.0.0",
-		"https-proxy-agent": "4.0.0",
-		"mri": "1.1.4",
-		"sander": "0.6.0",
-		"tar": "6.0.1"
-	},
-	"devDependencies": {
-		"eslint": "6.8.0",
-		"eslint-config-prettier": "6.10.0",
-		"eslint-plugin-import": "2.20.1",
-		"glob": "7.1.6",
-		"husky": "4.2.1",
-		"lint-staged": "10.0.7",
-		"mocha": "7.0.1",
-		"prettier": "1.19.1",
-		"rimraf": "3.0.1",
-		"rollup": "1.31.0",
-		"rollup-plugin-commonjs": "10.1.0",
-		"rollup-plugin-typescript": "1.0.1",
-		"source-map-support": "0.5.16",
-		"typescript": "3.7.5"
-	},
-	"files": [
-		"index.js",
-		"bin.js",
-		"help.md"
-	],
-	"husky": {
-		"hooks": {
-			"pre-commit": "lint-staged"
-		}
-	},
-	"lint-staged": {
-		"*.{js}": [
-			"eslint --fix",
-			"git add"
-		],
-		"*.{js, json, yml, md}": [
-			"prettier --write",
-			"git add"
-		]
-	}
+  "name": "degit",
+  "version": "2.3.0",
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "description": "Straightforward project scaffolding",
+  "main": "index.js",
+  "bin": {
+    "degit": "bin.js"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "dev": "npm run build -- --watch",
+    "build": "rollup -c",
+    "test": "mocha",
+    "pretest": "npm run build",
+    "prepublishOnly": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rich-Harris/degit.git"
+  },
+  "keywords": [
+    "scaffolding",
+    "template",
+    "git"
+  ],
+  "author": "Rich Harris",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Rich-Harris/degit/issues"
+  },
+  "homepage": "https://github.com/Rich-Harris/degit#readme",
+  "dependencies": {
+    "chalk": "3.0.0",
+    "home-or-tmp": "3.0.0",
+    "https-proxy-agent": "4.0.0",
+    "mri": "1.1.4",
+    "sander": "0.6.0",
+    "tar": "6.0.1"
+  },
+  "devDependencies": {
+    "eslint": "6.8.0",
+    "eslint-config-prettier": "6.10.0",
+    "eslint-plugin-import": "2.20.1",
+    "glob": "7.1.6",
+    "husky": "4.2.1",
+    "lint-staged": "10.0.7",
+    "mocha": "7.0.1",
+    "prettier": "1.19.1",
+    "rimraf": "3.0.1",
+    "rollup": "1.31.0",
+    "rollup-plugin-commonjs": "10.1.0",
+    "rollup-plugin-typescript": "1.0.1",
+    "source-map-support": "0.5.16",
+    "typescript": "3.7.5"
+  },
+  "files": [
+    "index.js",
+    "bin.js",
+    "help.md"
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js}": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.{js, json, yml, md}": [
+      "prettier --write",
+      "git add"
+    ]
+  }
 }
