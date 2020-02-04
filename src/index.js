@@ -415,6 +415,14 @@ async function fetchRefs(repo) {
 }
 
 function updateCache(dir, repo, hash, cached) {
+	// update access logs
+	const logs = tryRequire(path.join(dir, 'access.json')) || {};
+	logs[repo.ref] = new Date().toISOString();
+	fs.writeFileSync(
+		path.join(dir, 'access.json'),
+		JSON.stringify(logs, null, '  ')
+	);
+
 	if (cached[repo.ref] === hash) return;
 
 	const oldHash = cached[repo.ref];

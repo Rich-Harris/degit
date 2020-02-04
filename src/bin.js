@@ -33,11 +33,25 @@ async function main() {
 		process.stdout.write(`\n${help}\n`);
 	} else if (!src) {
 		// interactive mode
-		const getChoice = mapJsonPath => {
-			const sliced = mapJsonPath.slice(0, -'/map.json'.length);
-			const [host, user, repo] = sliced.split(path.sep);
 
-			return Object.entries(tryRequire(`${base}/${mapJsonPath}`)).map(
+		const accessLookup = new Map();
+
+		glob(`**/access.json`, { cwd: base }).forEach(file => {
+			const [host, user, repo] = file.split(path.sep);
+
+			const json = fs.readFileSync(`${base}/${file}`, 'utf-8');
+			const logs = JSON.parse(json);
+
+			Object.entries(logs).forEach(([ref, timestamp]) => {
+				const id = `${host}:${user}/${repo}#${ref}`;
+				accessLookup.set(id, new Date(timestamp).getTime());
+			});
+		});
+
+		const getChoice = file => {
+			const [host, user, repo] = file.split(path.sep);
+
+			return Object.entries(tryRequire(`${base}/${file}`)).map(
 				([ref, hash]) => ({
 					name: hash,
 					message: `${host}:${user}/${repo}#${ref}`,
@@ -48,7 +62,13 @@ async function main() {
 
 		const choices = glob(`**/map.json`, { cwd: base })
 			.map(getChoice)
-			.flat();
+			.flat()
+			.sort((a, b) => {
+				const aTime = accessLookup.get(a.value) || 0;
+				const bTime = accessLookup.get(b.value) || 0;
+
+				return bTime - aTime;
+			});
 
 		const options = await enquirer.prompt([
 			{
