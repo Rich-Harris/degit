@@ -5,8 +5,6 @@ import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
 import fuzzysearch from 'fuzzysearch';
 import enquirer from 'enquirer';
-
-// eslint-disable-next-line import/no-unresolved
 import degit from './index.js';
 import { tryRequire, base } from './utils.js';
 
