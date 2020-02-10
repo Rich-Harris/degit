@@ -62,7 +62,10 @@ async function main() {
 
 		const choices = glob(`**/map.json`, { cwd: base })
 			.map(getChoice)
-			.flat()
+			.reduce(
+				(accumulator, currentValue) => accumulator.concat(currentValue),
+				[]
+			)
 			.sort((a, b) => {
 				const aTime = accessLookup.get(a.value) || 0;
 				const bTime = accessLookup.get(b.value) || 0;
