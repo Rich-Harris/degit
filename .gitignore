@@ -1,6 +1,4 @@
 .DS_Store
 node_modules
 .tmp
-/index.js*
-/bin.js*
-/dist
+dist

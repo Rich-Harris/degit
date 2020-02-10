@@ -10,7 +10,7 @@
 		"degit": "bin.js"
 	},
 	"scripts": {
-		"lint": "eslint .",
+		"lint": "eslint --color --ignore-path .gitignore .",
 		"dev": "npm run build -- --watch",
 		"build": "rollup -c",
 		"test": "mocha",
