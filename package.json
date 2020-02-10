@@ -42,7 +42,7 @@
 		"eslint-plugin-import": "2.20.1",
 		"fuzzysearch": "1.0.3",
 		"home-or-tmp": "3.0.0",
-		"https-proxy-agent": "4.0.0",
+		"https-proxy-agent": "5.0.0",
 		"husky": "4.2.1",
 		"lint-staged": "10.0.7",
 		"mocha": "7.0.1",
