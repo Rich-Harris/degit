@@ -94,12 +94,6 @@ Note: this clones over SSH, not HTTPS.
 degit --help
 ```
 
-## Not supported
-
-- Private repositories
-
-Pull requests are very welcome!
-
 ## Wait, isn't this just `git clone --depth 1`?
 
 A few salient differences:
