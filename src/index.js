@@ -90,6 +90,9 @@ class Degit extends EventEmitter {
 
 		const { repo } = this;
 
+		if (repo.ref == null) {
+			repo.ref = await findDefaultBranch(repo, await fetchRefs(repo));
+		}
 		const dir = path.join(base, repo.site, repo.user, repo.name);
 
 		if (this.mode === 'tar') {
@@ -347,7 +350,7 @@ function parse(src) {
 	const user = match[4];
 	const name = match[5].replace(/\.git$/, '');
 	const subdir = match[6];
-	const ref = match[7] || 'master';
+	const ref = match[7] || null;
 
 	const domain = `${site}.${
 		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
@@ -358,6 +361,32 @@ function parse(src) {
 	const mode = supported.has(site) ? 'tar' : 'git';
 
 	return { site, user, name, ref, url, ssh, subdir, mode };
+}
+
+async function findDefaultBranch(repo, remoteInfo) {
+	try {
+		const headHash = await getHeadCommit(remoteInfo);
+		const [headBranchInfo] = remoteInfo.filter(row => {
+			if (row.type === 'branch' && row.hash === headHash) return true;
+		});
+		return headBranchInfo['name'];
+	} catch (error) {
+		throw new DegitError(`could not find the default branch ${repo.url}`, {
+			code: 'COULD_NOT_FIND_DEFAULT_BRANCH',
+			url: repo.url,
+			original: error
+		});
+	}
+}
+
+async function getHeadCommit(remoteInfo) {
+	if (remoteInfo != null) {
+		const [headInfo] = remoteInfo.filter(row => {
+			if (row.type === 'HEAD') return true;
+		});
+		return headInfo.hash;
+	}
+	return null;
 }
 
 async function untar(file, dest, subdir = null) {
