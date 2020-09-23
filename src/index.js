@@ -314,8 +314,22 @@ class Degit extends EventEmitter {
 	}
 
 	async _cloneWithGit(dir, dest) {
-		await exec(`git clone ${this.repo.ssh} ${dest}`);
-		await exec(`rm -rf ${path.resolve(dest, '.git')}`);
+		const branch = this.repo.ref ? `-b ${this.repo.ref}` : '';
+		if (this.repo.subdir) {
+			const tempDir = fs.mkdtempSync(`${dest}/.degit`);
+			await exec(`git clone --depth 1 ${branch} ${this.repo.ssh} ${tempDir}`);
+			const files = fs.readdirSync(`${tempDir}${this.repo.subdir}`);
+			files.forEach(file => {
+				fs.renameSync(
+					`${tempDir}${this.repo.subdir}/${file}`,
+					`${dest}/${file}`
+				);
+			});
+			rimrafSync(tempDir);
+		} else {
+			await exec(`git clone --depth 1 ${branch} ${this.repo.ssh} ${dest}`);
+			rimrafSync(path.resolve(dest, '.git'));
+		}
 	}
 }
 
