@@ -204,7 +204,12 @@ class Degit extends EventEmitter {
 			let ref = this._selectRef(refs, repo.ref);
 
 			// could not find master - if master was not specifically requested, try to find main
-			if (!ref && repo.ref === 'master' && !repo.requestedRef) {
+			if (
+				!ref &&
+				repo.ref === 'master' &&
+				!repo.requestedRef &&
+				repo.site === 'github'
+			) {
 				ref = this._selectRef(refs, 'main');
 
 				if (ref) {
