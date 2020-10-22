@@ -201,7 +201,22 @@ class Degit extends EventEmitter {
 	async _getHash(repo, cached) {
 		try {
 			const refs = await fetchRefs(repo);
-			return this._selectRef(refs, repo.ref);
+			let ref = this._selectRef(refs, repo.ref);
+
+			// could not find master - if master was not specifically requested, try to find main
+			if (!ref && repo.ref === 'master' && !repo.requestedRef) {
+				ref = this._selectRef(refs, 'main');
+
+				if (ref) {
+					this._verbose({
+						code: 'FALLBACK_TO_MAIN',
+						message: `unable to find branch master - using main`
+					});
+					repo.ref = 'main';
+				}
+			}
+
+			return ref;
 		} catch (err) {
 			this._warn(err);
 			this._verbose(err.original);
@@ -357,7 +372,17 @@ function parse(src) {
 
 	const mode = supported.has(site) ? 'tar' : 'git';
 
-	return { site, user, name, ref, url, ssh, subdir, mode };
+	return {
+		site,
+		user,
+		name,
+		ref,
+		requestedRef: match[7],
+		url,
+		ssh,
+		subdir,
+		mode
+	};
 }
 
 async function untar(file, dest, subdir = null) {
