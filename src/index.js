@@ -201,6 +201,9 @@ class Degit extends EventEmitter {
 	async _getHash(repo, cached) {
 		try {
 			const refs = await fetchRefs(repo);
+			if (repo.ref === 'HEAD') {
+				return refs.find(ref => ref.type === 'HEAD').hash;
+			}
 			return this._selectRef(refs, repo.ref);
 		} catch (err) {
 			this._warn(err);
@@ -347,7 +350,7 @@ function parse(src) {
 	const user = match[4];
 	const name = match[5].replace(/\.git$/, '');
 	const subdir = match[6];
-	const ref = match[7] || 'master';
+	const ref = match[7] || 'HEAD';
 
 	const domain = `${site}.${
 		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
