@@ -43,7 +43,7 @@
 		"fuzzysearch": "1.0.3",
 		"home-or-tmp": "3.0.0",
 		"https-proxy-agent": "4.0.0",
-		"husky": "4.2.1",
+		"husky": "5.1.3",
 		"lint-staged": "10.0.7",
 		"mocha": "7.0.1",
 		"mri": "1.1.4",
