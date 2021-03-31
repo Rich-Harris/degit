@@ -10,8 +10,10 @@ export default {
 	},
 	output: {
 		dir: 'dist',
-		name: '[name].js',
+		entryFileNames: '[name].js',
+		chunkFileNames: '[name]-[hash].js',
 		format: 'cjs',
+		exports: 'auto',
 		sourcemap: true
 	},
 	external: Object.keys(pkg.dependencies || {}).concat(builtinModules),

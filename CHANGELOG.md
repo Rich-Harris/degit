@@ -1,5 +1,10 @@
 # degit changelog
 
+## 2.8.2
+
+* Fix `bin`/`main` locations ([#273](https://github.com/Rich-Harris/degit/issues/273))
+* Update dependencies
+
 ## 2.8.1
 
 * Use `HEAD` instead of `master` ([#243](https://github.com/Rich-Harris/degit/pull/243)])
