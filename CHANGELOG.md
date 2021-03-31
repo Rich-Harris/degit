@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.8.1
+
+* Use `HEAD` instead of `master` ([#243](https://github.com/Rich-Harris/degit/pull/243)])
+
 ## 2.8.0
 
 * Sort by recency in interactive mode
