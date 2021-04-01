@@ -1,5 +1,9 @@
 # degit changelog
 
+## 2.8.4
+
+* Whoops
+
 ## 2.8.3
 
 * Reinstate `#!/usr/bin/env node` ([#273](https://github.com/Rich-Harris/degit/issues/273))
