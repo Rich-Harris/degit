@@ -27,6 +27,14 @@ describe('degit', function() {
 	this.timeout(timeout);
 
 	function compare(dir, files) {
+		if (path.sep !== '/') {
+			files = Object.keys(files).reduce((newFiles, file) => {
+				const newFilePath = file.replace(/\//g, path.sep);
+				newFiles[ newFilePath ] = files[file];
+				return newFiles;
+			}, {});
+		}
+
 		const expected = glob('**', { cwd: dir });
 		assert.deepEqual(Object.keys(files).sort(), expected.sort());
 
