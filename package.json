@@ -37,7 +37,7 @@
 		"@rollup/plugin-node-resolve": "11.2.1",
 		"chalk": "4.1.0",
 		"enquirer": "2.3.6",
-		"eslint": "7.23.0",
+		"eslint": "7.26.0",
 		"eslint-config-prettier": "8.1.0",
 		"eslint-plugin-import": "2.22.1",
 		"fuzzysearch": "1.0.3",
