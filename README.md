@@ -54,7 +54,7 @@ degit https://git.sr.ht/user/repo
 
 ### Specify a tag, branch or commit
 
-The default branch is `master`.
+The default checkpoint is `HEAD`, (which is the `master` branch on most system).
 
 ```bash
 degit user/repo#dev       # branch
