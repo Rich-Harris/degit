@@ -47,7 +47,7 @@
 		"lint-staged": "10.5.4",
 		"mocha": "8.3.2",
 		"mri": "1.1.6",
-		"prettier": "2.2.1",
+		"prettier": "2.3.1",
 		"rimraf": "3.0.2",
 		"rollup": "2.44.0",
 		"rollup-plugin-commonjs": "10.1.0",
