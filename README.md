@@ -50,6 +50,11 @@ degit https://bitbucket.org/user/repo
 degit git.sr.ht/user/repo
 degit git@git.sr.ht:user/repo
 degit https://git.sr.ht/user/repo
+
+# download from Hugging Face
+degit huggingface:user/repo
+degit git@huggingface.co:user/repo
+degit https://huggingface.co/user/repo
 ```
 
 ### Specify a tag, branch or commit

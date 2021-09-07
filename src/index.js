@@ -316,13 +316,15 @@ class Degit extends EventEmitter {
 		await untar(file, dest, subdir);
 	}
 
-	async _cloneWithGit(dir, dest) {
-		await exec(`git clone ${this.repo.ssh} ${dest}`);
+	async _cloneWithGit(dir, dest) {		
+		await exec(`git clone ${this.repo.remote} ${dest}`);
 		await exec(`rm -rf ${path.resolve(dest, '.git')}`);
 	}
 }
 
-const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
+const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht', 'huggingface']);
+const tarSupported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
+const sshSupported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
 
 function parse(src) {
 	const match = /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
@@ -335,12 +337,12 @@ function parse(src) {
 	}
 
 	const site = (match[1] || match[2] || match[3] || 'github').replace(
-		/\.(com|org)$/,
+		/\.(com|org|co)$/,
 		''
 	);
 	if (!supported.has(site)) {
 		throw new DegitError(
-			`degit supports GitHub, GitLab, Sourcehut and BitBucket`,
+			`degit supports GitHub, GitLab, Sourcehut, BitBucket and HuggingFace`,
 			{
 				code: 'UNSUPPORTED_HOST'
 			}
@@ -353,14 +355,15 @@ function parse(src) {
 	const ref = match[7] || 'HEAD';
 
 	const domain = `${site}.${
-		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
+		site === 'huggingface' ? 'co' : site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
 	}`;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `git@${domain}:${user}/${name}`;
 
-	const mode = supported.has(site) ? 'tar' : 'git';
+	const mode = tarSupported.has(site) ? 'tar' : 'git';
+	const remote = sshSupported.has(site) ? ssh : url
 
-	return { site, user, name, ref, url, ssh, subdir, mode };
+	return { site, user, name, ref, url, ssh, subdir, mode, remote };
 }
 
 async function untar(file, dest, subdir = null) {
