@@ -104,6 +104,21 @@ describe('degit', function() {
 		});
 	});
 
+	describe('Hugging Face', () => {
+		[
+			'huggingface:severo/degit-test-repo',
+			'git@huggingface.co:severo/degit-test-repo',
+			'https://huggingface.co/severo/degit-test-repo.git'
+		].forEach(src => {
+			it(src, async () => {
+				await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+				compare(`.tmp/test-repo`, {
+					'file.txt': 'hello from Hugging Face'
+				});
+			});
+		});
+	});
+
 	describe('Subdirectories', () => {
 		[
 			'Rich-Harris/degit-test-repo/subdir',

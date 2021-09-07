@@ -30,6 +30,12 @@ git.sr.ht/user/repo
 git@git.sr.ht:user/repo
 https://git.sr.ht/user/repo
 
+## Hugging Face repos
+
+huggingface:user/repo
+git@huggingface.co:user/repo
+https://huggingface.co/user/repo
+
 You can append a #ref to any of the above:
 
 ## Branches (defaults to master)
