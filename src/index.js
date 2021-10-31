@@ -264,7 +264,7 @@ class Degit extends EventEmitter {
 		const file = `${dir}/${hash}.tar.gz`;
 		const url =
 			repo.site === 'gitlab'
-				? `${repo.url}/repository/archive.tar.gz?ref=${hash}`
+				? `${repo.url}/-/archive/${hash}/${repo.name}-${hash}.tar.gz`
 				: repo.site === 'bitbucket'
 				? `${repo.url}/get/${hash}.tar.gz`
 				: `${repo.url}/archive/${hash}.tar.gz`;
