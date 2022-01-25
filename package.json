@@ -12,7 +12,7 @@
 	"scripts": {
 		"lint": "eslint --color --ignore-path .gitignore .",
 		"dev": "npm run build -- --watch",
-		"build": "rollup -c",
+		"build": "rollup -c && copyfiles help.md dist",
 		"test": "mocha",
 		"pretest": "npm run build",
 		"prepublishOnly": "npm test"
@@ -36,6 +36,7 @@
 		"@rollup/plugin-commonjs": "18.0.0",
 		"@rollup/plugin-node-resolve": "11.2.1",
 		"chalk": "4.1.0",
+		"copyfiles": "2.4.1",
 		"enquirer": "2.3.6",
 		"eslint": "7.23.0",
 		"eslint-config-prettier": "8.1.0",
