@@ -15,7 +15,7 @@ _Requires Node 8 or above, because `async` and `await` are the cat's pyjamas_
 ## Installation
 
 ```bash
-npm install -g degit
+npm install degit
 ```
 
 ## Usage
