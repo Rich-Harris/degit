@@ -22,7 +22,7 @@ npm install -g degit
 
 ### Basics
 
-The simplest use of degit is to download the master branch of a repo from GitHub to the current working directory:
+The simplest use of degit is to download the default branch of a repo from GitHub to the current working directory:
 
 ```bash
 degit user/repo
@@ -54,7 +54,7 @@ degit https://git.sr.ht/user/repo
 
 ### Specify a tag, branch or commit
 
-The default branch is `master`.
+If not specified, the GitHub [default branch](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/changing-the-default-branch) will be used..
 
 ```bash
 degit user/repo#dev       # branch
