@@ -23,7 +23,7 @@ const [src, dest = '.'] = args._;
 async function main() {
 	if (args.help) {
 		const help = fs
-			.readFileSync(path.join(__dirname, 'help.md'), 'utf-8')
+			.readFileSync(path.join(__dirname, '../help.md'), 'utf-8')
 			.replace(/^(\s*)#+ (.+)/gm, (m, s, _) => s + chalk.bold(_))
 			.replace(/_([^_]+)_/g, (m, _) => chalk.underline(_))
 			.replace(/`([^`]+)`/g, (m, _) => chalk.cyan(_));
