@@ -13,7 +13,8 @@ import {
 	stashFiles,
 	unstashFiles,
 	degitConfigName,
-	base
+	base,
+	parseSpec
 } from './utils.js';
 
 const validModes = new Set(['tar', 'git']);
@@ -32,7 +33,7 @@ class Degit extends EventEmitter {
 		this.verbose = opts.verbose;
 		this.proxy = process.env.https_proxy; // TODO allow setting via --proxy
 
-		this.repo = parse(src);
+		this.repo = parseSpec(src);
 		this.mode = opts.mode || this.repo.mode;
 
 		if (!validModes.has(this.mode)) {
@@ -320,47 +321,6 @@ class Degit extends EventEmitter {
 		await exec(`git clone ${this.repo.ssh} ${dest}`);
 		await exec(`rm -rf ${path.resolve(dest, '.git')}`);
 	}
-}
-
-const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
-
-function parse(src) {
-	const match = /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
-		src
-	);
-	if (!match) {
-		throw new DegitError(`could not parse ${src}`, {
-			code: 'BAD_SRC'
-		});
-	}
-
-	const site = (match[1] || match[2] || match[3] || 'github').replace(
-		/\.(com|org)$/,
-		''
-	);
-	if (!supported.has(site)) {
-		throw new DegitError(
-			`degit supports GitHub, GitLab, Sourcehut and BitBucket`,
-			{
-				code: 'UNSUPPORTED_HOST'
-			}
-		);
-	}
-
-	const user = match[4];
-	const name = match[5].replace(/\.git$/, '');
-	const subdir = match[6];
-	const ref = match[7] || 'HEAD';
-
-	const domain = `${site}.${
-		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
-	}`;
-	const url = `https://${domain}/${user}/${name}`;
-	const ssh = `git@${domain}:${user}/${name}`;
-
-	const mode = supported.has(site) ? 'tar' : 'git';
-
-	return { site, user, name, ref, url, ssh, subdir, mode };
 }
 
 async function untar(file, dest, subdir = null) {

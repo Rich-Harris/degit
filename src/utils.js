@@ -31,14 +31,14 @@ export function tryRequire(file, opts) {
 }
 
 export function exec(command) {
-	return new Promise((fulfil, reject) => {
+	return new Promise((resolve, reject) => {
 		child_process.exec(command, (err, stdout, stderr) => {
 			if (err) {
 				reject(err);
 				return;
 			}
 
-			fulfil({ stdout, stderr });
+			resolve({ stdout, stderr });
 		});
 	});
 }
@@ -57,7 +57,7 @@ export function mkdirp(dir) {
 }
 
 export function fetch(url, dest, proxy) {
-	return new Promise((fulfil, reject) => {
+	return new Promise((resolve, reject) => {
 		let options = url;
 
 		if (proxy) {
@@ -75,11 +75,11 @@ export function fetch(url, dest, proxy) {
 				if (code >= 400) {
 					reject({ code, message: response.statusMessage });
 				} else if (code >= 300) {
-					fetch(response.headers.location, dest, proxy).then(fulfil, reject);
+					fetch(response.headers.location, dest, proxy).then(resolve, reject);
 				} else {
 					response
 						.pipe(fs.createWriteStream(dest))
-						.on('finish', () => fulfil())
+						.on('finish', () => resolve())
 						.on('error', reject);
 				}
 			})
@@ -125,3 +125,44 @@ export function unstashFiles(dir, dest) {
 }
 
 export const base = path.join(homeOrTmp, '.degit');
+
+const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
+
+export function parseSpec(src) {
+	const match = /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
+		src
+	);
+	if (!match) {
+		throw new DegitError(`could not parse ${src}`, {
+			code: 'BAD_SRC'
+		});
+	}
+
+	const site = (match[1] || match[2] || match[3] || 'github').replace(
+		/\.(com|org)$/,
+		''
+	);
+	if (!supported.has(site)) {
+		throw new DegitError(
+			`degit supports GitHub, GitLab, Sourcehut and BitBucket`,
+			{
+				code: 'UNSUPPORTED_HOST'
+			}
+		);
+	}
+
+	const user = match[4];
+	const name = match[5].replace(/\.git$/, '');
+	const subdir = match[6];
+	const ref = match[7] || 'HEAD';
+
+	const domain = `${site}.${
+		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
+	}`;
+	const url = `https://${domain}/${user}/${name}`;
+	const ssh = `git@${domain}:${user}/${name}`;
+
+	const mode = supported.has(site) ? 'tar' : 'git';
+
+	return { site, user, name, ref, url, ssh, subdir, mode };
+}
