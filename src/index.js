@@ -19,6 +19,8 @@ import {
 
 const validModes = new Set(['tar', 'git']);
 
+export { parseSpec };
+
 export default function degit(src, opts) {
 	return new Degit(src, opts);
 }
