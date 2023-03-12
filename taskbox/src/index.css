@@ -327,7 +327,7 @@ textarea {
 }
 
 .list-item.TASK_ARCHIVED input[type="text"] {
-  color: #a0aec0;
+  color: #4a5568;
   text-decoration: line-through;
 }
 
