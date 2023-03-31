@@ -1,5 +1,28 @@
 # degit changelog
 
+## v2.9.0
+
+
+### 🚀 Enhancements
+
+  - Add support for self-hosted git provider (69f954b)
+
+### 🩹 Fixes
+
+  - Remove gitlab for tar download (74dfcf3)
+
+### 💅 Refactors
+
+  - Degit -> de-git (05cc31b)
+
+### 📖 Documentation
+
+  - Self hosted gitlab example (7e0d5ff)
+
+### ❤️  Contributors
+
+- Dnldsht ([@dnldsht](http://github.com/dnldsht))
+
 ## 2.8.4
 
 * Whoops
