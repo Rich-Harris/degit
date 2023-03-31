@@ -1,5 +1,5 @@
 {
-  "name": "de-git",
+  "name": "deegit",
   "version": "2.9.0",
   "engines": {
     "node": ">=8.0.0"
@@ -7,7 +7,7 @@
   "description": "Straightforward project scaffolding",
   "main": "dist/index.js",
   "bin": {
-    "de-git": "de-git"
+    "deegit": "deegit"
   },
   "scripts": {
     "lint": "eslint --color --ignore-path .gitignore .",
@@ -19,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Rich-Harris/degit.git"
+    "url": "git+https://github.com/dnldsht/deegit"
   },
   "keywords": [
     "scaffolding",
@@ -29,9 +29,9 @@
   "author": "Rich Harris",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Rich-Harris/degit/issues"
+    "url": "https://github.com/dnldsht/deegit/issues"
   },
-  "homepage": "https://github.com/Rich-Harris/degit#readme",
+  "homepage": "https://github.com/dnldsht/deegit#readme",
   "devDependencies": {
     "@rollup/plugin-commonjs": "18.0.0",
     "@rollup/plugin-node-resolve": "11.2.1",
