@@ -1,5 +1,16 @@
 # degit changelog
 
+## v2.9.1
+
+
+### 💅 Refactors
+
+  - Deegit (3289509)
+
+### ❤️  Contributors
+
+- Dnldsht ([@dnldsht](http://github.com/dnldsht))
+
 ## v2.9.0
 
 
