@@ -323,6 +323,7 @@ class Degit extends EventEmitter {
 }
 
 const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
+const supportTar = new Set(['github', 'bitbucket', 'git.sr.ht']);
 
 function parse(src) {
 	const match = /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
@@ -358,7 +359,7 @@ function parse(src) {
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `git@${domain}:${user}/${name}`;
 
-	const mode = supported.has(site) ? 'tar' : 'git';
+	const mode = supportTar.has(site) ? 'tar' : 'git';
 
 	return { site, user, name, ref, url, ssh, subdir, mode };
 }
