@@ -340,12 +340,13 @@ function parse(src) {
 		''
 	);
 	if (!supported.has(site)) {
-		throw new DegitError(
-			`degit supports GitHub, GitLab, Sourcehut and BitBucket`,
-			{
-				code: 'UNSUPPORTED_HOST'
-			}
-		);
+		console.warn(chalk.magenta(`\n! Warning:
+${chalk.bold(site)} is not officially supported.
+
+If you're using a self-hosted version use the full URL:
+e.g.	https://whatever.domain.com/user/repo
+e.g.	https://whatever.domain.com/user/repo.git
+`));
 	}
 
 	const user = match[4];
@@ -353,9 +354,12 @@ function parse(src) {
 	const subdir = match[6];
 	const ref = match[7] || 'HEAD';
 
-	const domain = `${site}.${
-		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
-	}`;
+	const tlds = {
+		'bitbucket': '.org',
+		'gitlab': '.com',
+		'github': '.com',
+	} 
+	const domain = `${site}${tlds[site] || ''}`;		
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `git@${domain}:${user}/${name}`;
 
