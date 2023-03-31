@@ -41,6 +41,10 @@ degit gitlab:user/repo
 degit git@gitlab.com:user/repo
 degit https://gitlab.com/user/repo
 
+# download from self-hosted GitLab
+degit git@your.gitlab.com:user/repo
+degit https://your.gitlab.com/user/repo
+
 # download from BitBucket
 degit bitbucket:user/repo
 degit git@bitbucket.org:user/repo
