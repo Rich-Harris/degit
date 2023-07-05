@@ -7,6 +7,7 @@ import { rimrafSync } from 'sander';
 import {
 	DegitError,
 	exec,
+	spawn,
 	fetch,
 	mkdirp,
 	tryRequire,
@@ -252,7 +253,6 @@ class Degit extends EventEmitter {
 			: await this._getHash(repo, cached);
 
 		const subdir = repo.subdir ? `${repo.name}-${hash}${repo.subdir}` : null;
-
 		if (!hash) {
 			// TODO 'did you mean...?'
 			throw new DegitError(`could not find commit hash for ${repo.ref}`, {
@@ -376,7 +376,7 @@ async function untar(file, dest, subdir = null) {
 
 async function fetchRefs(repo) {
 	try {
-		const { stdout } = await exec(`git ls-remote ${repo.url}`);
+		const { stdout } = await spawn(`git ls-remote ${repo.url}`);
 
 		return stdout
 			.split('\n')
