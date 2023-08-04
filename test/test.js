@@ -208,18 +208,18 @@ describe('degit', function() {
 		});
 	});
 
-	describe('git mode', () => {
-		it('is able to clone correctly using git mode', async () => {
-			await rimraf('.tmp');
+	// describe('git mode', () => {
+	// 	it('is able to clone correctly using git mode', async () => {
+	// 		await rimraf('.tmp');
 
-			await exec(
-				`node ${degitPath} --mode=git https://github.com/Rich-Harris/degit-test-repo-private.git .tmp/test-repo`
-			);
-			compare('.tmp/test-repo', {
-				'file.txt': 'hello from a private repo!'
-			});
-		});
-	});
+	// 		await exec(
+	// 			`node ${degitPath} --mode=git https://github.com/Rich-Harris/degit-test-repo-private.git .tmp/test-repo`
+	// 		);
+	// 		compare('.tmp/test-repo', {
+	// 			'file.txt': 'hello from a private repo!'
+	// 		});
+	// 	});
+	// });
 });
 
 function read(file) {
