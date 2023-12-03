@@ -58,15 +58,17 @@ export function mkdirp(dir) {
 
 export function fetch(url, dest, proxy) {
 	return new Promise((fulfil, reject) => {
-		let options = url;
-
+		const parsedUrl = URL.parse(url);
+		const options = {
+			hostname: parsedUrl.hostname,
+			port: parsedUrl.port,
+			path: parsedUrl.path,
+			headers: {
+				Connection: 'close'
+			}
+		};
 		if (proxy) {
-			const parsedUrl = URL.parse(url);
-			options = {
-				hostname: parsedUrl.host,
-				path: parsedUrl.path,
-				agent: new Agent(proxy)
-			};
+			options.agent = new Agent(proxy);
 		}
 
 		https
