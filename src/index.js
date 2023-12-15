@@ -1,3 +1,4 @@
+import process from 'process';
 import fs from 'fs';
 import path from 'path';
 import tar from 'tar';
@@ -70,7 +71,8 @@ class Degit extends EventEmitter {
 					process.exit(1);
 				});
 			},
-			remove: this.remove.bind(this)
+			remove: this.remove.bind(this),
+			search_replace: this.search_replace.bind(this)
 		};
 	}
 
@@ -156,6 +158,17 @@ class Degit extends EventEmitter {
 				)}`
 			});
 		}
+	}
+
+	search_replace(dir, dest, action) {
+		const re = new RegExp(action.pattern);
+		const value = process.env[action.replacement];
+		action.files.forEach(file => {
+			const file_path = `${dest}${path.sep}${file}`;
+			let contents = fs.readFileSync(file_path, "utf8");
+			contents = contents.replace(re, value);
+			fs.writeFileSync(file_path, contents);
+		});
 	}
 
 	_checkDirIsEmpty(dir) {
