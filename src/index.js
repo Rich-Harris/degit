@@ -161,7 +161,7 @@ class Degit extends EventEmitter {
 	}
 
 	search_replace(dir, dest, action) {
-		const re = new RegExp(action.pattern);
+		const re = new RegExp(action.pattern, 'g');
 		const value = process.env[action.replacement];
 		action.files.forEach(file => {
 			const file_path = `${dest}${path.sep}${file}`;
