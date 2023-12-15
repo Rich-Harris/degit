@@ -134,7 +134,7 @@ emitter.clone('path/to/dest').then(() => {
 
 ## Actions
 
-You can manipulate repositories after they have been cloned with _actions_, specified in a `degit.json` file that lives at the top level of the working directory. Currently, there are two actions — `clone` and `remove`. Additional actions may be added in future.
+You can manipulate repositories after they have been cloned with _actions_, specified in a `degit.json` file that lives at the top level of the working directory. Currently, there are three actions — `clone`, `remove`, and `search_replace`. Additional actions may be added in future.
 
 ### clone
 
@@ -163,6 +163,26 @@ This will clone `user/another-repo`, preserving the contents of the existing wor
 ```
 
 Remove a file at the specified path.
+
+### search_replace
+
+```json
+// degit.json
+[
+	{
+		"action": "search_replace",
+		"files": [
+			"one.txt",
+			"two.json",
+			"three.mjs"
+		],
+		"pattern": "\\{\\{name\\}\\}",
+		"replacement": "PROJECT_NAME"
+	}
+]
+```
+
+This will perform a search-and-replace in the given plaintext files. For example, this can be used to populate a project with an initial name, or various "author" references with email addresses, etc. The replacement regular expression is defined by the `pattern` field; matches in those files will be replaced by the value of the environmental variable identified by the `replacement` value in the user runtime. For example, the configuration listed above will replace all occurances of `{{name}}` in the given files with the value of the environmental variable `$PROJECT_NAME`.
 
 ## See also
 
