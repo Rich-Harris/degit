@@ -135,6 +135,8 @@ function run(src, dest, args) {
 
 	d.clone(dest).catch(err => {
 		console.error(chalk.red(`! ${err.message.replace('options.', '--')}`));
+		// show more logs when cloned proj error
+		console.warn(chalk.yellow(`！original: ${JSON.stringify(err.original)}`))
 		process.exit(1);
 	});
 }
