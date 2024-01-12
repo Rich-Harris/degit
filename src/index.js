@@ -318,7 +318,7 @@ class Degit extends EventEmitter {
 
 	async _cloneWithGit(dir, dest) {
 		await exec(`git clone ${this.repo.ssh} ${dest}`);
-		await exec(`rm -rf ${path.resolve(dest, '.git')}`);
+		rimrafSync(path.resolve(dest, '.git'));
 	}
 }
 
