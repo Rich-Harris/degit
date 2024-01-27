@@ -30,7 +30,7 @@ class Degit extends EventEmitter {
 		this.cache = opts.cache;
 		this.force = opts.force;
 		this.verbose = opts.verbose;
-		this.proxy = process.env.https_proxy; // TODO allow setting via --proxy
+		this.proxy = this._getHttpsProxy();
 
 		this.repo = parse(src);
 		this.mode = opts.mode || this.repo.mode;
@@ -72,6 +72,18 @@ class Degit extends EventEmitter {
 			},
 			remove: this.remove.bind(this)
 		};
+	}
+
+	// Return the HTTPS proxy address. Try to get the value by environment
+	// variable `https_proxy` or `HTTPS_PROXY`.
+	//
+	// TODO allow setting via --proxy
+	_getHttpsProxy() {
+		let result = process.env.https_proxy;
+		if (!result) {
+			result = process.env.HTTPS_PROXY;
+		}
+		return result
 	}
 
 	_getDirectives(dest) {
