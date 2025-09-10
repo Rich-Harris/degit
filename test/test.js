@@ -3,7 +3,7 @@ require('source-map-support').install();
 const fs = require('fs');
 const path = require('path');
 const glob = require('tiny-glob/sync');
-const rimraf = require('rimraf').sync;
+const { rm } = require('fs/promises');
 const assert = require('assert');
 const child_process = require('child_process');
 
@@ -37,8 +37,8 @@ describe('degit', function() {
 		});
 	}
 
-	beforeEach(async () => await rimraf('.tmp'));
-	afterEach(async () => await rimraf('.tmp'));
+	beforeEach(async () => await rm('.tmp', { recursive: true, force: true }));
+	afterEach(async () => await rm('.tmp', { recursive: true, force: true }));
 
 	describe('github', () => {
 		[
@@ -192,7 +192,7 @@ describe('degit', function() {
 		});
 
 		it('removes and adds nested files', async () => {
-			await rimraf('.tmp');
+			await rm('.tmp', { recursive: true, force: true });
 
 			await exec(
 				`node ${degitPath} -v mhkeller/degit-test-repo-nested-actions .tmp/test-repo`
@@ -210,7 +210,7 @@ describe('degit', function() {
 
 	describe('git mode', () => {
 		it('is able to clone correctly using git mode', async () => {
-			await rimraf('.tmp');
+			await rm('.tmp', { recursive: true, force: true });
 
 			await exec(
 				`node ${degitPath} --mode=git https://github.com/Rich-Harris/degit-test-repo-private.git .tmp/test-repo`

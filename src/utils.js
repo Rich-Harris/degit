@@ -5,7 +5,6 @@ import https from 'https';
 import child_process from 'child_process';
 import URL from 'url';
 import Agent from 'https-proxy-agent';
-import { rimrafSync, copydirSync } from 'sander';
 
 const tmpDirName = 'tmp';
 const degitConfigName = 'degit.json';
@@ -89,15 +88,15 @@ export function fetch(url, dest, proxy) {
 
 export function stashFiles(dir, dest) {
 	const tmpDir = path.join(dir, tmpDirName);
-	rimrafSync(tmpDir);
+	fs.rmSync(tmpDir, { recursive: true, force: true });
 	mkdirp(tmpDir);
 	fs.readdirSync(dest).forEach(file => {
 		const filePath = path.join(dest, file);
 		const targetPath = path.join(tmpDir, file);
 		const isDir = fs.lstatSync(filePath).isDirectory();
 		if (isDir) {
-			copydirSync(filePath).to(targetPath);
-			rimrafSync(filePath);
+			fs.cpSync(filePath, targetPath, { recursive: true });
+			fs.rmSync(filePath, { recursive: true, force: true });
 		} else {
 			fs.copyFileSync(filePath, targetPath);
 			fs.unlinkSync(filePath);
@@ -112,8 +111,8 @@ export function unstashFiles(dir, dest) {
 		const targetPath = path.join(dest, filename);
 		const isDir = fs.lstatSync(tmpFile).isDirectory();
 		if (isDir) {
-			copydirSync(tmpFile).to(targetPath);
-			rimrafSync(tmpFile);
+			fs.cpSync(tmpFile, targetPath, { recursive: true });
+			fs.rmSync(tmpFile, { recursive: true, force: true });
 		} else {
 			if (filename !== 'degit.json') {
 				fs.copyFileSync(tmpFile, targetPath);
@@ -121,7 +120,7 @@ export function unstashFiles(dir, dest) {
 			fs.unlinkSync(tmpFile);
 		}
 	});
-	rimrafSync(tmpDir);
+	fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
 export const base = path.join(homeOrTmp, '.degit');

@@ -35,7 +35,7 @@
 	"devDependencies": {
 		"@rollup/plugin-commonjs": "18.0.0",
 		"@rollup/plugin-node-resolve": "11.2.1",
-		"chalk": "4.1.0",
+		"picocolors": "^1.1.1",
 		"enquirer": "2.3.6",
 		"eslint": "7.23.0",
 		"eslint-config-prettier": "8.1.0",
@@ -48,10 +48,8 @@
 		"mocha": "8.3.2",
 		"mri": "1.1.6",
 		"prettier": "2.2.1",
-		"rimraf": "3.0.2",
 		"rollup": "2.44.0",
 		"rollup-plugin-commonjs": "10.1.0",
-		"sander": "0.6.0",
 		"source-map-support": "0.5.19",
 		"tar": "6.1.0",
 		"tiny-glob": "0.2.8"
