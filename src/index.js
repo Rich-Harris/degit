@@ -2,8 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import tar from 'tar';
 import EventEmitter from 'events';
-import chalk from 'chalk';
-import { rimrafSync } from 'sander';
+import picocolors from 'picocolors';
 import {
 	DegitError,
 	exec,
@@ -55,18 +54,18 @@ class Degit extends EventEmitter {
 
 				d.on('info', event => {
 					console.error(
-						chalk.cyan(`> ${event.message.replace('options.', '--')}`)
+						picocolors.cyan(`> ${event.message.replace('options.', '--')}`)
 					);
 				});
 
 				d.on('warn', event => {
 					console.error(
-						chalk.magenta(`! ${event.message.replace('options.', '--')}`)
+						picocolors.magenta(`! ${event.message.replace('options.', '--')}`)
 					);
 				});
 
 				await d.clone(dest).catch(err => {
-					console.error(chalk.red(`! ${err.message}`));
+					console.error(picocolors.red(`! ${err.message}`));
 					process.exit(1);
 				});
 			},
@@ -100,7 +99,7 @@ class Degit extends EventEmitter {
 
 		this._info({
 			code: 'SUCCESS',
-			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(
+			message: `cloned ${picocolors.bold(repo.user + '/' + repo.name)}#${picocolors.bold(
 				repo.ref
 			)}${dest !== '.' ? ` to ${dest}` : ''}`,
 			repo,
@@ -130,7 +129,7 @@ class Degit extends EventEmitter {
 				if (fs.existsSync(filePath)) {
 					const isDir = fs.lstatSync(filePath).isDirectory();
 					if (isDir) {
-						rimrafSync(filePath);
+						fs.rmSync(filePath, { recursive: true, force: true });
 						return file + '/';
 					} else {
 						fs.unlinkSync(filePath);
@@ -139,7 +138,7 @@ class Degit extends EventEmitter {
 				} else {
 					this._warn({
 						code: 'FILE_DOES_NOT_EXIST',
-						message: `action wants to remove ${chalk.bold(
+						message: `action wants to remove ${picocolors.bold(
 							file
 						)} but it does not exist`
 					});
@@ -151,8 +150,8 @@ class Degit extends EventEmitter {
 		if (removedFiles.length > 0) {
 			this._info({
 				code: 'REMOVED',
-				message: `removed: ${chalk.bold(
-					removedFiles.map(d => chalk.bold(d)).join(', ')
+				message: `removed: ${picocolors.bold(
+					removedFiles.map(d => picocolors.bold(d)).join(', ')
 				)}`
 			});
 		}
