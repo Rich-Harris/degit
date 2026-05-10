@@ -43,6 +43,30 @@ export function exec(command) {
 	});
 }
 
+export function spawn(command) {
+	const decoder = new TextDecoder();
+	return new Promise((fulfil, reject) => {
+		const args = command.split(' ');
+		const cmd = args.shift();
+		const ps = child_process.spawn(cmd, args);
+		const outs = [];
+		const errs = [];
+		ps.stdout.on('data', (data) => {
+			outs.push(decoder.decode(data));
+		});
+		ps.stderr.on('data', (data) => {
+			errs.push(decoder.decode(data));
+		});
+		ps.on('close', (code) => {
+			if (code != 0) {
+				reject(code);
+			} else {
+				fulfil({ stdout: outs.join(''), stderr: errs.join('') });
+			}
+		});
+	});
+}
+
 export function mkdirp(dir) {
 	const parent = path.dirname(dir);
 	if (parent === dir) return;
