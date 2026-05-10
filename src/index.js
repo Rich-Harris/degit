@@ -34,6 +34,8 @@ class Degit extends EventEmitter {
 
 		this.repo = parse(src);
 		this.mode = opts.mode || this.repo.mode;
+		this._fetch = opts.fetch || fetch;
+		this._exec = opts.exec || exec;
 
 		if (!validModes.has(this.mode)) {
 			throw new Error(`Valid modes are ${Array.from(validModes).join(', ')}`);
@@ -200,7 +202,7 @@ class Degit extends EventEmitter {
 
 	async _getHash(repo, cached) {
 		try {
-			const refs = await fetchRefs(repo);
+			const refs = await this._fetchRefs(repo);
 			if (repo.ref === 'HEAD') {
 				return refs.find(ref => ref.type === 'HEAD').hash;
 			}
@@ -292,7 +294,7 @@ class Degit extends EventEmitter {
 						message: `downloading ${url} to ${file}`
 					});
 
-					await fetch(url, file, this.proxy);
+					await this._fetch(url, file, this.proxy);
 				}
 			}
 		} catch (err) {
@@ -317,8 +319,12 @@ class Degit extends EventEmitter {
 	}
 
 	async _cloneWithGit(dir, dest) {
-		await exec(`git clone ${this.repo.ssh} ${dest}`);
-		await exec(`rm -rf ${path.resolve(dest, '.git')}`);
+		await this._exec(`git clone ${this.repo.ssh} ${dest}`);
+		await this._exec(`rm -rf ${path.resolve(dest, '.git')}`);
+	}
+
+	_fetchRefs(repo) {
+		return fetchRefs(repo, this._exec);
 	}
 }
 
@@ -374,9 +380,9 @@ async function untar(file, dest, subdir = null) {
 	);
 }
 
-async function fetchRefs(repo) {
+async function fetchRefs(repo, runExec = exec) {
 	try {
-		const { stdout } = await exec(`git ls-remote ${repo.url}`);
+		const { stdout } = await runExec(`git ls-remote ${repo.url}`);
 
 		return stdout
 			.split('\n')
