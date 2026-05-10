@@ -5,8 +5,17 @@ import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
 import fuzzysearch from 'fuzzysearch';
 import enquirer from 'enquirer';
-import degit from './index.js';
-import { tryRequire, base } from './utils.js';
+import degit from './index';
+import { tryRequire, base } from './utils';
+
+type Argv = {
+	_?: string[];
+	help?: boolean;
+	force?: boolean;
+	cache?: boolean;
+	verbose?: boolean;
+	mode?: string;
+};
 
 const args = mri(process.argv.slice(2), {
 	alias: {
@@ -16,40 +25,44 @@ const args = mri(process.argv.slice(2), {
 		m: 'mode'
 	},
 	boolean: ['force', 'cache', 'verbose']
-});
+}) as Argv;
 
-const [src, dest = '.'] = args._;
+const positionalArgs = (args._ ?? []) as Array<string | undefined>;
+const src = positionalArgs[0];
+const dest = positionalArgs[1] || '.';
 
-async function main() {
+async function main(): Promise<void> {
 	if (args.help) {
 		const help = fs
 			.readFileSync(path.join(__dirname, 'help.md'), 'utf-8')
-			.replace(/^(\s*)#+ (.+)/gm, (m, s, _) => s + chalk.bold(_))
-			.replace(/_([^_]+)_/g, (m, _) => chalk.underline(_))
-			.replace(/`([^`]+)`/g, (m, _) => chalk.cyan(_));
+			.replace(
+				/^(\s*)#+ (.+)/gm,
+				(_match, s, heading) => s + chalk.bold(heading)
+			)
+			.replace(/_([^_]+)_/g, (_match, value) => chalk.underline(value))
+			.replace(/`([^`]+)`/g, (_match, value) => chalk.cyan(value));
 
 		process.stdout.write(`\n${help}\n`);
 	} else if (!src) {
-		// interactive mode
-
-		const accessLookup = new Map();
+		const accessLookup = new Map<string, number>();
 
 		glob(`**/access.json`, { cwd: base }).forEach(file => {
 			const [host, user, repo] = file.split(path.sep);
-
 			const json = fs.readFileSync(`${base}/${file}`, 'utf-8');
 			const logs = JSON.parse(json);
 
 			Object.entries(logs).forEach(([ref, timestamp]) => {
 				const id = `${host}:${user}/${repo}#${ref}`;
-				accessLookup.set(id, new Date(timestamp).getTime());
+				accessLookup.set(id, new Date(timestamp as string).getTime());
 			});
 		});
 
-		const getChoice = file => {
+		const getChoice = (file: string) => {
 			const [host, user, repo] = file.split(path.sep);
+			const map = tryRequire(`${base}/${file}`) as Record<string, string> | false;
+			if (!map) return [];
 
-			return Object.entries(tryRequire(`${base}/${file}`)).map(
+			return Object.entries(map).map(
 				([ref, hash]) => ({
 					name: hash,
 					message: `${host}:${user}/${repo}#${ref}`,
@@ -60,10 +73,7 @@ async function main() {
 
 		const choices = glob(`**/map.json`, { cwd: base })
 			.map(getChoice)
-			.reduce(
-				(accumulator, currentValue) => accumulator.concat(currentValue),
-				[]
-			)
+			.flat()
 			.sort((a, b) => {
 				const aTime = accessLookup.get(a.value) || 0;
 				const bTime = accessLookup.get(b.value) || 0;
@@ -72,26 +82,26 @@ async function main() {
 			});
 
 		const options = await enquirer.prompt([
-			{
-				type: 'autocomplete',
-				name: 'src',
-				message: 'Repo to clone?',
-				suggest: (input, choices) =>
-					choices.filter(({ value }) => fuzzysearch(input, value)),
-				choices
-			},
-			{
-				type: 'input',
-				name: 'dest',
-				message: 'Destination directory?',
-				initial: '.'
-			},
-			{
-				type: 'toggle',
-				name: 'cache',
-				message: 'Use cached version?'
-			}
-		]);
+				{
+					type: 'autocomplete',
+					name: 'src',
+					message: 'Repo to clone?',
+					suggest: (input, options) =>
+						options.filter(({ value }) => fuzzysearch(input, value)),
+					choices
+				},
+				{
+					type: 'input',
+					name: 'dest',
+					message: 'Destination directory?',
+					initial: '.'
+				},
+				{
+					type: 'toggle',
+					name: 'cache',
+					message: 'Use cached version?'
+				}
+			]) as { src: string; dest: string; cache: boolean };
 
 		const empty =
 			!fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
@@ -103,7 +113,7 @@ async function main() {
 					name: 'force',
 					message: 'Overwrite existing files?'
 				}
-			]);
+			]) as { force: boolean };
 
 			if (!force) {
 				console.error(chalk.magenta(`! Directory not empty — aborting`));
@@ -120,7 +130,7 @@ async function main() {
 	}
 }
 
-function run(src, dest, args) {
+function run(src: string, dest: string, args: Argv): void {
 	const d = degit(src, args);
 
 	d.on('info', event => {

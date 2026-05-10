@@ -1,5 +1,6 @@
 {
 	"root": true,
+	"parser": "@typescript-eslint/parser",
 	"rules": {
 		"no-cond-assign": 0,
 		"no-unused-vars": 2,
@@ -25,10 +26,12 @@
 		"eslint:recommended",
 		"plugin:import/errors",
 		"plugin:import/warnings",
+		"plugin:@typescript-eslint/recommended",
 		"prettier"
 	],
+	"plugins": ["@typescript-eslint"],
 	"parserOptions": {
-		"ecmaVersion": 8,
+		"ecmaVersion": 2022,
 		"sourceType": "module"
 	}
 }

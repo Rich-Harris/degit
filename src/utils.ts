@@ -8,20 +8,18 @@ import Agent from 'https-proxy-agent';
 import { rimrafSync, copydirSync } from 'sander';
 
 const tmpDirName = 'tmp';
-const degitConfigName = 'degit.json';
-
-export { degitConfigName };
+export const degitConfigName = 'degit.json';
 
 export class DegitError extends Error {
-	constructor(message, opts) {
+	constructor(message: string, opts: { [key: string]: unknown }) {
 		super(message);
 		Object.assign(this, opts);
 	}
 }
 
-export function tryRequire(file, opts) {
+export function tryRequire(file: string, opts?: { clearCache?: boolean }): unknown {
 	try {
-		if (opts && opts.clearCache === true) {
+		if (opts?.clearCache === true) {
 			delete require.cache[require.resolve(file)];
 		}
 		return require(file);
@@ -30,7 +28,12 @@ export function tryRequire(file, opts) {
 	}
 }
 
-export function exec(command) {
+export type ExecResult = {
+	stdout: string;
+	stderr: string;
+};
+
+export function exec(command: string): Promise<ExecResult> {
 	return new Promise((fulfil, reject) => {
 		child_process.exec(command, (err, stdout, stderr) => {
 			if (err) {
@@ -43,7 +46,7 @@ export function exec(command) {
 	});
 }
 
-export function mkdirp(dir) {
+export function mkdirp(dir: string): void {
 	const parent = path.dirname(dir);
 	if (parent === dir) return;
 
@@ -52,30 +55,35 @@ export function mkdirp(dir) {
 	try {
 		fs.mkdirSync(dir);
 	} catch (err) {
-		if (err.code !== 'EEXIST') throw err;
+		if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
 	}
 }
 
-export function fetch(url, dest, proxy) {
+export function fetch(url: string, dest: string, proxy?: string): Promise<void> {
 	return new Promise((fulfil, reject) => {
-		let options = url;
+		let options: string | https.RequestOptions = url;
 
 		if (proxy) {
 			const parsedUrl = URL.parse(url);
 			options = {
-				hostname: parsedUrl.host,
-				path: parsedUrl.path,
+				hostname: parsedUrl.hostname || parsedUrl.host || '',
+				path: parsedUrl.path || '',
 				agent: new Agent(proxy)
 			};
 		}
 
 		https
 			.get(options, response => {
-				const code = response.statusCode;
+				const code = response.statusCode || 0;
 				if (code >= 400) {
-					reject({ code, message: response.statusMessage });
+					reject({ code, message: response.statusMessage || '' });
 				} else if (code >= 300) {
-					fetch(response.headers.location, dest, proxy).then(fulfil, reject);
+					const location = response.headers.location;
+					if (typeof location === 'string') {
+						fetch(location, dest, proxy).then(fulfil, reject);
+					} else {
+						reject({ code, message: 'Redirect without location header' });
+					}
 				} else {
 					response
 						.pipe(fs.createWriteStream(dest))
@@ -87,7 +95,7 @@ export function fetch(url, dest, proxy) {
 	});
 }
 
-export function stashFiles(dir, dest) {
+export function stashFiles(dir: string, dest: string): void {
 	const tmpDir = path.join(dir, tmpDirName);
 	rimrafSync(tmpDir);
 	mkdirp(tmpDir);
@@ -105,7 +113,7 @@ export function stashFiles(dir, dest) {
 	});
 }
 
-export function unstashFiles(dir, dest) {
+export function unstashFiles(dir: string, dest: string): void {
 	const tmpDir = path.join(dir, tmpDirName);
 	fs.readdirSync(tmpDir).forEach(filename => {
 		const tmpFile = path.join(tmpDir, filename);
