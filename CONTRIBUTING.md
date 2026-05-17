@@ -129,7 +129,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Rich-H
 
 Prerequisites:
 
-- Node.js **18** or later (see `engines` in `package.json`)
+- Node.js **20** or later (see `engines` in `package.json`)
 - [Bun](https://bun.sh) **1.3.14** (same version as CI; see `.github/workflows/nodejs.yml`)
 
 Clone the repository, install dependencies, and build:

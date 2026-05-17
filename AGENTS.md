@@ -17,7 +17,7 @@ Human-facing narrative belongs primarily in README and CONTRIBUTING; AGENTS.md s
 | Contributing flow, PR checks, commit style, security reporting | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Community expectations | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) |
 | Published CLI help text | [help.md](help.md) |
-| CI matrix and steps (Bun + Node 18/20/22) | [.github/workflows/nodejs.yml](.github/workflows/nodejs.yml) |
+| CI matrix and steps (Bun + Node 20/22/24) | [.github/workflows/nodejs.yml](.github/workflows/nodejs.yml) |
 | Library and CLI implementation | [src/index.js](src/index.js), [src/utils.js](src/utils.js), [src/bin.js](src/bin.js) |
 | Rollup build | [rollup.config.js](rollup.config.js) |
 | Tests and Vitest settings | [test/](test/), [vitest.config.js](vitest.config.js) |
@@ -25,7 +25,7 @@ Human-facing narrative belongs primarily in README and CONTRIBUTING; AGENTS.md s
 
 ## Project overview
 
-**degit** downloads a snapshot of a git repository (GitHub, GitLab, Bitbucket, Sourcehut) via tarballs instead of cloning full history. Runtime targets Node 18+. This repo is built with Rollup to `dist/` and ships a `degit` bin.
+**degit** downloads a snapshot of a git repository (GitHub, GitLab, Bitbucket, Sourcehut) via tarballs instead of cloning full history. Runtime targets Node 20+. This repo is built with Rollup to `dist/` and ships a `degit` bin.
 
 ## Setup commands
 
@@ -36,7 +36,7 @@ bun install
 bun run build
 ```
 
-Node 18+ is required (`engines` in `package.json`). End users may install the published package with npm; agent work in this clone should follow Bun as in [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+Node 20+ is required (`engines` in `package.json`). End users may install the published package with npm; agent work in this clone should follow Bun as in [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Development workflow
 
@@ -72,7 +72,7 @@ Pre-commit uses lint-staged (ESLint on JS; Prettier on JS, JSON, YAML, MD). Alig
 bun run build           # outputs to dist/; npm publish uses files in package.json
 ```
 
-`prepublishOnly` runs `npm test` (which builds then tests). CI runs `bun install --frozen-lockfile`, `bun run build`, `bun run test`, and `bun run lint` on Node 18.x, 20.x, and 22.x.
+`prepublishOnly` runs `npm test` (which builds then tests). CI runs `bun install --frozen-lockfile`, `bun run build`, `bun run test`, and `bun run lint` on Node 20.x, 22.x, and 24.x.
 
 ## Pull requests and commits
 
