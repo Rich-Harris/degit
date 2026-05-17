@@ -1,21 +1,21 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
-import { builtinModules } from 'module';
+import { builtinModules } from 'node:module';
 import pkg from './package.json';
 
 export default {
+	external: Object.keys(pkg.dependencies || {}).concat(builtinModules),
 	input: {
+		bin: 'src/bin.js',
 		index: 'src/index.js',
-		bin: 'src/bin.js'
 	},
 	output: {
+		chunkFileNames: '[name]-[hash].js',
 		dir: 'dist',
 		entryFileNames: '[name].js',
-		chunkFileNames: '[name]-[hash].js',
-		format: 'cjs',
 		exports: 'auto',
-		sourcemap: true
+		format: 'cjs',
+		sourcemap: true,
 	},
-	external: Object.keys(pkg.dependencies || {}).concat(builtinModules),
-	plugins: [resolve(), commonjs()]
+	plugins: [resolve(), commonjs()],
 };

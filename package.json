@@ -1,16 +1,35 @@
 {
 	"name": "degit",
 	"version": "2.8.4",
-	"engines": {
-		"node": ">=20.0.0"
-	},
 	"description": "Straightforward project scaffolding",
-	"main": "dist/index.js",
+	"keywords": [
+		"git",
+		"scaffolding",
+		"template"
+	],
+	"homepage": "https://github.com/Rich-Harris/degit#readme",
+	"bugs": {
+		"url": "https://github.com/Rich-Harris/degit/issues"
+	},
+	"license": "MIT",
+	"author": "Rich Harris",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Rich-Harris/degit.git"
+	},
 	"bin": {
 		"degit": "degit"
 	},
+	"files": [
+		"help.md",
+		"dist"
+	],
+	"main": "dist/index.js",
 	"scripts": {
-		"lint": "eslint --color --ignore-path .gitignore .",
+		"lint": "oxlint --import-plugin --fix .",
+		"lint:ci": "oxlint --import-plugin --deny-warnings .",
+		"format": "oxfmt --write .",
+		"format:ci": "oxfmt --check .",
 		"dev": "npm run build -- --watch",
 		"build": "rollup -c",
 		"test": "vitest run",
@@ -18,36 +37,20 @@
 		"pretest": "npm run build",
 		"prepublishOnly": "npm test"
 	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/Rich-Harris/degit.git"
-	},
-	"keywords": [
-		"scaffolding",
-		"template",
-		"git"
-	],
-	"author": "Rich Harris",
-	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/Rich-Harris/degit/issues"
-	},
-	"homepage": "https://github.com/Rich-Harris/degit#readme",
 	"devDependencies": {
 		"@rollup/plugin-commonjs": "18.0.0",
 		"@rollup/plugin-node-resolve": "11.2.1",
+		"@vitest/coverage-v8": "4.1.5",
 		"chalk": "4.1.0",
 		"enquirer": "2.3.6",
-		"eslint": "7.23.0",
-		"eslint-config-prettier": "8.1.0",
-		"eslint-plugin-import": "2.22.1",
 		"fuzzysearch": "1.0.3",
 		"home-or-tmp": "3.0.0",
 		"https-proxy-agent": "5.0.0",
 		"husky": "6.0.0",
 		"lint-staged": "10.5.4",
 		"mri": "1.1.6",
-		"prettier": "2.2.1",
+		"oxfmt": "0.47.0",
+		"oxlint": "1.62.0",
 		"rimraf": "3.0.2",
 		"rollup": "2.44.0",
 		"rollup-plugin-commonjs": "10.1.0",
@@ -55,13 +58,8 @@
 		"source-map-support": "0.5.19",
 		"tar": "6.1.0",
 		"tiny-glob": "0.2.8",
-		"@vitest/coverage-v8": "4.1.5",
 		"vitest": "4.1.5"
 	},
-	"files": [
-		"help.md",
-		"dist"
-	],
 	"husky": {
 		"hooks": {
 			"pre-commit": "lint-staged"
@@ -69,12 +67,15 @@
 	},
 	"lint-staged": {
 		"*.{js}": [
-			"eslint --fix",
+			"oxlint --import-plugin --fix --deny-warnings",
 			"git add"
 		],
-		"*.{js, json, yml, md}": [
-			"prettier --write",
+		"**/*": [
+			"oxfmt --write --no-error-on-unmatched-pattern",
 			"git add"
 		]
+	},
+	"engines": {
+		"node": ">=20.0.0"
 	}
 }

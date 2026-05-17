@@ -49,11 +49,11 @@ unless the `--force` option is used.
 
 Options:
 
-  `--help`,    `-h`  Show this message
-  `--cache`,   `-c`  Only use local cache
-  `--force`,   `-f`  Allow non-empty destination directory
-  `--verbose`, `-v`  Extra logging
-  `--mode=`,   `-m=` Force the mode by which degit clones the repo
-                     Valid options are `tar` or `git` (uses SSH)
+`--help`, `-h` Show this message
+`--cache`, `-c` Only use local cache
+`--force`, `-f` Allow non-empty destination directory
+`--verbose`, `-v` Extra logging
+`--mode=`, `-m=` Force the mode by which degit clones the repo
+Valid options are `tar` or `git` (uses SSH)
 
 See https://github.com/Rich-Harris/degit for more information

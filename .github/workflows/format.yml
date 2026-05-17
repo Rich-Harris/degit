@@ -1,9 +1,9 @@
-name: Test
+name: Format
 
 on: [push]
 
 jobs:
-    test:
+    format:
         runs-on: ubuntu-latest
 
         steps:
@@ -21,8 +21,7 @@ jobs:
                   node-version: 20.x
 
             - run: bun install --frozen-lockfile
-
-            - run: bun run test
+            - run: bun run format:ci
 
             - name: Use Node.js 22.x
               uses: actions/setup-node@v4
@@ -30,8 +29,7 @@ jobs:
                   node-version: 22.x
 
             - run: bun install --frozen-lockfile
-
-            - run: bun run test
+            - run: bun run format:ci
 
             - name: Use Node.js 24.x
               uses: actions/setup-node@v4
@@ -39,5 +37,4 @@ jobs:
                   node-version: 24.x
 
             - run: bun install --frozen-lockfile
-
-            - run: bun run test
+            - run: bun run format:ci

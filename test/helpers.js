@@ -1,48 +1,47 @@
-import child_process from 'child_process';
-import fs from 'fs';
-import path from 'path';
+import child_process from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import glob from 'tiny-glob/sync.js';
-import assert from 'assert';
+import assert from 'node:assert';
 
 export const degitPath = path.resolve('dist/bin.js');
 
 export function readFixture(file) {
-	return fs.readFileSync(file, 'utf-8');
+	return fs.readFileSync(file, 'utf8');
 }
 
 export function compareDirToExpected(dir, files) {
 	const expected = glob('**', { cwd: dir });
-	assert.deepEqual(Object.keys(files).sort(), expected.sort());
+	assert.deepEqual(Object.keys(files).toSorted(), expected.toSorted());
 
-	expected.forEach(file => {
+	expected.forEach((file) => {
 		if (!fs.lstatSync(`${dir}/${file}`).isDirectory()) {
-			assert.equal(
-				files[file].trim(),
-				readFixture(`${dir}/${file}`).trim()
-			);
+			assert.equal(files[file].trim(), readFixture(`${dir}/${file}`).trim());
 		}
 	});
 }
 
 export function createMockExec(stubs = {}) {
 	const calls = [];
-	const fn = command => {
+	const fn = (command) => {
 		calls.push(command);
 
-		if (!Object.prototype.hasOwnProperty.call(stubs, command)) {
+		if (!Object.hasOwn(stubs, command)) {
 			return Promise.reject(new Error(`Unexpected command: ${command}`));
 		}
 
 		const stub = stubs[command];
-		if (stub && stub.error) return Promise.reject(stub.error);
+		if (stub && stub.error) {
+			return Promise.reject(stub.error);
+		}
 
 		const stdout = typeof stub === 'string' ? stub : stub.stdout || '';
 		const stderr = stub && stub.stderr ? stub.stderr : '';
 
-		return Promise.resolve({ stdout, stderr });
+		return Promise.resolve({ stderr, stdout });
 	};
 
-	return { fn, calls };
+	return { calls, fn };
 }
 
 export function createMockFetch(steps) {
@@ -50,7 +49,7 @@ export function createMockFetch(steps) {
 	let step = 0;
 
 	const fn = (url, file, proxy) => {
-		calls.push({ url, file, proxy });
+		calls.push({ file, proxy, url });
 
 		const response = steps[step++];
 		if (!response) {
@@ -65,21 +64,23 @@ export function createMockFetch(steps) {
 			return Promise.reject(
 				response.error || {
 					code: response.code || response.status,
-					message: response.message || 'mock fetch error'
-				}
+					message: response.message || 'mock fetch error',
+				},
 			);
 		}
 
 		return Promise.resolve();
 	};
 
-	return { fn, calls };
+	return { calls, fn };
 }
 
 export function execShell(cmd) {
 	return new Promise((fulfil, reject) => {
 		child_process.exec(cmd, (err, stdout, stderr) => {
-			if (err) return reject(err);
+			if (err) {
+				return reject(err);
+			}
 			console.log(stdout);
 			console.error(stderr);
 			fulfil();
