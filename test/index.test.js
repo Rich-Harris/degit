@@ -2,11 +2,99 @@ import sourceMapSupport from 'source-map-support';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import tar from 'tar';
 import { sync as rimraf } from 'rimraf';
 import degit from '../src/index.js';
-import { createMockExec, createMockFetch } from './helpers.js';
+import { base } from '../src/utils.js';
+import {
+	compareDirToExpected,
+	createCopyFetch,
+	createMockExec,
+	createMockFetch,
+} from './helpers.js';
 
 sourceMapSupport.install();
+
+const refsHash = '0123456789abcdef0123456789abcdef0123456789';
+
+const providerCases = [
+	{
+		archiveUrl: (hash) =>
+			`https://github.com/Rich-Harris/degit-test-repo/archive/${hash}.tar.gz`,
+		gitSrc: 'https://github.com/Rich-Harris/degit-test-repo-private.git',
+		lsRemote: 'git ls-remote https://github.com/Rich-Harris/degit-test-repo',
+		name: 'degit-test-repo',
+		privateName: 'degit-test-repo-private',
+		publicSrc: 'Rich-Harris/degit-test-repo',
+		redirectUrl: 'https://github.com/forbidden',
+		site: 'github',
+		ssh: 'git@github.com:Rich-Harris/degit-test-repo',
+		url: 'https://github.com/Rich-Harris/degit-test-repo',
+		user: 'Rich-Harris',
+	},
+	{
+		archiveUrl: (hash) =>
+			`https://gitlab.com/Rich-Harris/degit-test-repo/repository/archive.tar.gz?ref=${hash}`,
+		gitSrc: 'gitlab:Rich-Harris/degit-test-repo-private',
+		lsRemote: 'git ls-remote https://gitlab.com/Rich-Harris/degit-test-repo',
+		name: 'degit-test-repo',
+		privateName: 'degit-test-repo-private',
+		publicSrc: 'gitlab:Rich-Harris/degit-test-repo',
+		redirectUrl: 'https://gitlab.com/forbidden',
+		site: 'gitlab',
+		ssh: 'git@gitlab.com:Rich-Harris/degit-test-repo',
+		url: 'https://gitlab.com/Rich-Harris/degit-test-repo',
+		user: 'Rich-Harris',
+	},
+	{
+		archiveUrl: (hash) =>
+			`https://bitbucket.org/Rich_Harris/degit-test-repo/get/${hash}.tar.gz`,
+		gitSrc: 'bitbucket:Rich_Harris/degit-test-repo-private',
+		lsRemote: 'git ls-remote https://bitbucket.org/Rich_Harris/degit-test-repo',
+		name: 'degit-test-repo',
+		privateName: 'degit-test-repo-private',
+		publicSrc: 'bitbucket:Rich_Harris/degit-test-repo',
+		redirectUrl: 'https://bitbucket.org/forbidden',
+		site: 'bitbucket',
+		ssh: 'git@bitbucket.org:Rich_Harris/degit-test-repo',
+		url: 'https://bitbucket.org/Rich_Harris/degit-test-repo',
+		user: 'Rich_Harris',
+	},
+	{
+		archiveUrl: (hash) => `https://git.sr.ht/~satotake/degit-test-repo/archive/${hash}.tar.gz`,
+		gitSrc: 'git.sr.ht/~satotake/degit-test-repo-private',
+		lsRemote: 'git ls-remote https://git.sr.ht/~satotake/degit-test-repo',
+		name: 'degit-test-repo',
+		privateName: 'degit-test-repo-private',
+		publicSrc: 'git.sr.ht/~satotake/degit-test-repo',
+		redirectUrl: 'https://git.sr.ht/forbidden',
+		site: 'git.sr.ht',
+		ssh: 'git@git.sr.ht:~satotake/degit-test-repo',
+		url: 'https://git.sr.ht/~satotake/degit-test-repo',
+		user: '~satotake',
+	},
+];
+
+async function createArchiveFixture(rootName) {
+	fs.mkdirSync('.tmp/index-suite', { recursive: true });
+	const archiveDir = fs.mkdtempSync(path.join('.tmp/index-suite', 'archive-'));
+	const archiveRoot = path.join(archiveDir, rootName);
+
+	fs.mkdirSync(path.join(archiveRoot, 'packages/app/lib'), { recursive: true });
+	fs.writeFileSync(path.join(archiveRoot, 'packages/app/index.js'), 'export default 1\n');
+	fs.writeFileSync(path.join(archiveRoot, 'packages/app/lib/nested.txt'), 'nested\n');
+	fs.writeFileSync(path.join(archiveRoot, 'packages/ignored.txt'), 'ignored\n');
+
+	const archiveFile = path.join(archiveDir, `${rootName}.tar.gz`);
+	await tar.create({ C: archiveDir, file: archiveFile, gzip: true }, [rootName]);
+
+	return archiveFile;
+}
+
+function clearArchiveCache(test, hash) {
+	const archiveFile = path.join(base, test.site, test.user, test.name, `${hash}.tar.gz`);
+	fs.rmSync(archiveFile, { force: true });
+}
 
 describe('degit index', () => {
 	const indexTmp = '.tmp/index-suite';
@@ -15,42 +103,9 @@ describe('degit index', () => {
 	afterEach(async () => await rimraf(indexTmp));
 
 	describe('parser', () => {
-		[
-			{
-				name: 'degit-test-repo',
-				site: 'github',
-				src: 'Rich-Harris/degit-test-repo',
-				ssh: 'git@github.com:Rich-Harris/degit-test-repo',
-				url: 'https://github.com/Rich-Harris/degit-test-repo',
-				user: 'Rich-Harris',
-			},
-			{
-				name: 'degit-test-repo',
-				site: 'gitlab',
-				src: 'gitlab:Rich-Harris/degit-test-repo',
-				ssh: 'git@gitlab.com:Rich-Harris/degit-test-repo',
-				url: 'https://gitlab.com/Rich-Harris/degit-test-repo',
-				user: 'Rich-Harris',
-			},
-			{
-				name: 'degit-test-repo',
-				site: 'bitbucket',
-				src: 'bitbucket:Rich_Harris/degit-test-repo',
-				ssh: 'git@bitbucket.org:Rich_Harris/degit-test-repo',
-				url: 'https://bitbucket.org/Rich_Harris/degit-test-repo',
-				user: 'Rich_Harris',
-			},
-			{
-				name: 'degit-test-repo',
-				site: 'git.sr.ht',
-				src: 'git.sr.ht/~satotake/degit-test-repo',
-				ssh: 'git@git.sr.ht:~satotake/degit-test-repo',
-				url: 'https://git.sr.ht/~satotake/degit-test-repo',
-				user: '~satotake',
-			},
-		].forEach((test) => {
+		providerCases.forEach((test) => {
 			it(`parsed repo fields match expected URLs when src targets ${test.site}`, () => {
-				const { repo } = degit(test.src);
+				const { repo } = degit(test.publicSrc);
 				assert.equal(repo.site, test.site);
 				assert.equal(repo.user, test.user);
 				assert.equal(repo.name, test.name);
@@ -70,72 +125,87 @@ describe('degit index', () => {
 	});
 
 	describe('tar mode fetch failures', () => {
-		const refsHash = '0123456789abcdef0123456789abcdef0123456789';
+		providerCases.forEach((test) => {
+			it(`maps ${test.site} tar download failure to COULD_NOT_DOWNLOAD when redirect leads to 403`, async () => {
+				clearArchiveCache(test, refsHash);
+				const fetch = createMockFetch([
+					{ location: test.redirectUrl, status: 302 },
+					{ code: 403, message: 'Forbidden', status: 403 },
+				]);
+				const execMock = createMockExec({
+					[test.lsRemote]: `${refsHash}\tHEAD\n`,
+				});
 
-		it('maps GitLab tar download failure to COULD_NOT_DOWNLOAD when redirect leads to 403', async () => {
-			const fetch = createMockFetch([
-				{ location: 'https://gitlab.com/forbidden', status: 302 },
-				{ message: 'Forbidden', status: 403 },
-			]);
-			const execMock = createMockExec({
-				'git ls-remote https://gitlab.com/Rich-Harris/degit-test-repo': `${refsHash}\tHEAD\n`,
+				try {
+					await degit(test.publicSrc, {
+						exec: execMock.fn,
+						fetch: fetch.fn,
+					}).clone('.tmp/index-suite/test-repo');
+					assert.fail('expected to throw');
+				} catch (error) {
+					assert.equal(error.code, 'COULD_NOT_DOWNLOAD');
+					assert.equal(error.url, test.archiveUrl(refsHash));
+				}
+
+				assert.equal(fetch.calls.length, 2);
+				assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+				assert.equal(fetch.calls[1].url, test.redirectUrl);
 			});
+		});
+	});
 
-			try {
-				await degit('gitlab:Rich-Harris/degit-test-repo', {
-					exec: execMock.fn,
-					fetch: fetch.fn,
-				}).clone('.tmp/index-suite/test-repo');
-				assert.fail('expected to throw');
-			} catch (error) {
-				assert.equal(error.code, 'COULD_NOT_DOWNLOAD');
-				assert.equal(
-					error.url,
-					`https://gitlab.com/Rich-Harris/degit-test-repo/repository/archive.tar.gz?ref=${refsHash}`,
-				);
-			}
+	describe('tar mode extraction', () => {
+		let archiveFile;
 
-			assert.equal(fetch.calls.length, 2);
-			assert.equal(
-				fetch.calls[0].url,
-				`https://gitlab.com/Rich-Harris/degit-test-repo/repository/archive.tar.gz?ref=${refsHash}`,
-			);
-			assert.equal(fetch.calls[1].url, 'https://gitlab.com/forbidden');
+		beforeEach(async () => {
+			archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`);
 		});
 
-		it('maps SourceHut tar download failure to COULD_NOT_DOWNLOAD when redirect leads to 403', async () => {
-			const fetch = createMockFetch([
-				{ location: 'https://git.sr.ht/forbidden', status: 302 },
-				{ code: 403, message: 'Forbidden', status: 403 },
-			]);
-			const execMock = createMockExec({
-				'git ls-remote https://git.sr.ht/~satotake/degit-test-repo': `${refsHash}\tHEAD\n`,
-			});
+		providerCases.forEach((test) => {
+			it(`extracts a nested subdirectory for ${test.site}`, async () => {
+				const dest = '.tmp/index-suite/test-repo';
+				clearArchiveCache(test, refsHash);
+				const fetch = createCopyFetch(archiveFile);
+				const execMock = createMockExec({
+					[test.lsRemote]: `${refsHash}\tHEAD\n`,
+				});
 
-			try {
-				await degit('git.sr.ht/~satotake/degit-test-repo', {
+				await degit(`${test.publicSrc}/packages/app`, {
 					exec: execMock.fn,
 					fetch: fetch.fn,
-				}).clone('.tmp/index-suite/test-repo');
-				assert.fail('expected to throw');
-			} catch (error) {
-				assert.equal(error.code, 'COULD_NOT_DOWNLOAD');
-				assert.equal(
-					error.url,
-					`https://git.sr.ht/~satotake/degit-test-repo/archive/${refsHash}.tar.gz`,
-				);
-			}
+				}).clone(dest);
 
-			assert.equal(fetch.calls.length, 2);
-			assert.equal(
-				fetch.calls[0].url,
-				`https://git.sr.ht/~satotake/degit-test-repo/archive/${refsHash}.tar.gz`,
-			);
-			assert.equal(fetch.calls[1].url, 'https://git.sr.ht/forbidden');
+				compareDirToExpected(dest, {
+					'index.js': 'export default 1\n',
+					lib: '',
+					'lib/nested.txt': 'nested\n',
+				});
+				assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+			});
 		});
 	});
 
 	describe('git mode', () => {
+		providerCases.forEach((test) => {
+			it(`runs git clone and strips .git via injected exec when mode is git for ${test.site}`, async () => {
+				const execMock = createMockExec({
+					[`git clone git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
+						'',
+					[`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`]: '',
+				});
+
+				await degit(test.gitSrc, {
+					exec: execMock.fn,
+					mode: 'git',
+				}).clone('.tmp/index-suite/test-repo');
+
+				assert.deepEqual(execMock.calls, [
+					`git clone git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`,
+					`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`,
+				]);
+			});
+		});
+
 		it('clone rejects with DEST_NOT_EMPTY when destination has files and force is false', async () => {
 			fs.mkdirSync('.tmp/index-suite/ne', { recursive: true });
 			fs.writeFileSync('.tmp/index-suite/ne/x', '1');
@@ -150,24 +220,6 @@ describe('degit index', () => {
 				() => degit('Rich-Harris/degit-test-repo', { mode: 'svn' }),
 				/Valid modes are/,
 			);
-		});
-
-		it('runs git clone and strips .git via injected exec when mode is git', async () => {
-			const execMock = createMockExec({
-				'git clone git@github.com:Rich-Harris/degit-test-repo-private .tmp/index-suite/test-repo':
-					'',
-				[`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`]: '',
-			});
-
-			await degit('https://github.com/Rich-Harris/degit-test-repo-private.git', {
-				exec: execMock.fn,
-				mode: 'git',
-			}).clone('.tmp/index-suite/test-repo');
-
-			assert.deepEqual(execMock.calls, [
-				'git clone git@github.com:Rich-Harris/degit-test-repo-private .tmp/index-suite/test-repo',
-				`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`,
-			]);
 		});
 	});
 });

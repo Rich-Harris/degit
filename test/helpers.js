@@ -75,6 +75,19 @@ export function createMockFetch(steps) {
 	return { calls, fn };
 }
 
+export function createCopyFetch(sourceFile) {
+	const calls = [];
+
+	const fn = (url, file, proxy) => {
+		calls.push({ file, proxy, url });
+		fs.copyFileSync(sourceFile, file);
+
+		return Promise.resolve();
+	};
+
+	return { calls, fn };
+}
+
 export function execShell(cmd) {
 	return new Promise((fulfil, reject) => {
 		child_process.exec(cmd, (err, stdout, stderr) => {

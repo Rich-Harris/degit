@@ -33,6 +33,7 @@
 		"dev": "npm run build -- --watch",
 		"build": "rollup -c",
 		"test": "vitest run",
+		"test:live": "LIVE_TESTS=1 vitest run test/live.test.js",
 		"test:coverage": "vitest run --coverage",
 		"pretest": "npm run build",
 		"prepublishOnly": "npm test"
