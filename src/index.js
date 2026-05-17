@@ -358,9 +358,12 @@ function parse(src) {
 	const subdir = match[6];
 	const ref = match[7] || 'HEAD';
 
-	const domain = `${site}.${
-		site === 'bitbucket' ? 'org' : site === 'git.sr.ht' ? '' : 'com'
-	}`;
+	const domain =
+		site === 'git.sr.ht'
+			? 'git.sr.ht'
+			: site === 'bitbucket'
+				? `${site}.org`
+				: `${site}.com`;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `git@${domain}:${user}/${name}`;
 

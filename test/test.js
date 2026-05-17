@@ -140,10 +140,12 @@ describe('degit', function() {
 		});
 
 		it('rejects unsupported hosts', () => {
-			const error = assert.throws(() => {
-				degit('codeberg:Rich-Harris/degit-test-repo');
-			});
-			assert.equal(error.code, 'UNSUPPORTED_HOST');
+			assert.throws(
+				() => {
+					degit('codeberg:Rich-Harris/degit-test-repo');
+				},
+				err => err && err.code === 'UNSUPPORTED_HOST'
+			);
 		});
 	});
 
