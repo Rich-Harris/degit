@@ -56,8 +56,8 @@
 		"source-map-support": "0.5.19",
 		"tar": "6.1.0",
 		"tiny-glob": "0.2.8",
-		"@vitest/coverage-v8": "2.1.9",
-		"vitest": "2.1.9"
+		"@vitest/coverage-v8": "4.1.6",
+		"vitest": "4.1.6"
 	},
 	"files": [
 		"help.md",
