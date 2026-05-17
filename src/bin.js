@@ -8,30 +8,28 @@ import enquirer from 'enquirer';
 import degit from './index.js';
 import { tryRequire, base } from './utils.js';
 
-const args = mri(process.argv.slice(2), {
-	alias: {
-		f: 'force',
-		c: 'cache',
-		v: 'verbose',
-		m: 'mode'
-	},
-	boolean: ['force', 'cache', 'verbose']
-});
+export async function main(argv) {
+	const args = mri(argv.slice(2), {
+		alias: {
+			f: 'force',
+			c: 'cache',
+			v: 'verbose',
+			m: 'mode'
+		},
+		boolean: ['force', 'cache', 'verbose']
+	});
 
-const [src, dest = '.'] = args._;
+	const [src, dest = '.'] = args._;
 
-async function main() {
 	if (args.help) {
 		const help = fs
-			.readFileSync(path.join(__dirname, 'help.md'), 'utf-8')
+			.readFileSync(path.join(__dirname, '..', 'help.md'), 'utf-8')
 			.replace(/^(\s*)#+ (.+)/gm, (m, s, _) => s + chalk.bold(_))
 			.replace(/_([^_]+)_/g, (m, _) => chalk.underline(_))
 			.replace(/`([^`]+)`/g, (m, _) => chalk.cyan(_));
 
 		process.stdout.write(`\n${help}\n`);
 	} else if (!src) {
-		// interactive mode
-
 		const accessLookup = new Map();
 
 		glob(`**/access.json`, { cwd: base }).forEach(file => {
@@ -120,7 +118,7 @@ async function main() {
 	}
 }
 
-function run(src, dest, args) {
+export function run(src, dest, args) {
 	const d = degit(src, args);
 
 	d.on('info', event => {
@@ -139,4 +137,9 @@ function run(src, dest, args) {
 	});
 }
 
-main();
+if (!process.env.VITEST) {
+	main(process.argv).catch(err => {
+		console.error(err);
+		process.exit(1);
+	});
+}

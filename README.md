@@ -10,7 +10,7 @@
 
 ## Requirements
 
-- Node.js **18** or later (see `engines` in `package.json`)
+- Node.js **20** or later (see `engines` in `package.json`)
 - [Bun](https://bun.sh) **1.3.14** when developing this repository (see `packageManager` in `package.json`)
 
 End users can still install the published package with npm (`npm install -g degit`). For a dev clone of this repo, use Bun so the lockfile and `bunfig.toml` apply; `minimumReleaseAge` is set to 14 days so installs skip very fresh publishes.
@@ -21,6 +21,8 @@ cd degit
 bun install
 bun run build
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute. [AGENTS.md](AGENTS.md) summarizes setup and commands for tooling and coding agents. When you change development workflow, CI, or contributor-facing instructions, update **README.md**, **CONTRIBUTING.md**, and **AGENTS.md** together so they stay consistent.
 
 ## Installation
 

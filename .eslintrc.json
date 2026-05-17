@@ -30,5 +30,13 @@
 	"parserOptions": {
 		"ecmaVersion": 2021,
 		"sourceType": "module"
-	}
+	},
+	"overrides": [
+		{
+			"files": ["test/**/*.test.js"],
+			"globals": {
+				"vi": "readonly"
+			}
+		}
+	]
 }

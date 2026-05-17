@@ -10,7 +10,7 @@
 
 How you verified this (commands, scenarios, or N/A):
 
-- [ ] Automated tests (`bun run test`; use `bun run test:integration` if integration behavior changed)
+- [ ] Automated tests (`bun run test`)
 - [ ] Manual / CLI check if user-facing behavior changed
 - [ ] CI passes
 
