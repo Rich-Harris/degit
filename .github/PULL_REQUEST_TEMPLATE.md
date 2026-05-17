@@ -26,4 +26,5 @@ How you verified this (commands, scenarios, or N/A):
 
 - [ ] Error paths and exit codes considered where relevant
 - [ ] Help text, completions, or docs updated if user-facing strings changed
+- [ ] Squashed to a single commit
 - [ ] No unrelated drive-by changes
