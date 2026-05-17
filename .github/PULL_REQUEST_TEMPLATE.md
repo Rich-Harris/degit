@@ -1,35 +1,29 @@
 ## Summary
-### What
-- 
 
-### Why
-- 
+**What**
+
+**Why**
 
 ## Changes
--
 
 ## Testing
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] CLI smoke run
-- Commands run:
-- Repro steps:
-  1. 
-  2. 
-  3. 
-- Expected output / evidence:
 
-## Risk and rollout
-- Risk level: Low / Medium / High
-- Breaking changes:
-- Rollback plan:
-- Flags/commands affected:
+How you verified this (commands, scenarios, or N/A):
+
+- [ ] Automated tests (`bun run test`; use `bun run test:integration` if integration behavior changed)
+- [ ] Manual / CLI check if user-facing behavior changed
+- [ ] CI passes
+
+## Review notes
+
+**Breaking changes** (or none)
+
+**Risks / rollout** (or none)
+
+**Focus areas for reviewers** (optional)
 
 ## Checklist
-- [ ] CLI behavior is covered by the scenario changed
-- [ ] Exit codes are considered and validated where relevant
-- [ ] Error handling was reviewed (including edge cases)
-- [ ] Help text, man page, completion, docs updated if needed
-- [ ] No unrelated changes
-- [ ] Relevant tests added or updated
-- [ ] CI checks pass
+
+- [ ] Error paths and exit codes considered where relevant
+- [ ] Help text, completions, or docs updated if user-facing strings changed
+- [ ] No unrelated drive-by changes
