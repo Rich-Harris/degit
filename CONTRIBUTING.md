@@ -130,7 +130,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Rich-H
 Prerequisites:
 
 - Node.js **20** or later (see `engines` in `package.json`)
-- [Bun](https://bun.sh) **1.3.14** (same version as CI; see `.github/workflows/nodejs.yml`)
+- [Bun](https://bun.sh) **1.3.14** (same version as CI; see [.github/workflows/build.yml](.github/workflows/build.yml), [.github/workflows/test.yml](.github/workflows/test.yml), and [.github/workflows/lint.yml](.github/workflows/lint.yml))
 
 Clone the repository, install dependencies, and build:
 
@@ -150,7 +150,7 @@ bun run lint
 
 `bun run test` runs the test suite with [Vitest](https://vitest.dev/). The `pretest` script builds first.
 
-Keep changes focused, add or update tests when behavior changes, and describe the motivation in the pull request so reviewers can follow your intent.
+Keep changes focused, squash the branch to a single commit before opening the pull request, add or update tests when behavior changes, and describe the motivation in the pull request so reviewers can follow your intent.
 
 ### Improving The Documentation
 

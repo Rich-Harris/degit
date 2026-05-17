@@ -17,7 +17,7 @@ Human-facing narrative belongs primarily in README and CONTRIBUTING; AGENTS.md s
 | Contributing flow, PR checks, commit style, security reporting | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Community expectations | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) |
 | Published CLI help text | [help.md](help.md) |
-| CI matrix and steps (Bun + Node 20/22/24) | [.github/workflows/nodejs.yml](.github/workflows/nodejs.yml) |
+| CI workflows (Bun + Node 20/22/24) | [.github/workflows/build.yml](.github/workflows/build.yml), [.github/workflows/test.yml](.github/workflows/test.yml), [.github/workflows/lint.yml](.github/workflows/lint.yml) |
 | Library and CLI implementation | [src/index.js](src/index.js), [src/utils.js](src/utils.js), [src/bin.js](src/bin.js) |
 | Rollup build | [rollup.config.js](rollup.config.js) |
 | Tests and Vitest settings | [test/](test/), [vitest.config.js](vitest.config.js) |
@@ -72,8 +72,8 @@ Pre-commit uses lint-staged (ESLint on JS; Prettier on JS, JSON, YAML, MD). Alig
 bun run build           # outputs to dist/; npm publish uses files in package.json
 ```
 
-`prepublishOnly` runs `npm test` (which builds then tests). CI runs `bun install --frozen-lockfile`, `bun run build`, `bun run test`, and `bun run lint` on Node 20.x, 22.x, and 24.x.
+`prepublishOnly` runs `npm test` (which builds then tests). CI runs `bun install --frozen-lockfile`, `bun run build`, `bun run test`, and `bun run lint` as separate parallel workflows on Node 20.x, 22.x, and 24.x.
 
 ## Pull requests and commits
 
-Follow [CONTRIBUTING.md](CONTRIBUTING.md): focused diffs, tests when behavior changes, Conventional Commits (`type(scope): subject`). Match the checks in `.github/workflows/nodejs.yml` before opening a PR.
+Follow [CONTRIBUTING.md](CONTRIBUTING.md): focused diffs, a single commit per PR, tests when behavior changes, Conventional Commits (`type(scope): subject`). Match the checks in [.github/workflows/build.yml](.github/workflows/build.yml), [.github/workflows/test.yml](.github/workflows/test.yml), and [.github/workflows/lint.yml](.github/workflows/lint.yml) before opening a PR.
