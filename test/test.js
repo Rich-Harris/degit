@@ -1,18 +1,15 @@
-require('source-map-support').install();
+import sourceMapSupport from 'source-map-support';
+import fs from 'fs';
+import path from 'path';
+import glob from 'tiny-glob/sync.js';
+import { sync as rimraf } from 'rimraf';
+import assert from 'assert';
+import child_process from 'child_process';
+import degit from '../src/index.js';
 
-const fs = require('fs');
-const path = require('path');
-const glob = require('tiny-glob/sync');
-const rimraf = require('rimraf').sync;
-const assert = require('assert');
-const child_process = require('child_process');
+sourceMapSupport.install();
 
-const degit = require('../dist/index.js');
 const degitPath = path.resolve('dist/bin.js');
-
-const timeout = 30000;
-const runIntegration = process.env.INTEGRATION_TESTS === '1';
-const liveDescribe = runIntegration ? describe : describe.skip;
 
 function exec(cmd) {
 	return new Promise((fulfil, reject) => {
@@ -77,8 +74,9 @@ function createMockFetch(steps) {
 	return { fn, calls };
 }
 
-describe('degit', function() {
-	this.timeout(timeout);
+describe('degit', () => {
+	const runIntegration = process.env.INTEGRATION_TESTS === '1';
+	const liveDescribe = runIntegration ? describe : describe.skip;
 
 	function compare(dir, files) {
 		const expected = glob('**', { cwd: dir });

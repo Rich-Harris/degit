@@ -4,7 +4,6 @@
 	"engines": {
 		"node": ">=18.0.0"
 	},
-	"packageManager": "bun@1.3.14",
 	"description": "Straightforward project scaffolding",
 	"main": "dist/index.js",
 	"bin": {
@@ -12,12 +11,13 @@
 	},
 	"scripts": {
 		"lint": "eslint --color --ignore-path .gitignore .",
-		"dev": "bun run build -- --watch",
+		"dev": "npm run build -- --watch",
 		"build": "rollup -c",
-		"test": "mocha",
-		"test:integration": "INTEGRATION_TESTS=1 bun run test",
-		"pretest": "bun run build",
-		"prepublishOnly": "bun run test"
+		"test": "vitest run",
+		"test:coverage": "npm run build && vitest run --coverage",
+		"test:integration": "INTEGRATION_TESTS=1 npm test",
+		"pretest": "npm run build",
+		"prepublishOnly": "npm test"
 	},
 	"repository": {
 		"type": "git",
@@ -47,7 +47,6 @@
 		"https-proxy-agent": "5.0.0",
 		"husky": "6.0.0",
 		"lint-staged": "10.5.4",
-		"mocha": "8.3.2",
 		"mri": "1.1.6",
 		"prettier": "2.2.1",
 		"rimraf": "3.0.2",
@@ -56,7 +55,9 @@
 		"sander": "0.6.0",
 		"source-map-support": "0.5.19",
 		"tar": "6.1.0",
-		"tiny-glob": "0.2.8"
+		"tiny-glob": "0.2.8",
+		"@vitest/coverage-v8": "2.1.9",
+		"vitest": "2.1.9"
 	},
 	"files": [
 		"help.md",
