@@ -1,11 +1,11 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import homeOrTmp from 'home-or-tmp';
-import https from 'https';
-import child_process from 'child_process';
-import URL from 'url';
+import https from 'node:https';
+import child_process from 'node:child_process';
+import URL from 'node:url';
 import Agent from 'https-proxy-agent';
-import { rimrafSync, copydirSync } from 'sander';
+import { copydirSync, rimrafSync } from 'sander';
 
 const tmpDirName = 'tmp';
 const degitConfigName = 'degit.json';
@@ -25,7 +25,7 @@ export function tryRequire(file, opts) {
 			delete require.cache[require.resolve(file)];
 		}
 		return require(file);
-	} catch (err) {
+	} catch {
 		return null;
 	}
 }
@@ -38,21 +38,23 @@ export function exec(command) {
 				return;
 			}
 
-			fulfil({ stdout, stderr });
+			fulfil({ stderr, stdout });
 		});
 	});
 }
 
 export function mkdirp(dir) {
 	const parent = path.dirname(dir);
-	if (parent === dir) return;
+	if (parent === dir) {
+		return;
+	}
 
 	mkdirp(parent);
 
 	try {
 		fs.mkdirSync(dir);
-	} catch (err) {
-		if (err.code !== 'EEXIST') throw err;
+	} catch (error) {
+		if (error.code !== 'EEXIST') throw error;
 	}
 }
 
@@ -63,14 +65,14 @@ export function fetch(url, dest, proxy) {
 		if (proxy) {
 			const parsedUrl = URL.parse(url);
 			options = {
+				agent: new Agent(proxy),
 				hostname: parsedUrl.host,
 				path: parsedUrl.path,
-				agent: new Agent(proxy)
 			};
 		}
 
 		https
-			.get(options, response => {
+			.get(options, (response) => {
 				const code = response.statusCode;
 				if (code >= 400) {
 					reject({ code, message: response.statusMessage });
@@ -91,7 +93,7 @@ export function stashFiles(dir, dest) {
 	const tmpDir = path.join(dir, tmpDirName);
 	rimrafSync(tmpDir);
 	mkdirp(tmpDir);
-	fs.readdirSync(dest).forEach(file => {
+	fs.readdirSync(dest).forEach((file) => {
 		const filePath = path.join(dest, file);
 		const targetPath = path.join(tmpDir, file);
 		const isDir = fs.lstatSync(filePath).isDirectory();
@@ -107,7 +109,7 @@ export function stashFiles(dir, dest) {
 
 export function unstashFiles(dir, dest) {
 	const tmpDir = path.join(dir, tmpDirName);
-	fs.readdirSync(tmpDir).forEach(filename => {
+	fs.readdirSync(tmpDir).forEach((filename) => {
 		const tmpFile = path.join(tmpDir, filename);
 		const targetPath = path.join(dest, filename);
 		const isDir = fs.lstatSync(tmpFile).isDirectory();

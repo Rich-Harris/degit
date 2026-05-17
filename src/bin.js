@@ -1,41 +1,41 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import chalk from 'chalk';
 import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
 import fuzzysearch from 'fuzzysearch';
 import enquirer from 'enquirer';
 import degit from './index.js';
-import { tryRequire, base } from './utils.js';
+import { base, tryRequire } from './utils.js';
 
 export async function main(argv) {
 	const args = mri(argv.slice(2), {
 		alias: {
-			f: 'force',
 			c: 'cache',
+			f: 'force',
+			m: 'mode',
 			v: 'verbose',
-			m: 'mode'
 		},
-		boolean: ['force', 'cache', 'verbose']
+		boolean: ['force', 'cache', 'verbose'],
 	});
 
 	const [src, dest = '.'] = args._;
 
 	if (args.help) {
 		const help = fs
-			.readFileSync(path.join(__dirname, '..', 'help.md'), 'utf-8')
-			.replace(/^(\s*)#+ (.+)/gm, (m, s, _) => s + chalk.bold(_))
-			.replace(/_([^_]+)_/g, (m, _) => chalk.underline(_))
-			.replace(/`([^`]+)`/g, (m, _) => chalk.cyan(_));
+			.readFileSync(path.join(__dirname, '..', 'help.md'), 'utf8')
+			.replaceAll(/^(\s*)#+ (.+)/gm, (m, s, _) => s + chalk.bold(_))
+			.replaceAll(/_([^_]+)_/g, (m, _) => chalk.underline(_))
+			.replaceAll(/`([^`]+)`/g, (m, _) => chalk.cyan(_));
 
 		process.stdout.write(`\n${help}\n`);
 	} else if (!src) {
 		const accessLookup = new Map();
 
-		glob(`**/access.json`, { cwd: base }).forEach(file => {
+		glob(`**/access.json`, { cwd: base }).forEach((file) => {
 			const [host, user, repo] = file.split(path.sep);
 
-			const json = fs.readFileSync(`${base}/${file}`, 'utf-8');
+			const json = fs.readFileSync(`${base}/${file}`, 'utf8');
 			const logs = JSON.parse(json);
 
 			Object.entries(logs).forEach(([ref, timestamp]) => {
@@ -44,25 +44,20 @@ export async function main(argv) {
 			});
 		});
 
-		const getChoice = file => {
+		const getChoice = (file) => {
 			const [host, user, repo] = file.split(path.sep);
 
-			return Object.entries(tryRequire(`${base}/${file}`)).map(
-				([ref, hash]) => ({
-					name: hash,
-					message: `${host}:${user}/${repo}#${ref}`,
-					value: `${host}:${user}/${repo}#${ref}`
-				})
-			);
+			return Object.entries(tryRequire(`${base}/${file}`)).map(([ref, hash]) => ({
+				message: `${host}:${user}/${repo}#${ref}`,
+				name: hash,
+				value: `${host}:${user}/${repo}#${ref}`,
+			}));
 		};
 
 		const choices = glob(`**/map.json`, { cwd: base })
 			.map(getChoice)
-			.reduce(
-				(accumulator, currentValue) => accumulator.concat(currentValue),
-				[]
-			)
-			.sort((a, b) => {
+			.flat()
+			.toSorted((a, b) => {
 				const aTime = accessLookup.get(a.value) || 0;
 				const bTime = accessLookup.get(b.value) || 0;
 
@@ -71,36 +66,35 @@ export async function main(argv) {
 
 		const options = await enquirer.prompt([
 			{
-				type: 'autocomplete',
-				name: 'src',
+				choices,
 				message: 'Repo to clone?',
+				name: 'src',
 				suggest: (input, choices) =>
 					choices.filter(({ value }) => fuzzysearch(input, value)),
-				choices
+				type: 'autocomplete',
 			},
 			{
-				type: 'input',
-				name: 'dest',
+				initial: '.',
 				message: 'Destination directory?',
-				initial: '.'
+				name: 'dest',
+				type: 'input',
 			},
 			{
-				type: 'toggle',
+				message: 'Use cached version?',
 				name: 'cache',
-				message: 'Use cached version?'
-			}
+				type: 'toggle',
+			},
 		]);
 
-		const empty =
-			!fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
+		const empty = !fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
 
 		if (!empty) {
 			const { force } = await enquirer.prompt([
 				{
-					type: 'toggle',
+					message: 'Overwrite existing files?',
 					name: 'force',
-					message: 'Overwrite existing files?'
-				}
+					type: 'toggle',
+				},
 			]);
 
 			if (!force) {
@@ -110,8 +104,8 @@ export async function main(argv) {
 		}
 
 		run(options.src, options.dest, {
+			cache: options.cache,
 			force: true,
-			cache: options.cache
 		});
 	} else {
 		run(src, dest, args);
@@ -121,25 +115,23 @@ export async function main(argv) {
 export function run(src, dest, args) {
 	const d = degit(src, args);
 
-	d.on('info', event => {
+	d.on('info', (event) => {
 		console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
 	});
 
-	d.on('warn', event => {
-		console.error(
-			chalk.magenta(`! ${event.message.replace('options.', '--')}`)
-		);
+	d.on('warn', (event) => {
+		console.error(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
 	});
 
-	d.clone(dest).catch(err => {
-		console.error(chalk.red(`! ${err.message.replace('options.', '--')}`));
+	d.clone(dest).catch((error) => {
+		console.error(chalk.red(`! ${error.message.replace('options.', '--')}`));
 		process.exit(1);
 	});
 }
 
 if (!process.env.VITEST) {
-	main(process.argv).catch(err => {
-		console.error(err);
+	main(process.argv).catch((error) => {
+		console.error(error);
 		process.exit(1);
 	});
 }

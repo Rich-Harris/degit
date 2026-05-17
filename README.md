@@ -135,7 +135,7 @@ const emitter = degit('user/repo', {
 	verbose: true,
 });
 
-emitter.on('info', info => {
+emitter.on('info', (info) => {
 	console.log(info.message);
 });
 

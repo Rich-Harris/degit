@@ -1,20 +1,20 @@
-import assert from 'assert';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import https from 'https';
-import child_process from 'child_process';
-import { EventEmitter } from 'events';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import https from 'node:https';
+import child_process from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import { sync as rimraf } from 'rimraf';
 import {
 	DegitError,
-	tryRequire,
-	mkdirp,
+	degitConfigName,
 	exec,
 	fetch,
+	mkdirp,
 	stashFiles,
+	tryRequire,
 	unstashFiles,
-	degitConfigName
 } from '../src/utils.js';
 
 describe('utils', () => {
@@ -28,32 +28,32 @@ describe('utils', () => {
 		rimraf(tmpRoot);
 	});
 
-	it("directories exist when mkdirp receives a nested path", () => {
+	it('directories exist when mkdirp receives a nested path', () => {
 		const nested = path.join(tmpRoot, 'a', 'b', 'c');
 		mkdirp(nested);
 		assert.ok(fs.statSync(nested).isDirectory());
 	});
 
-	it("mkdirp succeeds when the directory already exists", () => {
+	it('mkdirp succeeds when the directory already exists', () => {
 		const d = path.join(tmpRoot, 'exists');
 		fs.mkdirSync(d, { recursive: true });
 		mkdirp(d);
 		assert.ok(fs.statSync(d).isDirectory());
 	});
 
-	it("returns null when the module file is missing", () => {
+	it('returns null when the module file is missing', () => {
 		const missing = path.join(tmpRoot, 'nope.js');
 		assert.equal(tryRequire(missing), null);
 	});
 
-	it("returns module exports when the file is a valid module", () => {
+	it('returns module exports when the file is a valid module', () => {
 		const modPath = path.join(tmpRoot, 'm.js');
 		fs.writeFileSync(modPath, 'module.exports = { x: 42 };');
 		const loaded = tryRequire(modPath);
 		assert.equal(loaded.x, 42);
 	});
 
-	it("reloads updated exports when clearCache is true", () => {
+	it('reloads updated exports when clearCache is true', () => {
 		const modPath = path.join(tmpRoot, 'c.js');
 		fs.writeFileSync(modPath, 'module.exports = { v: 1 };');
 		assert.equal(tryRequire(modPath).v, 1);
@@ -61,7 +61,7 @@ describe('utils', () => {
 		assert.equal(tryRequire(modPath, { clearCache: true }).v, 2);
 	});
 
-	it("resolves with stdout when exec succeeds", async () => {
+	it('resolves with stdout when exec succeeds', async () => {
 		vi.spyOn(child_process, 'exec').mockImplementation((cmd, cb) => {
 			cb(null, 'out\n', '');
 		});
@@ -70,20 +70,20 @@ describe('utils', () => {
 		child_process.exec.mockRestore();
 	});
 
-	it("rejects when exec reports an error", async () => {
+	it('rejects when exec reports an error', async () => {
 		vi.spyOn(child_process, 'exec').mockImplementation((cmd, cb) => {
 			cb(new Error('fail'));
 		});
 		try {
 			await exec('bad');
 			assert.fail('expected reject');
-		} catch (e) {
-			assert.ok(e);
+		} catch (error) {
+			assert.ok(error);
 		}
 		child_process.exec.mockRestore();
 	});
 
-	it("rejects with HTTP status code when the response is not successful", async () => {
+	it('rejects with HTTP status code when the response is not successful', async () => {
 		const res = { statusCode: 404, statusMessage: 'Not Found' };
 		vi.spyOn(https, 'get').mockImplementation((opts, cb) => {
 			const req = new EventEmitter();
@@ -94,20 +94,20 @@ describe('utils', () => {
 		try {
 			await fetch('https://example.com/x', dest, null);
 			assert.fail('expected reject');
-		} catch (e) {
-			assert.equal(e.code, 404);
+		} catch (error) {
+			assert.equal(error.code, 404);
 		}
 		https.get.mockRestore();
 	});
 
-	it("rejects when the download stream emits an error", async () => {
+	it('rejects when the download stream emits an error', async () => {
 		const dest = path.join(tmpRoot, 'pipe-err.bin');
 		const finalRes = Object.assign(new EventEmitter(), {
-			statusCode: 200,
 			pipe(destStream) {
 				setImmediate(() => destStream.emit('error', new Error('pipe broke')));
 				return destStream;
-			}
+			},
+			statusCode: 200,
 		});
 		vi.spyOn(https, 'get').mockImplementation((opts, cb) => {
 			const req = new EventEmitter();
@@ -117,27 +117,27 @@ describe('utils', () => {
 		try {
 			await fetch('https://example.com/y', dest, null);
 			assert.fail('expected reject');
-		} catch (e) {
-			assert.ok(String(e.message).includes('pipe broke'));
+		} catch (error) {
+			assert.ok(String(error.message).includes('pipe broke'));
 		}
 		https.get.mockRestore();
 	});
 
-	it("follows redirect targets when the server returns a redirect", async () => {
+	it('follows redirect targets when the server returns a redirect', async () => {
 		const dest = path.join(tmpRoot, 'out.bin');
 		const finalRes = Object.assign(new EventEmitter(), {
-			statusCode: 200,
 			pipe(destStream) {
 				destStream.write('x');
 				destStream.end(() => {
 					setImmediate(() => destStream.emit('finish'));
 				});
 				return destStream;
-			}
+			},
+			statusCode: 200,
 		});
 		const redirectRes = {
+			headers: { location: 'https://example.com/final' },
 			statusCode: 302,
-			headers: { location: 'https://example.com/final' }
 		};
 		let call = 0;
 		vi.spyOn(https, 'get').mockImplementation((opts, cb) => {
@@ -154,16 +154,16 @@ describe('utils', () => {
 		https.get.mockRestore();
 	});
 
-	it("passes an HTTPS agent when a proxy URL is provided", async () => {
+	it('passes an HTTPS agent when a proxy URL is provided', async () => {
 		const dest = path.join(tmpRoot, 'p.bin');
 		const finalRes = Object.assign(new EventEmitter(), {
-			statusCode: 200,
 			pipe(destStream) {
 				destStream.end(() => {
 					setImmediate(() => destStream.emit('finish'));
 				});
 				return destStream;
-			}
+			},
+			statusCode: 200,
 		});
 		vi.spyOn(https, 'get').mockImplementation((opts, cb) => {
 			assert.ok(opts.agent);
@@ -175,7 +175,7 @@ describe('utils', () => {
 		https.get.mockRestore();
 	});
 
-	it("rejects when the HTTP request emits a network error", async () => {
+	it('rejects when the HTTP request emits a network error', async () => {
 		vi.spyOn(https, 'get').mockImplementation(() => {
 			const req = new EventEmitter();
 			setImmediate(() => req.emit('error', new Error('net down')));
@@ -185,13 +185,13 @@ describe('utils', () => {
 		try {
 			await fetch('https://example.com/z', dest, null);
 			assert.fail('expected reject');
-		} catch (e) {
-			assert.ok(String(e.message).includes('net down'));
+		} catch (error) {
+			assert.ok(String(error.message).includes('net down'));
 		}
 		https.get.mockRestore();
 	});
 
-	it("restores nested files when unstash runs after stash", () => {
+	it('restores nested files when unstash runs after stash', () => {
 		const dir = path.join(tmpRoot, 'cache');
 		const dest = path.join(tmpRoot, 'dest');
 		fs.mkdirSync(dir, { recursive: true });
@@ -207,7 +207,7 @@ describe('utils', () => {
 		assert.equal(fs.readFileSync(path.join(sub, 'b.txt'), 'utf8'), 'B');
 	});
 
-	it("restores other files but omits degit config when unstash skips that copy", () => {
+	it('restores other files but omits degit config when unstash skips that copy', () => {
 		const dir = path.join(tmpRoot, 'c2');
 		const dest = path.join(tmpRoot, 'd2');
 		fs.mkdirSync(dir, { recursive: true });
@@ -223,7 +223,7 @@ describe('utils', () => {
 		assert.equal(fs.readFileSync(path.join(dest, 'keep.txt'), 'utf8'), 'K');
 	});
 
-	it("attaches message, code, and url when DegitError is constructed", () => {
+	it('attaches message, code, and url when DegitError is constructed', () => {
 		const e = new DegitError('msg', { code: 'X', url: 'u' });
 		assert.equal(e.message, 'msg');
 		assert.equal(e.code, 'X');
