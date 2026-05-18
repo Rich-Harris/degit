@@ -136,7 +136,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Rich-H
 Prerequisites:
 
 - Node.js **20** or later (see `engines` in `package.json`)
-- [Bun](https://bun.sh) **1.3.14** (same version as CI; see [.github/workflows/build.yml](.github/workflows/build.yml), [.github/workflows/test.yml](.github/workflows/test.yml), and [.github/workflows/lint.yml](.github/workflows/lint.yml))
+- [Bun](https://bun.sh) **1.3.14** (same version as CI; see [.github/workflows/build.yml](.github/workflows/build.yml), [.github/workflows/test.yml](.github/workflows/test.yml), [.github/workflows/lint.yml](.github/workflows/lint.yml), and [.github/workflows/duplicates.yml](.github/workflows/duplicates.yml))
 
 Clone the repository, install dependencies, and build:
 
@@ -153,6 +153,7 @@ Before opening a pull request, run the same checks CI runs:
 bun run format:ci
 bun run test
 bun run lint:ci
+bun run duplicates:ci
 ```
 
 `bun run test` runs the test suite with [Vitest](https://vitest.dev/). The `pretest` script builds first.
