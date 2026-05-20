@@ -62,16 +62,16 @@ describe('utils', () => {
 	});
 
 	it('resolves with stdout when exec succeeds', async () => {
-		vi.spyOn(child_process, 'exec').mockImplementation((cmd, cb) => {
+		vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, cb) => {
 			cb(null, 'out\n', '');
 		});
 		const r = await exec('echo hi');
 		assert.equal(r.stdout, 'out\n');
-		child_process.exec.mockRestore();
+		child_process.execFile.mockRestore();
 	});
 
 	it('rejects when exec reports an error', async () => {
-		vi.spyOn(child_process, 'exec').mockImplementation((cmd, cb) => {
+		vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, cb) => {
 			cb(new Error('fail'));
 		});
 		try {
@@ -80,7 +80,7 @@ describe('utils', () => {
 		} catch (error) {
 			assert.ok(error);
 		}
-		child_process.exec.mockRestore();
+		child_process.execFile.mockRestore();
 	});
 
 	it('rejects with HTTP status code when the response is not successful', async () => {
