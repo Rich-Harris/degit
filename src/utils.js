@@ -30,9 +30,13 @@ export function tryRequire(file, opts) {
 	}
 }
 
-export function exec(command) {
+// CWE-78 fix: switch from child_process.exec (which spawns /bin/sh -c
+// <command> and parses shell metacharacters in interpolated args) to
+// execFile, which takes the command + argv array and bypasses the shell
+// entirely. Callers pass (cmd, [args...]).
+export function exec(cmd, args = []) {
 	return new Promise((fulfil, reject) => {
-		child_process.exec(command, (err, stdout, stderr) => {
+		child_process.execFile(cmd, args, (err, stdout, stderr) => {
 			if (err) {
 				reject(err);
 				return;
