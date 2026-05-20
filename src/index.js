@@ -313,8 +313,8 @@ class Degit extends EventEmitter {
 	}
 
 	async _cloneWithGit(dir, dest) {
-		await this._exec(`git clone ${this.repo.ssh} ${dest}`);
-		await this._exec(`rm -rf ${path.resolve(dest, '.git')}`);
+		await this._exec('git', ['clone', this.repo.ssh, dest]);
+		await fs.promises.rm(path.resolve(dest, '.git'), { recursive: true, force: true });
 	}
 
 	_fetchRefs(repo) {
@@ -370,7 +370,7 @@ async function untar(file, dest, subdir = null) {
 
 async function fetchRefs(repo, runExec = exec) {
 	try {
-		const { stdout } = await runExec(`git ls-remote ${repo.url}`);
+		const { stdout } = await runExec('git', ['ls-remote', repo.url]);
 
 		return stdout
 			.split('\n')
