@@ -1,7 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from 'fs';
+import path from 'path';
 import tar from 'tar';
-import EventEmitter from 'node:events';
+import EventEmitter from 'events';
 import chalk from 'chalk';
 import { rimrafSync } from 'sander';
 import {
@@ -278,7 +278,8 @@ class Degit extends EventEmitter {
 						code: 'FILE_EXISTS',
 						message: `${file} already exists locally`,
 					});
-				} catch {
+					} catch (_error) {
+						void _error;
 					mkdirp(path.dirname(file));
 
 					if (this.proxy) {
@@ -460,7 +461,8 @@ function updateCache(dir, repo, hash, cached) {
 			// We no longer need this tar file
 			try {
 				fs.unlinkSync(path.join(dir, `${oldHash}.tar.gz`));
-			} catch {
+				} catch (_error) {
+					void _error;
 				// Ignore
 			}
 		}

@@ -10,7 +10,7 @@
 
 ## Requirements
 
-- Node.js **20** or later (see `engines` in `package.json`)
+- Node.js **8** or later (see `engines` in `package.json`)
 - [Bun](https://bun.sh) **1.3.14** when developing this repository (see `packageManager` in `package.json`)
 
 End users can still install the published package with npm (`npm install -g degit`). For a dev clone of this repo, use Bun so the lockfile and `bunfig.toml` apply; `minimumReleaseAge` is set to 14 days so installs skip very fresh publishes.

@@ -1,5 +1,10 @@
 # degit changelog
 
+## 2.8.5
+
+- Final v2 security patch; keep Node 8 compatibility on the legacy line.
+- Node 20 starts with v3.
+
 ## 2.8.4
 
 - Whoops

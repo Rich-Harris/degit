@@ -1,5 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from 'fs';
+import path from 'path';
 import chalk from 'chalk';
 import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
@@ -25,9 +25,9 @@ export async function main(argv) {
 	if (args.help) {
 		const help = fs
 			.readFileSync(path.join(__dirname, '..', 'help.md'), 'utf8')
-			.replaceAll(/^(\s*)#+ (.+)/gm, (m, s, _) => s + chalk.bold(_))
-			.replaceAll(/_([^_]+)_/g, (m, _) => chalk.underline(_))
-			.replaceAll(/`([^`]+)`/g, (m, _) => chalk.cyan(_));
+			.replace(/^(\s*)#+ (.+)/gm, (m, s, _) => s + chalk.bold(_))
+			.replace(/_([^_]+)_/g, (m, _) => chalk.underline(_))
+			.replace(/`([^`]+)`/g, (m, _) => chalk.cyan(_));
 
 		process.stdout.write(`\n${help}\n`);
 	} else if (!src) {
@@ -57,8 +57,9 @@ export async function main(argv) {
 
 		const choices = glob(`**/map.json`, { cwd: base })
 			.map(getChoice)
-			.flat()
-			.toSorted((a, b) => {
+			.reduce((allChoices, choiceGroup) => allChoices.concat(choiceGroup), [])
+			.slice()
+			.sort((a, b) => {
 				const aTime = accessLookup.get(a.value) || 0;
 				const bTime = accessLookup.get(b.value) || 0;
 

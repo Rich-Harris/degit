@@ -1,6 +1,6 @@
 {
 	"name": "degit",
-	"version": "2.8.4",
+	"version": "2.8.5",
 	"description": "Straightforward project scaffolding",
 	"keywords": [
 		"git",
@@ -33,7 +33,7 @@
 		"format:ci": "oxfmt --check .",
 		"duplicates:ci": "jscpd --gitignore --reporters console --threshold 5 rollup.config.js vitest.config.js src test",
 		"dev": "npm run build -- --watch",
-		"build": "rollup -c",
+		"build": "rimraf dist && rollup -c",
 		"test": "vitest run",
 		"test:live": "LIVE_TESTS=1 vitest run test/live.test.js",
 		"test:coverage": "vitest run --coverage",
@@ -81,7 +81,7 @@
 		]
 	},
 	"engines": {
-		"node": ">=20.0.0"
+		"node": ">=8.0.0"
 	},
 	"packageManager": "bun@1.3.14"
 }

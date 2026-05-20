@@ -1,9 +1,9 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from 'fs';
+import path from 'path';
 import homeOrTmp from 'home-or-tmp';
-import https from 'node:https';
-import child_process from 'node:child_process';
-import URL from 'node:url';
+import https from 'https';
+import child_process from 'child_process';
+import URL from 'url';
 import Agent from 'https-proxy-agent';
 import { copydirSync, rimrafSync } from 'sander';
 
@@ -26,7 +26,8 @@ export function tryRequire(file, opts) {
 		}
 		// eslint-disable-next-line security/detect-non-literal-require
 		return require(file);
-	} catch {
+	} catch (_error) {
+		void _error;
 		return null;
 	}
 }
