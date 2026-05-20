@@ -1,5 +1,8 @@
 import sourceMapSupport from 'source-map-support';
 import assert from 'node:assert';
+import child_process from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { sync as rimraf } from 'rimraf';
 
 sourceMapSupport.install();
@@ -26,6 +29,8 @@ async function waitForCondition(fn, timeoutMs = 3000) {
 
 describe('degit bin', () => {
 	const binTmp = '.tmp/bin-suite';
+	const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+	const rootBin = path.join(repoRoot, 'degit');
 
 	beforeEach(async () => {
 		await rimraf(binTmp);
@@ -36,6 +41,18 @@ describe('degit bin', () => {
 		});
 	});
 	afterEach(async () => await rimraf(binTmp));
+
+	it('runs the built root bin after build', () => {
+		const output = child_process.execFileSync('node', [rootBin, '--help'], {
+			env: {
+				...process.env,
+				VITEST: '',
+			},
+			encoding: 'utf8',
+		});
+		assert.ok(output.includes('Usage'));
+		assert.ok(output.includes('degit'));
+	});
 
 	it('writes help to stdout when argv includes --help', async () => {
 		const chunks = [];
