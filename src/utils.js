@@ -129,5 +129,4 @@ export function unstashFiles(dir, dest) {
 }
 
 /* eslint-enable security/detect-non-literal-fs-filename */
-
 export const base = path.join(homeOrTmp, '.degit');

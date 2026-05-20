@@ -180,7 +180,6 @@ class Degit extends EventEmitter {
 		}
 	}
 	/* eslint-enable security/detect-non-literal-fs-filename */
-
 	_info(info) {
 		this.emit('info', info);
 	}

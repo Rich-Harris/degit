@@ -114,7 +114,6 @@ export async function main(argv) {
 }
 
 /* eslint-enable security/detect-non-literal-fs-filename */
-
 export function run(src, dest, args) {
 	const d = degit(src, args);
 
