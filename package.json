@@ -1,6 +1,7 @@
 {
 	"name": "degit",
 	"version": "2.8.4",
+	"packageManager": "bun@1.3.14",
 	"description": "Straightforward project scaffolding",
 	"keywords": [
 		"git",
