@@ -1,5 +1,15 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"jsPlugins": ["eslint-plugin-security"],
+	"rules": {
+		"security/detect-bidi-characters": "error",
+		"security/detect-buffer-noassert": "error",
+		"security/detect-disable-mustache-escape": "error",
+		"security/detect-eval-with-expression": "error",
+		"security/detect-new-buffer": "error",
+		"security/detect-no-csrf-before-method-override": "error",
+		"security/detect-pseudoRandomBytes": "error"
+	},
 	"categories": {
 		"correctness": "error",
 		"suspicious": "off",
