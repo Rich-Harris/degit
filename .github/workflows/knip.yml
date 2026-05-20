@@ -1,6 +1,6 @@
 name: Knip
 
-on: [push]
+on: [pull_request]
 
 jobs:
     knip:
