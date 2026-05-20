@@ -1,0 +1,11 @@
+# Default review coverage for the whole repository.
+* @YogliB
+
+# Security-sensitive paths that should always get explicit review attention.
+/.github/workflows/ @YogliB
+/package.json @YogliB
+/bunfig.toml @YogliB
+/AGENTS.md @YogliB
+/README.md @YogliB
+/CONTRIBUTING.md @YogliB
+/help.md @YogliB
