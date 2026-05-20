@@ -1,12 +1,8 @@
-import child_process from 'node:child_process';
 import fs from 'node:fs';
-import path from 'node:path';
 import glob from 'tiny-glob/sync.js';
 import assert from 'node:assert';
 
-export const degitPath = path.resolve('dist/bin.js');
-
-export function readFixture(file) {
+function readFixture(file) {
 	return fs.readFileSync(file, 'utf8');
 }
 
@@ -86,17 +82,4 @@ export function createCopyFetch(sourceFile) {
 	};
 
 	return { calls, fn };
-}
-
-export function execShell(cmd) {
-	return new Promise((fulfil, reject) => {
-		child_process.exec(cmd, (err, stdout, stderr) => {
-			if (err) {
-				return reject(err);
-			}
-			console.log(stdout);
-			console.error(stderr);
-			fulfil();
-		});
-	});
 }
