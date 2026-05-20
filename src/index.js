@@ -278,8 +278,8 @@ class Degit extends EventEmitter {
 						code: 'FILE_EXISTS',
 						message: `${file} already exists locally`,
 					});
-					} catch (_error) {
-						void _error;
+				} catch (_error) {
+					void _error;
 					mkdirp(path.dirname(file));
 
 					if (this.proxy) {
@@ -461,8 +461,8 @@ function updateCache(dir, repo, hash, cached) {
 			// We no longer need this tar file
 			try {
 				fs.unlinkSync(path.join(dir, `${oldHash}.tar.gz`));
-				} catch (_error) {
-					void _error;
+			} catch (_error) {
+				void _error;
 				// Ignore
 			}
 		}
