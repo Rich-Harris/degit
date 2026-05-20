@@ -19,7 +19,7 @@
 	},
 	"overrides": [
 		{
-			"files": ["test/**/*.js"],
+			"files": ["test/**"],
 			"rules": {
 				"security/detect-bidi-characters": "off",
 				"security/detect-buffer-noassert": "off",

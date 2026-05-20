@@ -19,14 +19,15 @@ export function compareDirToExpected(dir, files) {
 
 export function createMockExec(stubs = {}) {
 	const calls = [];
-	const fn = (command) => {
-		calls.push(command);
+	const fn = (command, args = []) => {
+		const call = [command, ...args].join(' ');
+		calls.push(call);
 
-		if (!Object.hasOwn(stubs, command)) {
-			return Promise.reject(new Error(`Unexpected command: ${command}`));
+		if (!Object.hasOwn(stubs, call)) {
+			return Promise.reject(new Error(`Unexpected command: ${call}`));
 		}
 
-		const stub = stubs[command];
+		const stub = stubs[call];
 		if (stub && stub.error) {
 			return Promise.reject(stub.error);
 		}

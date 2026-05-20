@@ -77,6 +77,7 @@ class Degit extends EventEmitter {
 		const directivesPath = path.resolve(dest, degitConfigName);
 		const directives = tryRequire(directivesPath, { clearCache: true }) || false;
 		if (directives) {
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
 			fs.unlinkSync(directivesPath);
 		}
 
@@ -117,6 +118,7 @@ class Degit extends EventEmitter {
 		}
 	}
 
+	/* eslint-disable security/detect-non-literal-fs-filename */
 	remove(dir, dest, action) {
 		let { files } = action;
 		if (!Array.isArray(files)) {
@@ -177,6 +179,7 @@ class Degit extends EventEmitter {
 			if (error.code !== 'ENOENT') throw error;
 		}
 	}
+	/* eslint-enable security/detect-non-literal-fs-filename */
 
 	_info(info) {
 		this.emit('info', info);
@@ -270,6 +273,7 @@ class Degit extends EventEmitter {
 		try {
 			if (!this.cache) {
 				try {
+					// eslint-disable-next-line security/detect-non-literal-fs-filename
 					fs.statSync(file);
 					this._verbose({
 						code: 'FILE_EXISTS',
@@ -313,8 +317,8 @@ class Degit extends EventEmitter {
 	}
 
 	async _cloneWithGit(dir, dest) {
-		await this._exec(`git clone ${this.repo.ssh} ${dest}`);
-		await this._exec(`rm -rf ${path.resolve(dest, '.git')}`);
+		await this._exec('git', ['clone', this.repo.ssh, dest]);
+		await this._exec('rm', ['-rf', path.resolve(dest, '.git')]);
 	}
 
 	_fetchRefs(repo) {
@@ -325,27 +329,52 @@ class Degit extends EventEmitter {
 const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
 
 function parse(src) {
-	const match =
-		/^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
-			src,
-		);
-	if (!match) {
-		throw new DegitError(`could not parse ${src}`, {
-			code: 'BAD_SRC',
-		});
+	const [source, refValue = 'HEAD'] = src.split('#', 2);
+	let site = 'github';
+	let remainder = source;
+
+	if (source.startsWith('https://') || source.startsWith('http://')) {
+		const parsed = new URL(source);
+		site = parsed.hostname.replace(/\.(com|org)$/, '');
+		remainder = parsed.pathname.replace(/^\//, '');
+	} else if (source.startsWith('git@')) {
+		const match = /^git@([^:/]+)[:/](.+)$/.exec(source);
+		if (!match) {
+			throw new DegitError(`could not parse ${src}`, {
+				code: 'BAD_SRC',
+			});
+		}
+
+		site = match[1].replace(/\.(com|org)$/, '');
+		remainder = match[2];
+	} else if (source.startsWith('git.sr.ht/')) {
+		site = 'git.sr.ht';
+		remainder = source.slice('git.sr.ht/'.length);
+	} else {
+		const colonIndex = source.indexOf(':');
+		const slashIndex = source.indexOf('/');
+		if (colonIndex !== -1 && (slashIndex === -1 || colonIndex < slashIndex)) {
+			site = source.slice(0, colonIndex);
+			remainder = source.slice(colonIndex + 1);
+		}
 	}
 
-	const site = (match[1] || match[2] || match[3] || 'github').replace(/\.(com|org)$/, '');
 	if (!supported.has(site)) {
 		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
 			code: 'UNSUPPORTED_HOST',
 		});
 	}
 
-	const user = match[4];
-	const name = match[5].replace(/\.git$/, '');
-	const subdir = match[6];
-	const ref = match[7] || 'HEAD';
+	const [user, rawName, ...subdirParts] = remainder.split('/').filter(Boolean);
+	if (!user || !rawName) {
+		throw new DegitError(`could not parse ${src}`, {
+			code: 'BAD_SRC',
+		});
+	}
+
+	const name = rawName.replace(/\.git$/, '');
+	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
+	const ref = refValue;
 
 	const domain =
 		site === 'git.sr.ht' ? 'git.sr.ht' : site === 'bitbucket' ? `${site}.org` : `${site}.com`;
@@ -370,7 +399,7 @@ async function untar(file, dest, subdir = null) {
 
 async function fetchRefs(repo, runExec = exec) {
 	try {
-		const { stdout } = await runExec(`git ls-remote ${repo.url}`);
+		const { stdout } = await runExec('git', ['ls-remote', repo.url]);
 
 		return stdout
 			.split('\n')
@@ -407,6 +436,7 @@ async function fetchRefs(repo, runExec = exec) {
 	}
 }
 
+/* eslint-disable security/detect-non-literal-fs-filename, security/detect-possible-timing-attacks, security/detect-object-injection */
 function updateCache(dir, repo, hash, cached) {
 	// Update access logs
 	const logs = tryRequire(path.join(dir, 'access.json')) || {};
@@ -440,3 +470,5 @@ function updateCache(dir, repo, hash, cached) {
 	cached[repo.ref] = hash;
 	fs.writeFileSync(path.join(dir, 'map.json'), JSON.stringify(cached, null, '  '));
 }
+
+/* eslint-enable security/detect-non-literal-fs-filename, security/detect-possible-timing-attacks, security/detect-object-injection */

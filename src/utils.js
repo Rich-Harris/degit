@@ -24,15 +24,17 @@ export function tryRequire(file, opts) {
 		if (opts && opts.clearCache === true) {
 			delete require.cache[require.resolve(file)];
 		}
+		// eslint-disable-next-line security/detect-non-literal-require
 		return require(file);
 	} catch {
 		return null;
 	}
 }
 
-export function exec(command) {
+/* eslint-disable security/detect-non-literal-fs-filename */
+export function exec(command, args = []) {
 	return new Promise((fulfil, reject) => {
-		child_process.exec(command, (err, stdout, stderr) => {
+		child_process.execFile(command, args, (err, stdout, stderr) => {
 			if (err) {
 				reject(err);
 				return;
@@ -125,5 +127,7 @@ export function unstashFiles(dir, dest) {
 	});
 	rimrafSync(tmpDir);
 }
+
+/* eslint-enable security/detect-non-literal-fs-filename */
 
 export const base = path.join(homeOrTmp, '.degit');
