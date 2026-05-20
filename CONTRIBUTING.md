@@ -168,7 +168,7 @@ Documentation lives in the repository root (`README.md`, `CONTRIBUTING.md`, `COD
 
 If you are restructuring large sections or changing how features are presented, open an issue first so maintainers can agree on direction before you invest significant time.
 
-Markdown and JSON touched by your change are formatted with Oxfmt on commit via lint-staged, and the repo also runs dedicated lint and format CI workflows on push; run `bun run lint:ci` and `bun run format:ci` locally if you want to catch issues early.
+Markdown and JSON touched by your change are formatted with Oxfmt on commit via lint-staged, and the repo also runs dedicated lint and format CI workflows on pull requests; run `bun run lint:ci` and `bun run format:ci` locally if you want to catch issues early.
 
 ## Styleguides
 
