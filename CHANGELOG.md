@@ -1,5 +1,10 @@
 # degit changelog
 
+## 3.0.0
+
+- Major release for the Node 20+ line; v2 remains the legacy Node 8-compatible branch.
+- Upgrade `tar` to a patched release to address the security issue that affected the previous dependency.
+
 ## 2.8.5
 
 - Final v2 security patch; keep Node 8 compatibility on the legacy line.
