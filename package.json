@@ -24,6 +24,7 @@
 		"help.md",
 		"dist"
 	],
+	"type": "module",
 	"main": "dist/index.js",
 	"scripts": {
 		"lint": "oxlint --import-plugin --fix .",
@@ -31,18 +32,17 @@
 		"knip:ci": "knip",
 		"format": "oxfmt --write .",
 		"format:ci": "oxfmt --check .",
-		"duplicates:ci": "jscpd --gitignore --reporters console --threshold 5 rollup.config.js vitest.config.js src test",
-		"dev": "npm run build -- --watch",
-		"build": "rollup -c",
+		"duplicates:ci": "jscpd --gitignore --reporters console --threshold 5 tsdown.config.ts vitest.config.ts src test",
+		"dev": "tsdown --config tsdown.config.ts --watch",
+		"build": "tsdown --config tsdown.config.ts",
 		"test": "vitest run",
-		"test:live": "LIVE_TESTS=1 vitest run test/live.test.js",
+		"test:live": "LIVE_TESTS=1 vitest run test/live.test.ts",
 		"test:coverage": "vitest run --coverage",
-		"pretest": "npm run build",
-		"prepublishOnly": "npm test"
+		"pretest": "bun run build",
+		"prepublishOnly": "bun run test"
 	},
 	"devDependencies": {
-		"@rollup/plugin-commonjs": "18.0.0",
-		"@rollup/plugin-node-resolve": "11.2.1",
+		"@types/node": "25.6.0",
 		"@vitest/coverage-v8": "4.1.5",
 		"chalk": "4.1.0",
 		"enquirer": "2.3.6",
@@ -51,18 +51,19 @@
 		"home-or-tmp": "3.0.0",
 		"https-proxy-agent": "5.0.0",
 		"husky": "6.0.0",
-		"jscpd": "^4.0.9",
+		"jscpd": "4.0.9",
 		"knip": "6.11.0",
 		"lint-staged": "10.5.4",
 		"mri": "1.1.6",
 		"oxfmt": "0.47.0",
 		"oxlint": "1.62.0",
 		"rimraf": "3.0.2",
-		"rollup": "2.44.0",
 		"sander": "0.6.0",
 		"source-map-support": "0.5.19",
 		"tar": "6.1.0",
 		"tiny-glob": "0.2.8",
+		"tsdown": "0.21.10",
+		"typescript": "6.0.3",
 		"vitest": "4.1.5"
 	},
 	"husky": {
@@ -71,7 +72,7 @@
 		}
 	},
 	"lint-staged": {
-		"*.{js}": [
+		"*.{js,ts}": [
 			"oxlint --import-plugin --fix --deny-warnings",
 			"git add"
 		],

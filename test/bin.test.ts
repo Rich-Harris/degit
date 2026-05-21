@@ -27,6 +27,21 @@ async function waitForCondition(fn, timeoutMs = 3000) {
 	assert.fail('timeout waiting for condition');
 }
 
+function mockEventClone(eventName, message) {
+	const handlers = {};
+	mockDegit.mockReturnValue({
+		clone: vi.fn().mockImplementation(() => {
+			handlers[eventName]({ message });
+			return Promise.resolve();
+		}),
+		on: vi.fn(function on(ev, fn) {
+			handlers[ev] = fn;
+			return this;
+		}),
+	});
+	return handlers;
+}
+
 describe('degit bin', () => {
 	const binTmp = '.tmp/bin-suite';
 	const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -102,17 +117,7 @@ describe('degit bin', () => {
 	});
 
 	it('prints a verbose hint to stderr when an info event fires', async () => {
-		const handlers = {};
-		mockDegit.mockReturnValue({
-			clone: vi.fn().mockImplementation(() => {
-				handlers.info({ message: 'options.verbose enabled' });
-				return Promise.resolve();
-			}),
-			on: vi.fn(function on(ev, fn) {
-				handlers[ev] = fn;
-				return this;
-			}),
-		});
+		mockEventClone('info', 'options.verbose enabled');
 		const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		try {
 			run('a/b', 'dest', { verbose: true });
@@ -125,17 +130,7 @@ describe('degit bin', () => {
 	});
 
 	it('prints a force hint to stderr when a warn event fires', async () => {
-		const handlers = {};
-		mockDegit.mockReturnValue({
-			clone: vi.fn().mockImplementation(() => {
-				handlers.warn({ message: 'options.force suggested' });
-				return Promise.resolve();
-			}),
-			on: vi.fn(function on(ev, fn) {
-				handlers[ev] = fn;
-				return this;
-			}),
-		});
+		mockEventClone('warn', 'options.force suggested');
 		const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		try {
 			run('a/b', 'dest', {});
