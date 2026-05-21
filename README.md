@@ -122,12 +122,12 @@ A few salient differences:
 - Composability via [actions](#actions)
 - Future capabilities — [interactive mode](https://github.com/Rich-Harris/degit/issues/4), [friendly onboarding and postinstall scripts](https://github.com/Rich-Harris/degit/issues/6)
 
-## JavaScript API
+## ESM API
 
 You can also use degit inside a Node script:
 
 ```js
-const degit = require('degit');
+import degit from 'degit';
 
 const emitter = degit('user/repo', {
 	cache: true,

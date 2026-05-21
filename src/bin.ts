@@ -7,6 +7,9 @@ import fuzzysearch from 'fuzzysearch';
 import enquirer from 'enquirer';
 import degit from './index.js';
 import { base, tryRequire } from './utils.js';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /* eslint-disable security/detect-non-literal-fs-filename */
 export async function main(argv) {

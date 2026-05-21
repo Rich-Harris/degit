@@ -100,9 +100,7 @@ class Degit extends EventEmitter {
 		this._info({
 			code: 'SUCCESS',
 			dest,
-			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(
-				repo.ref,
-			)}${dest !== '.' ? ` to ${dest}` : ''}`,
+			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
 			repo,
 		});
 

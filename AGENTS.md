@@ -18,14 +18,14 @@ Human-facing narrative belongs primarily in README and CONTRIBUTING; AGENTS.md s
 | Community expectations                                         | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)                                                                                                                                                                                                                                                                                                                                     |
 | Published CLI help text                                        | [help.md](help.md)                                                                                                                                                                                                                                                                                                                                                           |
 | CI workflows (Bun + Node 20/22/24)                             | [.github/workflows/build.yml](.github/workflows/build.yml), [.github/workflows/test.yml](.github/workflows/test.yml), [.github/workflows/lint.yml](.github/workflows/lint.yml), [.github/workflows/duplicates.yml](.github/workflows/duplicates.yml), [.github/workflows/knip.yml](.github/workflows/knip.yml), [.github/workflows/format.yml](.github/workflows/format.yml) |
-| Library and CLI implementation                                 | [src/index.js](src/index.js), [src/utils.js](src/utils.js), [src/bin.js](src/bin.js)                                                                                                                                                                                                                                                                                         |
-| Rollup build                                                   | [rollup.config.js](rollup.config.js)                                                                                                                                                                                                                                                                                                                                         |
-| Tests and Vitest settings                                      | [test/](test/), [vitest.config.js](vitest.config.js)                                                                                                                                                                                                                                                                                                                         |
+| Library and CLI implementation                                 | [src/index.ts](src/index.ts), [src/utils.ts](src/utils.ts), [src/bin.ts](src/bin.ts)                                                                                                                                                                                                                                                                                         |
+| tsdown build                                                   | [tsdown.config.ts](tsdown.config.ts)                                                                                                                                                                                                                                                                                                                                         |
+| Tests and Vitest settings                                      | [test/](test/), [vitest.config.ts](vitest.config.ts)                                                                                                                                                                                                                                                                                                                         |
 | npm scripts and package metadata                               | [package.json](package.json)                                                                                                                                                                                                                                                                                                                                                 |
 
 ## Project overview
 
-**degit** downloads a snapshot of a git repository (GitHub, GitLab, Bitbucket, Sourcehut) via tarballs instead of cloning full history. Runtime targets Node 20+. This repo is built with Rollup to `dist/` and ships a `degit` bin.
+**degit** downloads a snapshot of a git repository (GitHub, GitLab, Bitbucket, Sourcehut) via tarballs instead of cloning full history. Runtime targets Node 20+. This repo is built with tsdown to `dist/` and ships a `degit` bin.
 
 ## Setup commands
 
@@ -41,8 +41,8 @@ Node 20+ is required (`engines` in `package.json`). End users may install the pu
 ## Development workflow
 
 ```bash
-bun run build          # one-off compile to dist/
-bun run dev            # rollup watch (npm script: build -- --watch)
+bun run build          # one-off compile to dist/ via tsdown
+bun run dev            # tsdown watch mode
 ```
 
 Source of truth for behavior is `src/` plus tests; the published artifact is under `dist/` after build.
@@ -51,13 +51,13 @@ Source of truth for behavior is `src/` plus tests; the published artifact is und
 
 ```bash
 bun run test                  # pretest runs build, then vitest run
-bun run test:coverage         # vitest with v8 coverage (thresholds in vitest.config.js)
+bun run test:coverage         # vitest with v8 coverage (thresholds in vitest.config.ts)
 bun run knip:ci               # dead code detection via knip
-bunx vitest run test/utils.test.js   # single file
+bunx vitest run test/utils.test.ts    # single file
 bunx vitest run -t "substring"       # filter by test name
 ```
 
-Tests live in `test/**/*.test.js` (see `vitest.config.js`). Prefer updating or adding tests when changing behavior.
+Tests live in `test/**/*.test.ts` (see `vitest.config.ts`). Prefer updating or adding tests when changing behavior.
 
 ## Lint and format
 
@@ -68,7 +68,7 @@ bun run format          # oxfmt across the repo with writes enabled
 bun run format:ci       # oxfmt in CI mode without writes
 ```
 
-Pre-commit uses lint-staged (Oxlint on JS; Oxfmt on JS, JSON, YAML, MD). Dedicated lint and format CI workflows check the same tools on pull requests. Align edits with existing style before proposing changes.
+Pre-commit uses lint-staged (Oxlint on JS/TS; Oxfmt on JS/TS, JSON, YAML, MD). Dedicated lint and format CI workflows check the same tools on pull requests. Align edits with existing style before proposing changes.
 
 ## Build and release
 

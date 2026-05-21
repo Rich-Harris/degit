@@ -1,10 +1,10 @@
-const { defineConfig } = require('vitest/config');
+import { defineConfig } from 'vitest/config';
 
-module.exports = defineConfig({
+export default defineConfig({
 	test: {
 		coverage: {
 			all: true,
-			include: ['src/**/*.js'],
+			include: ['src/**/*.ts'],
 			provider: 'v8',
 			reporter: ['text', 'json-summary', 'html'],
 			reportsDirectory: './coverage',
@@ -18,7 +18,7 @@ module.exports = defineConfig({
 		},
 		environment: 'node',
 		globals: true,
-		include: ['test/**/*.test.js'],
+		include: ['test/**/*.test.ts'],
 		testTimeout: 30000,
 	},
 });

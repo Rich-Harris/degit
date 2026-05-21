@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": false,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"noEmit": true,
+		"strict": false,
+		"target": "ES2022",
+		"types": ["node", "vitest/globals"]
+	},
+	"include": ["src", "test", "tsdown.config.ts", "vitest.config.js"]
+}

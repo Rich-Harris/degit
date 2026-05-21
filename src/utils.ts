@@ -3,10 +3,12 @@ import path from 'node:path';
 import homeOrTmp from 'home-or-tmp';
 import https from 'node:https';
 import child_process from 'node:child_process';
-import URL from 'node:url';
+import * as URL from 'node:url';
+import { createRequire } from 'node:module';
 import Agent from 'https-proxy-agent';
 import { copydirSync, rimrafSync } from 'sander';
 
+const require = createRequire(import.meta.url);
 const tmpDirName = 'tmp';
 const degitConfigName = 'degit.json';
 
@@ -24,7 +26,7 @@ export function tryRequire(file, opts) {
 		if (opts && opts.clearCache === true) {
 			delete require.cache[require.resolve(file)];
 		}
-		// eslint-disable-next-line security/detect-non-literal-require
+		// oxlint-disable-next-line security/detect-non-literal-require
 		return require(file);
 	} catch {
 		return null;
