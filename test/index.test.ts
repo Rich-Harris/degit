@@ -2,7 +2,7 @@ import sourceMapSupport from 'source-map-support';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import tar from 'tar';
+import * as tar from 'tar';
 import { sync as rimraf } from 'rimraf';
 import degit from '../src/index.js';
 import { base } from '../src/utils.js';
