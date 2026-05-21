@@ -29,6 +29,7 @@
 	"scripts": {
 		"lint": "oxlint --import-plugin --fix .",
 		"lint:ci": "oxlint --import-plugin --deny-warnings .",
+		"audit": "bun audit",
 		"knip:ci": "knip",
 		"format": "oxfmt --write .",
 		"format:ci": "oxfmt --check .",
@@ -60,7 +61,7 @@
 		"rimraf": "3.0.2",
 		"sander": "0.6.0",
 		"source-map-support": "0.5.19",
-		"tar": "6.1.0",
+		"tar": "7.5.11",
 		"tiny-glob": "0.2.8",
 		"tsdown": "0.21.10",
 		"typescript": "6.0.3",

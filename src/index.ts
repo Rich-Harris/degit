@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import tar from 'tar';
+import * as tar from 'tar';
 import EventEmitter from 'node:events';
 import chalk from 'chalk';
 import { rimrafSync } from 'sander';

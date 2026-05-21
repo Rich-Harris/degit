@@ -154,9 +154,12 @@ bun run format:ci
 bun run test
 bun run lint:ci
 bun run duplicates:ci
+bun run audit
 ```
 
 `bun run test` runs the test suite with [Vitest](https://vitest.dev/). The `pretest` script builds first.
+
+`bun run audit` runs the dependency audit that also backs [.github/workflows/audit.yml](.github/workflows/audit.yml).
 
 Keep changes focused, squash the branch to a single commit before opening the pull request, add or update tests when behavior changes, and describe the motivation in the pull request so reviewers can follow your intent.
 
