@@ -18,6 +18,43 @@ import {
 
 const validModes = new Set(['tar', 'git']);
 
+const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
+
+function getProvider(site) {
+	switch (site) {
+		case 'github':
+			return {
+				domain: 'github.com',
+				archiveUrl(repo, hash) {
+					return `${repo.url}/archive/${hash}.tar.gz`;
+				},
+			};
+		case 'gitlab':
+			return {
+				domain: 'gitlab.com',
+				archiveUrl(repo, hash) {
+					return `${repo.url}/repository/archive.tar.gz?ref=${hash}`;
+				},
+			};
+		case 'bitbucket':
+			return {
+				domain: 'bitbucket.org',
+				archiveUrl(repo, hash) {
+					return `${repo.url}/get/${hash}.tar.gz`;
+				},
+			};
+		case 'git.sr.ht':
+			return {
+				domain: 'git.sr.ht',
+				archiveUrl(repo, hash) {
+					return `${repo.url}/archive/${hash}.tar.gz`;
+				},
+			};
+		default:
+			return undefined;
+	}
+}
+
 export default function degit(src, opts) {
 	return new Degit(src, opts);
 }
@@ -260,12 +297,7 @@ class Degit extends EventEmitter {
 		}
 
 		const file = `${dir}/${hash}.tar.gz`;
-		const url =
-			repo.site === 'gitlab'
-				? `${repo.url}/repository/archive.tar.gz?ref=${hash}`
-				: repo.site === 'bitbucket'
-					? `${repo.url}/get/${hash}.tar.gz`
-					: `${repo.url}/archive/${hash}.tar.gz`;
+		const url = getProvider(repo.site).archiveUrl(repo, hash);
 
 		try {
 			if (!this.cache) {
@@ -323,8 +355,6 @@ class Degit extends EventEmitter {
 	}
 }
 
-const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
-
 function parse(src) {
 	const [source, refValue = 'HEAD'] = src.split('#', 2);
 	let site = 'github';
@@ -362,6 +392,8 @@ function parse(src) {
 		});
 	}
 
+	const provider = getProvider(site);
+
 	const [user, rawName, ...subdirParts] = remainder.split('/').filter(Boolean);
 	if (!user || !rawName) {
 		throw new DegitError(`could not parse ${src}`, {
@@ -373,12 +405,11 @@ function parse(src) {
 	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
 	const ref = refValue;
 
-	const domain =
-		site === 'git.sr.ht' ? 'git.sr.ht' : site === 'bitbucket' ? `${site}.org` : `${site}.com`;
+	const domain = provider.domain;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `git@${domain}:${user}/${name}`;
 
-	const mode = supported.has(site) ? 'tar' : 'git';
+	const mode = 'tar';
 
 	return { mode, name, ref, site, ssh, subdir, url, user };
 }
