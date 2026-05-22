@@ -2,9 +2,6 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
-
 | Version           | Supported          |
 | ----------------- | ------------------ |
 | 3.x and later     | :white_check_mark: |
@@ -14,8 +11,6 @@ Security fixes are only provided for the current 3.x line and newer. The last
 2.x release is 2.8.5, and no further security patches will be issued for 2.x.
 
 ## Reporting a Vulnerability
-
-Use this section to tell people how to report a vulnerability.
 
 Report security issues by email to <me@yogev.dev> instead of using public issue
 tracking. Please include the affected version, a description of the impact,
