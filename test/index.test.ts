@@ -116,7 +116,9 @@ describe('degit index', () => {
 	afterEach(async () => await rimraf(indexTmp));
 
 	it('exports a usable JS library from the built entrypoint', async () => {
-		const { default: builtDegit } = await import(new URL('../dist/index.js', import.meta.url).href);
+		const { default: builtDegit } = await import(
+			new URL('../dist/index.js', import.meta.url).href
+		);
 		const instance = builtDegit('Rich-Harris/degit-test-repo');
 
 		assert.equal(typeof builtDegit, 'function');
