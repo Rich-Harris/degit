@@ -115,6 +115,15 @@ describe('degit index', () => {
 	beforeEach(async () => await rimraf(indexTmp));
 	afterEach(async () => await rimraf(indexTmp));
 
+	it('exports a usable JS library from the built entrypoint', async () => {
+		const { default: builtDegit } = await import(new URL('../dist/index.js', import.meta.url).href);
+		const instance = builtDegit('Rich-Harris/degit-test-repo');
+
+		assert.equal(typeof builtDegit, 'function');
+		assert.equal(typeof instance.clone, 'function');
+		assert.equal(typeof instance.on, 'function');
+	});
+
 	describe('parser', () => {
 		providerCases.forEach((test) => {
 			it(`parsed repo fields match expected URLs when src targets ${test.site}`, () => {
