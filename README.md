@@ -22,7 +22,7 @@ bun install
 bun run build
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute. [AGENTS.md](AGENTS.md) summarizes setup and commands for tooling and coding agents. When you change development workflow, CI, or contributor-facing instructions, update **README.md**, **CONTRIBUTING.md**, and **AGENTS.md** together so they stay consistent.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute. [SECURITY.md](SECURITY.md) explains how to report vulnerabilities. [AGENTS.md](AGENTS.md) summarizes setup and commands for tooling and coding agents. When you change development workflow, CI, or contributor-facing instructions, update **README.md**, **CONTRIBUTING.md**, and **AGENTS.md** together so they stay consistent.
 
 ## Installation
 
