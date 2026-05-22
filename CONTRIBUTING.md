@@ -136,7 +136,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Rich-H
 Prerequisites:
 
 - Node.js **20** or later (see `engines` in `package.json`)
-- [Bun](https://bun.sh) **1.3.14** (same version as CI; see [.github/workflows/build.yml](.github/workflows/build.yml), [.github/workflows/test.yml](.github/workflows/test.yml), [.github/workflows/lint.yml](.github/workflows/lint.yml), and [.github/workflows/duplicates.yml](.github/workflows/duplicates.yml))
+- [Bun](https://bun.sh) **1.3.14** (same version as CI; see [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), [.github/workflows/security.yml](.github/workflows/security.yml), and [.github/workflows/integration.yml](.github/workflows/integration.yml))
 
 Clone the repository, install dependencies, and build:
 
@@ -150,16 +150,18 @@ bun run build
 Before opening a pull request, run the same checks CI runs:
 
 ```bash
-bun run format:ci
+bun run build
 bun run test
+bun run format:ci
 bun run lint:ci
 bun run duplicates:ci
+bun run knip:ci
 bun run audit
 ```
 
 `bun run test` runs the test suite with [Vitest](https://vitest.dev/). The `pretest` script builds first.
 
-`bun run audit` runs the dependency audit that also backs [.github/workflows/audit.yml](.github/workflows/audit.yml).
+`bun run audit` runs the dependency audit that also backs [.github/workflows/security.yml](.github/workflows/security.yml).
 
 Keep changes focused, squash the branch to a single commit before opening the pull request, add or update tests when behavior changes, and describe the motivation in the pull request so reviewers can follow your intent.
 

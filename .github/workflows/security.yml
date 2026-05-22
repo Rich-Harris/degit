@@ -1,13 +1,31 @@
-name: 'CodeQL Advanced'
+name: Security
 
 on:
     pull_request:
-        branches: ['master']
     schedule:
+        - cron: '30 2 * * 0'
         - cron: '30 1 * * 6'
 
 jobs:
-    analyze:
+    audit:
+        if: github.event_name == 'pull_request' || github.event.schedule == '30 2 * * 0'
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: 1.3.14
+
+            - run: bun --version
+
+            - run: bun install --frozen-lockfile
+
+            - run: bun run audit
+
+    codeql:
+        if: (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'master') || github.event.schedule == '30 1 * * 6'
         name: Analyze (${{ matrix.language }})
         runs-on: ubuntu-latest
         permissions:
@@ -24,14 +42,17 @@ jobs:
                 include:
                     - language: javascript-typescript
                       build-mode: none
+
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+
             - name: Initialize CodeQL
               uses: github/codeql-action/init@v4
               with:
                   languages: ${{ matrix.language }}
                   build-mode: ${{ matrix.build-mode }}
+
             - name: Perform CodeQL Analysis
               uses: github/codeql-action/analyze@v4
               with:
