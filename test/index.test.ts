@@ -17,62 +17,75 @@ sourceMapSupport.install();
 
 const refsHash = '0123456789abcdef0123456789abcdef0123456789';
 
+function createProviderCase({ build, domain, publicSrc, redirectUrl, site, user }) {
+	const name = 'degit-test-repo';
+	const privateName = `${name}-private`;
+	const url = `https://${domain}/${user}/${name}`;
+	return {
+		...build({ domain, name, privateName, url, user }),
+		name,
+		privateName,
+		publicSrc,
+		redirectUrl,
+		site,
+		url,
+		user,
+	};
+}
+
 const providerCases = [
-	{
-		archiveUrl: (hash) =>
-			`https://github.com/Rich-Harris/degit-test-repo/archive/${hash}.tar.gz`,
-		gitSrc: 'https://github.com/Rich-Harris/degit-test-repo-private.git',
-		lsRemote: 'git ls-remote https://github.com/Rich-Harris/degit-test-repo',
-		name: 'degit-test-repo',
-		privateName: 'degit-test-repo-private',
+	createProviderCase({
+		domain: 'github.com',
 		publicSrc: 'Rich-Harris/degit-test-repo',
 		redirectUrl: 'https://github.com/forbidden',
 		site: 'github',
-		ssh: 'git@github.com:Rich-Harris/degit-test-repo',
-		url: 'https://github.com/Rich-Harris/degit-test-repo',
 		user: 'Rich-Harris',
-	},
-	{
-		archiveUrl: (hash) =>
-			`https://gitlab.com/Rich-Harris/degit-test-repo/repository/archive.tar.gz?ref=${hash}`,
-		gitSrc: 'gitlab:Rich-Harris/degit-test-repo-private',
-		lsRemote: 'git ls-remote https://gitlab.com/Rich-Harris/degit-test-repo',
-		name: 'degit-test-repo',
-		privateName: 'degit-test-repo-private',
+		build: ({ domain, name, privateName, url, user }) => ({
+			archiveUrl: (hash) => `${url}/archive/${hash}.tar.gz`,
+			gitSrc: `https://${domain}/${user}/${privateName}.git`,
+			lsRemote: `git ls-remote ${url}`,
+			ssh: `git@${domain}:${user}/${name}`,
+		}),
+	}),
+	createProviderCase({
+		domain: 'gitlab.com',
 		publicSrc: 'gitlab:Rich-Harris/degit-test-repo',
 		redirectUrl: 'https://gitlab.com/forbidden',
 		site: 'gitlab',
-		ssh: 'git@gitlab.com:Rich-Harris/degit-test-repo',
-		url: 'https://gitlab.com/Rich-Harris/degit-test-repo',
 		user: 'Rich-Harris',
-	},
-	{
-		archiveUrl: (hash) =>
-			`https://bitbucket.org/Rich_Harris/degit-test-repo/get/${hash}.tar.gz`,
-		gitSrc: 'bitbucket:Rich_Harris/degit-test-repo-private',
-		lsRemote: 'git ls-remote https://bitbucket.org/Rich_Harris/degit-test-repo',
-		name: 'degit-test-repo',
-		privateName: 'degit-test-repo-private',
+		build: ({ domain, name, privateName, url, user }) => ({
+			archiveUrl: (hash) => `${url}/repository/archive.tar.gz?ref=${hash}`,
+			gitSrc: `gitlab:${user}/${privateName}`,
+			lsRemote: `git ls-remote ${url}`,
+			ssh: `git@${domain}:${user}/${name}`,
+		}),
+	}),
+	createProviderCase({
+		domain: 'bitbucket.org',
 		publicSrc: 'bitbucket:Rich_Harris/degit-test-repo',
 		redirectUrl: 'https://bitbucket.org/forbidden',
 		site: 'bitbucket',
-		ssh: 'git@bitbucket.org:Rich_Harris/degit-test-repo',
-		url: 'https://bitbucket.org/Rich_Harris/degit-test-repo',
 		user: 'Rich_Harris',
-	},
-	{
-		archiveUrl: (hash) => `https://git.sr.ht/~satotake/degit-test-repo/archive/${hash}.tar.gz`,
-		gitSrc: 'git.sr.ht/~satotake/degit-test-repo-private',
-		lsRemote: 'git ls-remote https://git.sr.ht/~satotake/degit-test-repo',
-		name: 'degit-test-repo',
-		privateName: 'degit-test-repo-private',
+		build: ({ domain, name, privateName, url, user }) => ({
+			archiveUrl: (hash) => `${url}/get/${hash}.tar.gz`,
+			gitSrc: `bitbucket:${user}/${privateName}`,
+			lsRemote: `git ls-remote ${url}`,
+			ssh: `git@${domain}:${user}/${name}`,
+		}),
+	}),
+	createProviderCase({
+		domain: 'git.sr.ht',
 		publicSrc: 'git.sr.ht/~satotake/degit-test-repo',
 		redirectUrl: 'https://git.sr.ht/forbidden',
 		site: 'git.sr.ht',
-		ssh: 'git@git.sr.ht:~satotake/degit-test-repo',
-		url: 'https://git.sr.ht/~satotake/degit-test-repo',
 		user: '~satotake',
-	},
+		build: ({ domain, name, privateName, url, user }) => ({
+			archiveUrl: (hash) => `${url}/archive/${hash}.tar.gz`,
+			gitSrc: `git.sr.ht/${user}/${privateName}`,
+			lsRemote: `git ls-remote ${url}`,
+			ssh: `git@${domain}:${user}/${name}`,
+		}),
+	}),
 ];
 
 async function createArchiveFixture(rootName) {
