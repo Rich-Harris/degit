@@ -15,10 +15,7 @@ vi.mock('../src/index.js', () => ({
 vi.mock('tiny-glob/sync.js', () => ({
 	default: vi.fn((pattern: string) => {
 		if (pattern === '**/access.json') {
-			return [
-				'github/user-a/repo-a/access.json',
-				'github/user-b/repo-b/access.json',
-			];
+			return ['github/user-a/repo-a/access.json', 'github/user-b/repo-b/access.json'];
 		}
 
 		if (pattern === '**/map.json') {
@@ -174,7 +171,10 @@ describe('degit bin', () => {
 		assert.equal(mockDegit.mock.calls[0][0], 'github:user-b/repo-b#main');
 		assert.equal(mockDegit.mock.calls[0][1].force, true);
 		assert.equal(mockDegit.mock.calls[0][1].cache, false);
-		assert.equal(mockDegit.mock.results[0].value.clone.mock.calls[0][0], '.tmp/bin-suite/from-interactive');
+		assert.equal(
+			mockDegit.mock.results[0].value.clone.mock.calls[0][0],
+			'.tmp/bin-suite/from-interactive',
+		);
 	});
 
 	it('exits with status 1 when the clone promise rejects', async () => {
