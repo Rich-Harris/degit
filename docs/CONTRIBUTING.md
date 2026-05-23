@@ -167,9 +167,9 @@ Keep changes focused, squash the branch to a single commit before opening the pu
 
 ### Improving The Documentation
 
-Documentation lives in the repository root (`README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `AGENTS.md`) and in `help.md` (CLI help text). Typos, clarifications, and examples that match current behavior are welcome as pull requests.
+Documentation lives in the repository root (`README.md`, `AGENTS.md`, `LICENSE.md`) and in `docs/` (`ARCHITECTURE.md`, `CHANGELOG.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`), plus `assets/help.md` for the published CLI help text. Typos, clarifications, and examples that match current behavior are welcome as pull requests.
 
-`AGENTS.md` is the agent-oriented index and command reference; it must stay aligned with the human docs and with reality (`package.json`, `.github/workflows`, `vitest.config.js`, and so on). When your change updates how the repo is developed, tested, released, or explained to contributors, update **every** affected doc in the same pull request so nothing drifts.
+`AGENTS.md` is the agent-oriented index and command reference; it must stay aligned with the human docs and with reality (`package.json`, `.github/workflows`, `vitest.config.ts`, and so on). When your change updates how the repo is developed, tested, released, or explained to contributors, update **every** affected doc in the same pull request so nothing drifts.
 
 If you are restructuring large sections or changing how features are presented, open an issue first so maintainers can agree on direction before you invest significant time.
 

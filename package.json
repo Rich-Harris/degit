@@ -21,7 +21,8 @@
 		"degit": "degit"
 	},
 	"files": [
-		"help.md",
+		"assets/help.md",
+		"LICENSE.md",
 		"dist"
 	],
 	"type": "module",

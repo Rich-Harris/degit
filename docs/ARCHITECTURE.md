@@ -8,6 +8,9 @@ The repository is intentionally small. The source of truth for behavior lives in
 
 ```text
 ./
+├── AGENTS.md         # Agent-oriented repo guidance
+├── assets/
+│   └── help.md       # Published CLI help text
 ├── src/
 │   ├── index.ts      # Core Degit class, provider logic, caching, clone flow
 │   ├── bin.ts        # CLI entrypoint, argument parsing, interactive mode
@@ -18,12 +21,14 @@ The repository is intentionally small. The source of truth for behavior lives in
 │   ├── live.test.ts  # Optional real-provider integration checks
 │   └── helpers.ts    # Test utilities and mocks
 ├── dist/             # Built ESM output and type declarations
-├── help.md           # Published CLI help text
 ├── README.md         # User-facing usage and setup guide
-├── CONTRIBUTING.md   # Contributor workflow and validation commands
-├── SECURITY.md       # Security policy and reporting process
-├── AGENTS.md         # Agent-oriented repo guidance
-├── tsdown.config.ts  # Build configuration
+├── docs/
+│   ├── ARCHITECTURE.md    # Repository overview and structure
+│   ├── CHANGELOG.md       # Release notes
+│   ├── CODE_OF_CONDUCT.md # Community expectations
+│   ├── CONTRIBUTING.md    # Contributor workflow and validation commands
+│   ├── SECURITY.md        # Security policy and reporting process
+├── tsdown.config.ts   # Build configuration
 ├── vitest.config.ts   # Test and coverage configuration
 └── package.json       # Scripts, package metadata, and release config
 ```
@@ -148,13 +153,13 @@ Authorization: Delegated to the remote git provider and the user’s network cre
 
 Data Encryption: Fetches use HTTPS, and private repository cloning uses SSH. There is no application-managed at-rest encryption because the only persisted state is the local cache.
 
-Key Security Tools/Practices: Dependency audit in CI, CodeQL analysis, supported-version policy in `SECURITY.md`, and a private vulnerability reporting channel via email.
+Key Security Tools/Practices: Dependency audit in CI, CodeQL analysis, supported-version policy in `docs/SECURITY.md`, and a private vulnerability reporting channel via email.
 
 The clone flow also relies on path-safe extraction via the tar library and does not expose a general-purpose file import surface beyond the documented repo snapshot behavior.
 
 ## 8. Development & Testing Environment
 
-Local Setup Instructions: See `README.md` and `CONTRIBUTING.md`. The expected workflow is `bun install`, `bun run build`, and then the relevant tests or checks.
+Local Setup Instructions: See `../README.md` and `CONTRIBUTING.md`. The expected workflow is `bun install`, `bun run build`, and then the relevant tests or checks.
 
 Testing Frameworks: Vitest for unit and integration tests. `test/live.test.ts` is gated behind `LIVE_TESTS=1` and is not part of the normal default run.
 

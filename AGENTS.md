@@ -4,20 +4,19 @@ Instructions and entry points for coding agents working on this repository. For 
 
 ## Documentation sync
 
-Treat **AGENTS.md** as part of the same documentation set as [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [help.md](help.md). When anything in that set changes how people or agents install, build, test, lint, release, or navigate the repo, update every affected file in the **same pull request** so instructions and the agent index stay consistent.
-
-Human-facing narrative belongs primarily in README and CONTRIBUTING; AGENTS.md should reflect the same facts (versions, commands, CI steps, paths). If you notice a mismatch, fix all involved files before merging.
+Treat **AGENTS.md** as the agent-facing index for [README.md](../README.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [help.md](help.md). Keep it aligned with those docs when workflow, release, or navigation facts change.
 
 ## Agent index
 
 | Topic                                      | Where to look                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Keeping human docs and this file aligned   | [Documentation sync](#documentation-sync)                                                                                                                                                                                                                                                                                                                                                                              |
-| User-facing behavior, CLI usage, examples  | [README.md](README.md)                                                                                                                                                                                                                                                                                                                                                                                                 |
+| User-facing behavior, CLI usage, examples  | [README.md](../README.md)                                                                                                                                                                                                                                                                                                                                                                                              |
+| License text                               | [LICENSE.md](LICENSE.md)                                                                                                                                                                                                                                                                                                                                                                                               |
 | Contributing flow, PR checks, commit style | [CONTRIBUTING.md](CONTRIBUTING.md)                                                                                                                                                                                                                                                                                                                                                                                     |
-| Security policy and reporting              | [SECURITY.md](SECURITY.md)                                                                                                                                                                                                                                                                                                                                                                                             |
-| Community expectations                     | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)                                                                                                                                                                                                                                                                                                                                                                               |
-| Published CLI help text                    | [help.md](help.md)                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Security policy and reporting              | [docs/SECURITY.md](docs/SECURITY.md)                                                                                                                                                                                                                                                                                                                                                                                   |
+| Community expectations                     | [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md)                                                                                                                                                                                                                                                                                                                                                                     |
+| Published CLI help text                    | [assets/help.md](assets/help.md)                                                                                                                                                                                                                                                                                                                                                                                       |
 | CI and security workflows                  | [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), [.github/workflows/security.yml](.github/workflows/security.yml), [.github/workflows/integration.yml](.github/workflows/integration.yml), [.github/workflows/anti-slop.yml](.github/workflows/anti-slop.yml), [.github/workflows/publish.yml](.github/workflows/publish.yml) |
 | Library and CLI implementation             | [src/index.ts](src/index.ts), [src/utils.ts](src/utils.ts), [src/bin.ts](src/bin.ts)                                                                                                                                                                                                                                                                                                                                   |
 | tsdown build                               | [tsdown.config.ts](tsdown.config.ts)                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -26,62 +25,28 @@ Human-facing narrative belongs primarily in README and CONTRIBUTING; AGENTS.md s
 
 ## Project overview
 
-**degit** downloads a snapshot of a git repository (GitHub, GitLab, Bitbucket, Sourcehut) via tarballs instead of cloning full history. Runtime targets Node 20+. This repo is built with tsdown to `dist/` and ships a `degit` bin.
+See [README.md](../README.md) for the user-facing overview and [package.json](package.json) for runtime/build metadata.
 
 ## Setup commands
 
-Use **Bun 1.3.14** and a frozen lockfile in CI; match that locally.
-
-```bash
-bun install
-bun run build
-```
-
-Node 20+ is required (`engines` in `package.json`). End users may install the published package with npm; agent work in this clone should follow Bun as in [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+See [README.md](../README.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for the standard setup flow; [package.json](package.json) is the source of truth for versions and scripts.
 
 ## Development workflow
 
-```bash
-bun run build          # one-off compile to dist/ via tsdown
-bun run dev            # tsdown watch mode
-bun run audit          # dependency audit used by CI
-```
-
-Source of truth for behavior is `src/` plus tests; the published artifact is under `dist/` after build.
+See [package.json](package.json) for the build, dev, and audit scripts. Source of truth for behavior is `src/` plus tests; the published artifact is under `dist/` after build.
 
 ## Testing instructions
 
-```bash
-bun run test                  # pretest runs build, then vitest run
-bun run test:coverage         # vitest with v8 coverage (thresholds in vitest.config.ts)
-bun run knip:ci               # dead code detection via knip
-bunx vitest run test/utils.test.ts    # single file
-bunx vitest run -t "substring"       # filter by test name
-```
-
-Tests live in `test/**/*.test.ts` (see `vitest.config.ts`). Prefer updating or adding tests when changing behavior.
+Tests live in `test/**/*.test.ts` (see [vitest.config.ts](vitest.config.ts)). See [package.json](package.json) for the test scripts, and prefer updating or adding tests when changing behavior.
 
 ## Lint and format
 
-```bash
-bun run lint            # oxlint across the repo with autofixes
-bun run lint:ci         # oxlint in CI mode without fixes
-bun run format          # oxfmt across the repo with writes enabled
-bun run format:ci       # oxfmt in CI mode without writes
-```
-
-Pre-commit uses lint-staged (Oxlint on JS/TS; Oxfmt on JS/TS, JSON, YAML, MD). Dedicated lint and format CI workflows check the same tools on pull requests. Align edits with existing style before proposing changes.
+See [package.json](package.json) for lint and format scripts, and [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and formatting expectations.
 
 ## Build and release
 
-```bash
-bun run build           # outputs to dist/; npm publish uses files in package.json
-```
-
-`prepublishOnly` runs `npm test` (which builds then tests). CI runs `bun install --frozen-lockfile`, `bun run lint:ci`, `bun run format:ci`, `bun run duplicates:ci`, `bun run knip:ci`, `bun run build`, `bun run test`, and `bun run audit` through [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), and [.github/workflows/security.yml](.github/workflows/security.yml), with Node 20.x, 22.x, and 24.x in the quality and verification workflows where applicable.
-
-Tagged npm releases are published from [.github/workflows/publish.yml](.github/workflows/publish.yml) with GitHub Actions trusted publishing on `v*` tags. Configure that exact workflow filename as the trusted publisher on npmjs.com.
+`prepublishOnly` runs `bun run test`. CI checks live in [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), [.github/workflows/security.yml](.github/workflows/security.yml), and [.github/workflows/publish.yml](.github/workflows/publish.yml).
 
 ## Pull requests and commits
 
-Follow [CONTRIBUTING.md](CONTRIBUTING.md): focused diffs, a single commit per PR, tests when behavior changes, Conventional Commits (`type(scope): subject`). Match the checks in [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), and [.github/workflows/security.yml](.github/workflows/security.yml) before opening a PR.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for PR shape, single-commit guidance, tests on behavior changes, and Conventional Commits. Match the checks in [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), and [.github/workflows/security.yml](.github/workflows/security.yml) before opening a PR.
