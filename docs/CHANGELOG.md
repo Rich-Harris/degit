@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.1.0
+
+- Add new type definitions for the published package surface.
+
 ## 3.0.0
 
 - Major release for the Node 20+ line; v2 remains the legacy Node 8-compatible branch.
