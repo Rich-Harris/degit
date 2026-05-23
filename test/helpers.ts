@@ -8,7 +8,7 @@ function readFixture(file) {
 
 export function compareDirToExpected(dir, files) {
 	const expected = glob('**', { cwd: dir });
-	assert.deepEqual(Object.keys(files).toSorted(), expected.toSorted());
+	assert.deepEqual(Object.keys(files).sort(), expected.sort());
 
 	expected.forEach((file) => {
 		if (!fs.lstatSync(`${dir}/${file}`).isDirectory()) {

@@ -12,16 +12,25 @@ const require = createRequire(import.meta.url);
 const tmpDirName = 'tmp';
 const degitConfigName = 'degit.json';
 
+type RequireOptions = {
+	clearCache?: boolean;
+};
+
+type ExecResult = {
+	stderr: string;
+	stdout: string;
+};
+
 export { degitConfigName };
 
 export class DegitError extends Error {
-	constructor(message, opts) {
+	constructor(message: string, opts: Record<string, unknown> = {}) {
 		super(message);
 		Object.assign(this, opts);
 	}
 }
 
-export function tryRequire(file, opts) {
+export function tryRequire(file: string, opts: RequireOptions = {}) {
 	try {
 		if (opts && opts.clearCache === true) {
 			delete require.cache[require.resolve(file)];
@@ -34,7 +43,7 @@ export function tryRequire(file, opts) {
 }
 
 /* eslint-disable security/detect-non-literal-fs-filename */
-export function exec(command, args = []) {
+export function exec(command: string, args: string[] = []): Promise<ExecResult> {
 	return new Promise((fulfil, reject) => {
 		child_process.execFile(command, args, (err, stdout, stderr) => {
 			if (err) {
@@ -47,7 +56,7 @@ export function exec(command, args = []) {
 	});
 }
 
-export function mkdirp(dir) {
+export function mkdirp(dir: string): void {
 	const parent = path.dirname(dir);
 	if (parent === dir) {
 		return;
@@ -62,14 +71,14 @@ export function mkdirp(dir) {
 	}
 }
 
-export function fetch(url, dest, proxy) {
+export function fetch(url: string, dest: string, proxy?: string): Promise<void> {
 	return new Promise((fulfil, reject) => {
-		let options = url;
+		let options: string | import('node:http').RequestOptions = url;
 
 		if (proxy) {
 			const parsedUrl = URL.parse(url);
 			options = {
-				agent: new Agent(proxy),
+				agent: Agent(proxy) as unknown as import('node:http').Agent,
 				hostname: parsedUrl.host,
 				path: parsedUrl.path,
 			};
@@ -85,7 +94,7 @@ export function fetch(url, dest, proxy) {
 				} else {
 					response
 						.pipe(fs.createWriteStream(dest))
-						.on('finish', () => fulfil())
+						.on('finish', () => fulfil(undefined))
 						.on('error', reject);
 				}
 			})
@@ -93,7 +102,7 @@ export function fetch(url, dest, proxy) {
 	});
 }
 
-export function stashFiles(dir, dest) {
+export function stashFiles(dir: string, dest: string): void {
 	const tmpDir = path.join(dir, tmpDirName);
 	rimrafSync(tmpDir);
 	mkdirp(tmpDir);
@@ -111,7 +120,7 @@ export function stashFiles(dir, dest) {
 	});
 }
 
-export function unstashFiles(dir, dest) {
+export function unstashFiles(dir: string, dest: string): void {
 	const tmpDir = path.join(dir, tmpDirName);
 	fs.readdirSync(tmpDir).forEach((filename) => {
 		const tmpFile = path.join(tmpDir, filename);

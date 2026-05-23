@@ -9,5 +9,5 @@
 		"target": "ES2022",
 		"types": ["node", "vitest/globals"]
 	},
-	"include": ["src", "test", "tsdown.config.ts", "vitest.config.js"]
+	"include": ["src", "test"]
 }

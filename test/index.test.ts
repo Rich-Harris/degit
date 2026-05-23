@@ -43,7 +43,7 @@ const providerCases = [
 		build: ({ domain, name, privateName, url, user }) => ({
 			archiveUrl: (hash) => `${url}/archive/${hash}.tar.gz`,
 			gitSrc: `https://${domain}/${user}/${privateName}.git`,
-			lsRemote: `git ls-remote ${url}`,
+			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `git@${domain}:${user}/${name}`,
 		}),
 	}),
@@ -56,7 +56,7 @@ const providerCases = [
 		build: ({ domain, name, privateName, url, user }) => ({
 			archiveUrl: (hash) => `${url}/repository/archive.tar.gz?ref=${hash}`,
 			gitSrc: `gitlab:${user}/${privateName}`,
-			lsRemote: `git ls-remote ${url}`,
+			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `git@${domain}:${user}/${name}`,
 		}),
 	}),
@@ -69,7 +69,7 @@ const providerCases = [
 		build: ({ domain, name, privateName, url, user }) => ({
 			archiveUrl: (hash) => `${url}/get/${hash}.tar.gz`,
 			gitSrc: `bitbucket:${user}/${privateName}`,
-			lsRemote: `git ls-remote ${url}`,
+			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `git@${domain}:${user}/${name}`,
 		}),
 	}),
@@ -82,7 +82,7 @@ const providerCases = [
 		build: ({ domain, name, privateName, url, user }) => ({
 			archiveUrl: (hash) => `${url}/archive/${hash}.tar.gz`,
 			gitSrc: `git.sr.ht/${user}/${privateName}`,
-			lsRemote: `git ls-remote ${url}`,
+			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `git@${domain}:${user}/${name}`,
 		}),
 	}),
@@ -143,7 +143,7 @@ describe('degit index', () => {
 				() => {
 					degit('codeberg:Rich-Harris/degit-test-repo');
 				},
-				(err) => err && err.code === 'UNSUPPORTED_HOST',
+				(err: any) => err && err.code === 'UNSUPPORTED_HOST',
 			);
 		});
 	});
@@ -213,7 +213,7 @@ describe('degit index', () => {
 		providerCases.forEach((test) => {
 			it(`runs git clone and strips .git via injected exec when mode is git for ${test.site}`, async () => {
 				const execMock = createMockExec({
-					[`git clone git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
+					[`git clone -- git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
 						'',
 					[`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`]: '',
 				});
@@ -224,7 +224,7 @@ describe('degit index', () => {
 				}).clone('.tmp/index-suite/test-repo');
 
 				assert.deepEqual(execMock.calls, [
-					`git clone git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`,
+					`git clone -- git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`,
 					`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`,
 				]);
 			});
@@ -235,7 +235,7 @@ describe('degit index', () => {
 			fs.writeFileSync('.tmp/index-suite/ne/x', '1');
 			await assert.rejects(
 				async () => await degit('Rich-Harris/degit-test-repo').clone('.tmp/index-suite/ne'),
-				(err) => err && err.code === 'DEST_NOT_EMPTY',
+				(err: any) => err && err.code === 'DEST_NOT_EMPTY',
 			);
 		});
 

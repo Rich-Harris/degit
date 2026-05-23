@@ -20,7 +20,71 @@ const validModes = new Set(['tar', 'git']);
 
 const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
 
-function getProvider(site) {
+type Provider = {
+	domain: string;
+	archiveUrl(repo: Repo, hash: string): string;
+};
+
+type Repo = {
+	mode: 'tar' | 'git';
+	name: string;
+	ref: string;
+	site: string;
+	ssh: string;
+	subdir?: string;
+	url: string;
+	user: string;
+};
+
+type ExecResult = {
+	stderr: string;
+	stdout: string;
+};
+
+type ExecFn = (command: string, args?: string[]) => Promise<ExecResult>;
+
+type FetchFn = (url: string, dest: string, proxy?: string) => Promise<void>;
+
+type ConstructorOptions = {
+	cache?: boolean;
+	exec?: ExecFn;
+	fetch?: FetchFn;
+	force?: boolean;
+	mode?: 'tar' | 'git';
+	verbose?: boolean;
+};
+
+type EventInfo = {
+	code?: string;
+	dest?: string;
+	message: string;
+	repo?: Repo;
+	url?: string;
+	original?: unknown;
+	ref?: string;
+};
+
+type Directive =
+	| {
+			action: 'clone';
+			cache?: boolean;
+			src: string;
+			verbose?: boolean;
+	  }
+	| {
+			action: 'remove';
+			files: string | string[];
+	  };
+
+type CloneDirective = Extract<Directive, { action: 'clone' }>;
+type RemoveDirective = Extract<Directive, { action: 'remove' }>;
+
+type DirectiveActions = {
+	clone: (dir: string, dest: string, action: CloneDirective) => Promise<void>;
+	remove: (dir: string, dest: string, action: RemoveDirective) => void;
+};
+
+function getProvider(site: string): Provider | undefined {
 	switch (site) {
 		case 'github':
 			return {
@@ -55,12 +119,24 @@ function getProvider(site) {
 	}
 }
 
-export default function degit(src, opts) {
+export default function degit(src, opts = {}) {
 	return new Degit(src, opts);
 }
 
 class Degit extends EventEmitter {
-	constructor(src, opts = {}) {
+	src: string;
+	cache?: boolean;
+	force?: boolean;
+	verbose?: boolean;
+	proxy?: string;
+	repo: Repo;
+	mode: 'tar' | 'git';
+	_fetch: FetchFn;
+	_exec: ExecFn;
+	_hasStashed: boolean;
+	directiveActions: DirectiveActions;
+
+	constructor(src: string, opts: ConstructorOptions = {}) {
 		super();
 
 		this.src = src;
@@ -110,7 +186,7 @@ class Degit extends EventEmitter {
 		};
 	}
 
-	_getDirectives(dest) {
+	_getDirectives(dest: string): Directive[] | false {
 		const directivesPath = path.resolve(dest, degitConfigName);
 		const directives = tryRequire(directivesPath, { clearCache: true }) || false;
 		if (directives) {
@@ -121,7 +197,7 @@ class Degit extends EventEmitter {
 		return directives;
 	}
 
-	async clone(dest) {
+	async clone(dest: string): Promise<void> {
 		this._checkDirIsEmpty(dest);
 
 		const { repo } = this;
@@ -143,9 +219,13 @@ class Degit extends EventEmitter {
 
 		const directives = this._getDirectives(dest);
 		if (directives) {
-			for (const d of directives) {
+			for (const directive of directives) {
 				// TODO, can this be a loop with an index to pass for better error messages?
-				await this.directiveActions[d.action](dir, dest, d);
+				if (directive.action === 'clone') {
+					await this.directiveActions.clone(dir, dest, directive);
+				} else {
+					await this.directiveActions.remove(dir, dest, directive);
+				}
 			}
 			if (this._hasStashed === true) {
 				unstashFiles(dir, dest);
@@ -154,7 +234,7 @@ class Degit extends EventEmitter {
 	}
 
 	/* eslint-disable security/detect-non-literal-fs-filename */
-	remove(dir, dest, action) {
+	remove(dir: string, dest: string, action: RemoveDirective) {
 		let { files } = action;
 		if (!Array.isArray(files)) {
 			files = [files];
@@ -187,7 +267,7 @@ class Degit extends EventEmitter {
 		}
 	}
 
-	_checkDirIsEmpty(dir) {
+	_checkDirIsEmpty(dir: string) {
 		try {
 			const files = fs.readdirSync(dir);
 			if (files.length > 0) {
@@ -215,21 +295,21 @@ class Degit extends EventEmitter {
 		}
 	}
 	/* eslint-enable security/detect-non-literal-fs-filename */
-	_info(info) {
+	_info(info: EventInfo) {
 		this.emit('info', info);
 	}
 
-	_warn(info) {
+	_warn(info: EventInfo) {
 		this.emit('warn', info);
 	}
 
-	_verbose(info) {
+	_verbose(info: EventInfo) {
 		if (this.verbose) {
 			this._info(info);
 		}
 	}
 
-	async _getHash(repo, cached) {
+	async _getHash(repo: Repo, cached: Record<string, string>): Promise<string | undefined> {
 		try {
 			const refs = await this._fetchRefs(repo);
 			if (repo.ref === 'HEAD') {
@@ -244,7 +324,7 @@ class Degit extends EventEmitter {
 		}
 	}
 
-	_getHashFromCache(repo, cached) {
+	_getHashFromCache(repo: Repo, cached: Record<string, string>): string | undefined {
 		if (repo.ref in cached) {
 			const hash = cached[repo.ref];
 			this._info({
@@ -255,7 +335,10 @@ class Degit extends EventEmitter {
 		}
 	}
 
-	_selectRef(refs, selector) {
+	_selectRef(
+		refs: Array<{ hash: string; name?: string; type?: string }>,
+		selector: string,
+	): string | null | undefined {
 		for (const ref of refs) {
 			if (ref.name === selector) {
 				this._verbose({
@@ -277,10 +360,10 @@ class Degit extends EventEmitter {
 		}
 	}
 
-	async _cloneWithTar(dir, dest) {
+	async _cloneWithTar(dir: string, dest: string): Promise<void> {
 		const { repo } = this;
 
-		const cached = tryRequire(path.join(dir, 'map.json')) || {};
+		const cached = (tryRequire(path.join(dir, 'map.json')) || {}) as Record<string, string>;
 
 		const hash = this.cache
 			? this._getHashFromCache(repo, cached)
@@ -345,17 +428,17 @@ class Degit extends EventEmitter {
 		await untar(file, dest, subdir);
 	}
 
-	async _cloneWithGit(dir, dest) {
-		await this._exec('git', ['clone', this.repo.ssh, dest]);
+	async _cloneWithGit(dir: string, dest: string): Promise<void> {
+		await this._exec('git', ['clone', '--', this.repo.ssh, dest]);
 		await this._exec('rm', ['-rf', path.resolve(dest, '.git')]);
 	}
 
-	_fetchRefs(repo) {
+	_fetchRefs(repo: Repo) {
 		return fetchRefs(repo, this._exec);
 	}
 }
 
-function parse(src) {
+function parse(src: string): Repo {
 	const [source, refValue = 'HEAD'] = src.split('#', 2);
 	let site = 'github';
 	let remainder = source;
@@ -393,6 +476,11 @@ function parse(src) {
 	}
 
 	const provider = getProvider(site);
+	if (!provider) {
+		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
+			code: 'UNSUPPORTED_HOST',
+		});
+	}
 
 	const [user, rawName, ...subdirParts] = remainder.split('/').filter(Boolean);
 	if (!user || !rawName) {
@@ -414,7 +502,7 @@ function parse(src) {
 	return { mode, name, ref, site, ssh, subdir, url, user };
 }
 
-async function untar(file, dest, subdir = null) {
+async function untar(file: string, dest: string, subdir: string | null = null): Promise<void> {
 	return tar.extract(
 		{
 			C: dest,
@@ -425,9 +513,9 @@ async function untar(file, dest, subdir = null) {
 	);
 }
 
-async function fetchRefs(repo, runExec = exec) {
+async function fetchRefs(repo: Repo, runExec: ExecFn = exec) {
 	try {
-		const { stdout } = await runExec('git', ['ls-remote', repo.url]);
+		const { stdout } = await runExec('git', ['ls-remote', '--', repo.url]);
 
 		return stdout
 			.split('\n')
@@ -465,7 +553,7 @@ async function fetchRefs(repo, runExec = exec) {
 }
 
 /* eslint-disable security/detect-non-literal-fs-filename, security/detect-possible-timing-attacks, security/detect-object-injection */
-function updateCache(dir, repo, hash, cached) {
+function updateCache(dir: string, repo: Repo, hash: string, cached: Record<string, string>) {
 	// Update access logs
 	const logs = tryRequire(path.join(dir, 'access.json')) || {};
 	logs[repo.ref] = new Date().toISOString();
