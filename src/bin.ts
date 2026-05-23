@@ -59,7 +59,7 @@ export async function main(argv: string[]) {
 
 	if (args.help) {
 		const help = fs
-			.readFileSync(path.join(__dirname, '..', 'help.md'), 'utf8')
+			.readFileSync(path.join(__dirname, '..', 'assets', 'help.md'), 'utf8')
 			.replaceAll(/^(\s*)#+ (.+)/gm, (match, indent, title) => indent + chalk.bold(title))
 			.replaceAll(/_([^_]+)_/g, (match, value) => chalk.underline(value))
 			.replaceAll(/`([^`]+)`/g, (match, value) => chalk.cyan(value));
