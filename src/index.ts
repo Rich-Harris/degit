@@ -55,7 +55,7 @@ type ConstructorOptions = {
 };
 
 type EventInfo = {
-	code?: string;
+	code?: InfoCode | DegitErrorCode;
 	dest?: string;
 	message: string;
 	repo?: Repo;
@@ -83,6 +83,33 @@ type DirectiveActions = {
 	clone: (dir: string, dest: string, action: CloneDirective) => Promise<void>;
 	remove: (dir: string, dest: string, action: RemoveDirective) => void;
 };
+
+export type Options = ConstructorOptions;
+export type ValidModes = 'tar' | 'git';
+export type InfoCode =
+	| 'SUCCESS'
+	| 'FILE_DOES_NOT_EXIST'
+	| 'REMOVED'
+	| 'DEST_NOT_EMPTY'
+	| 'DEST_IS_EMPTY'
+	| 'USING_CACHE'
+	| 'FOUND_MATCH'
+	| 'FILE_EXISTS'
+	| 'PROXY'
+	| 'DOWNLOADING'
+	| 'EXTRACTING';
+export type DegitErrorCode =
+	| 'DEST_NOT_EMPTY'
+	| 'MISSING_REF'
+	| 'COULD_NOT_DOWNLOAD'
+	| 'BAD_SRC'
+	| 'UNSUPPORTED_HOST'
+	| 'BAD_REF'
+	| 'COULD_NOT_FETCH';
+export type Info = EventInfo;
+export type Action = Directive;
+export type DegitAction = CloneDirective;
+export type RemoveAction = RemoveDirective;
 
 function getProvider(site: string): Provider | undefined {
 	switch (site) {
@@ -119,7 +146,7 @@ function getProvider(site: string): Provider | undefined {
 	}
 }
 
-export default function degit(src, opts = {}) {
+export default function degit(src: string, opts: ConstructorOptions = {}) {
 	return new Degit(src, opts);
 }
 
