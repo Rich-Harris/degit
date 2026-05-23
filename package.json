@@ -26,6 +26,7 @@
 	],
 	"type": "module",
 	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"scripts": {
 		"lint": "oxlint --import-plugin --fix .",
 		"lint:ci": "oxlint --import-plugin --deny-warnings .",

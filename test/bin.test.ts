@@ -1,4 +1,5 @@
 import sourceMapSupport from 'source-map-support';
+import fs from 'node:fs';
 import assert from 'node:assert';
 import child_process from 'node:child_process';
 import path from 'node:path';
@@ -11,10 +12,33 @@ vi.mock('../src/index.js', () => ({
 	default: vi.fn(),
 }));
 
+vi.mock('tiny-glob/sync.js', () => ({
+	default: vi.fn((pattern: string) => {
+		if (pattern === '**/access.json') {
+			return ['github/user-a/repo-a/access.json', 'github/user-b/repo-b/access.json'];
+		}
+
+		if (pattern === '**/map.json') {
+			return ['github/user-a/repo-a/map.json', 'github/user-b/repo-b/map.json'];
+		}
+
+		return [];
+	}),
+}));
+
+vi.mock('enquirer', () => ({
+	default: {
+		prompt: vi.fn(),
+	},
+}));
+
 import { main, run } from '../src/bin.js';
 import degit from '../src/index.js';
+import { base } from '../src/utils.js';
+import enquirer from 'enquirer';
 
 const mockDegit = vi.mocked(degit);
+const mockPrompt = vi.mocked(enquirer.prompt);
 
 async function waitForCondition(fn, timeoutMs = 3000) {
 	const deadline = Date.now() + timeoutMs;
@@ -38,7 +62,7 @@ function mockEventClone(eventName, message) {
 			handlers[ev] = fn;
 			return this;
 		}),
-	});
+	} as never);
 	return handlers;
 }
 
@@ -46,16 +70,25 @@ describe('degit bin', () => {
 	const binTmp = '.tmp/bin-suite';
 	const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 	const rootBin = path.join(repoRoot, 'degit');
+	const interactiveBase = path.join(base, 'github');
+
+	function clearInteractiveFixtures() {
+		rimraf(interactiveBase);
+	}
 
 	beforeEach(async () => {
 		await rimraf(binTmp);
+		clearInteractiveFixtures();
 		vi.clearAllMocks();
 		mockDegit.mockReturnValue({
 			clone: vi.fn().mockResolvedValue(undefined),
 			on: vi.fn().mockReturnThis(),
-		});
+		} as never);
 	});
-	afterEach(async () => await rimraf(binTmp));
+	afterEach(async () => {
+		await rimraf(binTmp);
+		clearInteractiveFixtures();
+	});
 
 	it('runs the built root bin after build', () => {
 		const output = child_process.execFileSync('node', [rootBin, '--help'], {
@@ -70,15 +103,15 @@ describe('degit bin', () => {
 	});
 
 	it('writes help to stdout when argv includes --help', async () => {
-		const chunks = [];
+		const chunks: string[] = [];
 		const orig = process.stdout.write.bind(process.stdout);
-		process.stdout.write = (chunk, enc, cb) => {
+		process.stdout.write = ((chunk, enc, cb) => {
 			chunks.push(String(chunk));
 			if (typeof cb === 'function') {
 				cb();
 			}
 			return true;
-		};
+		}) as typeof process.stdout.write;
 		try {
 			await main(['node', 'bin', '--help']);
 		} finally {
@@ -93,9 +126,55 @@ describe('degit bin', () => {
 		await main(['node', 'bin', 'user/repo', 'out', '-f']);
 		assert.equal(mockDegit.mock.calls.length, 1);
 		assert.equal(mockDegit.mock.calls[0][0], 'user/repo');
-		assert.equal(mockDegit.mock.calls[0][1].force, true);
+		assert.equal((mockDegit.mock.calls[0][1] as any).force, true);
 		const instance = mockDegit.mock.results[0].value;
 		assert.equal(instance.clone.mock.calls[0][0], 'out');
+	});
+
+	it('ranks interactive repo choices by most recent access when argv omits src', async () => {
+		const recentRepo = path.join(base, 'github', 'user-b', 'repo-b');
+		const olderRepo = path.join(base, 'github', 'user-a', 'repo-a');
+
+		fs.mkdirSync(recentRepo, { recursive: true });
+		fs.mkdirSync(olderRepo, { recursive: true });
+		fs.writeFileSync(path.join(olderRepo, 'map.json'), JSON.stringify({ main: 'hash-a' }));
+		fs.writeFileSync(path.join(recentRepo, 'map.json'), JSON.stringify({ main: 'hash-b' }));
+		fs.writeFileSync(
+			path.join(olderRepo, 'access.json'),
+			JSON.stringify({ main: '2024-01-01T00:00:00.000Z' }),
+		);
+		fs.writeFileSync(
+			path.join(recentRepo, 'access.json'),
+			JSON.stringify({ main: '2026-01-01T00:00:00.000Z' }),
+		);
+
+		mockPrompt.mockImplementation(async (questions) => {
+			const srcQuestion = questions.find((question) => question.name === 'src');
+			if (srcQuestion) {
+				assert.deepEqual(
+					srcQuestion.choices.map((choice) => choice.value),
+					['github:user-b/repo-b#main', 'github:user-a/repo-a#main'],
+				);
+				return {
+					cache: false,
+					dest: '.tmp/bin-suite/from-interactive',
+					src: 'github:user-b/repo-b#main',
+				};
+			}
+
+			return {};
+		});
+
+		await main(['node', 'bin']);
+
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.equal(mockDegit.mock.calls[0][0], 'github:user-b/repo-b#main');
+		assert.equal(mockDegit.mock.calls[0][1].force, true);
+		assert.equal(mockDegit.mock.calls[0][1].cache, false);
+		assert.equal(
+			mockDegit.mock.results[0].value.clone.mock.calls[0][0],
+			'.tmp/bin-suite/from-interactive',
+		);
 	});
 
 	it('exits with status 1 when the clone promise rejects', async () => {
@@ -103,8 +182,8 @@ describe('degit bin', () => {
 		mockDegit.mockReturnValue({
 			clone: vi.fn().mockReturnValue(Promise.reject(err)),
 			on: vi.fn().mockReturnThis(),
-		});
-		const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {});
+		} as never);
+		const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
 		const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		try {
 			run('a/b', 'dest', { force: true });

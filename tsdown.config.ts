@@ -5,6 +5,7 @@ export default defineConfig({
 		bin: 'src/bin.ts',
 		index: 'src/index.ts',
 	},
+	dts: true,
 	format: ['esm'],
 	outDir: 'dist',
 	outExtensions: () => ({
