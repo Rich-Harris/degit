@@ -32,7 +32,7 @@ https://git.sr.ht/user/repo
 
 You can append a #ref to any of the above:
 
-## Branches (defaults to master)
+## Branches (defaults to the repository's default branch)
 
 user/repo#dev
 
