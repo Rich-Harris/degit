@@ -4,16 +4,16 @@ Instructions and entry points for coding agents working on this repository. For 
 
 ## Documentation sync
 
-Treat **AGENTS.md** as the agent-facing index for [README.md](../README.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [help.md](help.md). When you change workflow steps, release notes, or cross-document links in those files, update the matching AGENTS.md sections in the same commit.
+Treat **AGENTS.md** as the agent-facing index for [README.md](README.md), [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md), [docs/SECURITY.md](docs/SECURITY.md), and [assets/help.md](assets/help.md). Keep it aligned with those docs when workflow, release, or navigation facts change.
 
 ## Agent index
 
 | Topic                                      | Where to look                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Keeping human docs and this file aligned   | [Documentation sync](#documentation-sync)                                                                                                                                                                                                                                                                                                                                                                              |
-| User-facing behavior, CLI usage, examples  | [README.md](../README.md)                                                                                                                                                                                                                                                                                                                                                                                              |
+| User-facing behavior, CLI usage, examples  | [README.md](README.md)                                                                                                                                                                                                                                                                                                                                                                                                 |
 | License text                               | [LICENSE.md](LICENSE.md)                                                                                                                                                                                                                                                                                                                                                                                               |
-| Contributing flow, PR checks, commit style | [CONTRIBUTING.md](CONTRIBUTING.md)                                                                                                                                                                                                                                                                                                                                                                                     |
+| Contributing flow, PR checks, commit style | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)                                                                                                                                                                                                                                                                                                                                                                           |
 | Security policy and reporting              | [docs/SECURITY.md](docs/SECURITY.md)                                                                                                                                                                                                                                                                                                                                                                                   |
 | Community expectations                     | [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md)                                                                                                                                                                                                                                                                                                                                                                     |
 | Published CLI help text                    | [assets/help.md](assets/help.md)                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -25,11 +25,11 @@ Treat **AGENTS.md** as the agent-facing index for [README.md](../README.md), [CO
 
 ## Project overview
 
-See [README.md](../README.md) for the user-facing overview and [package.json](package.json) for runtime/build metadata.
+See [README.md](README.md) for the user-facing overview and [package.json](package.json) for runtime/build metadata.
 
 ## Setup commands
 
-See [README.md](../README.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for the standard setup flow; [package.json](package.json) is the source of truth for versions and scripts.
+See [README.md](README.md) and [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the standard setup flow; [package.json](package.json) is the source of truth for versions and scripts.
 
 ## Development workflow
 
@@ -42,7 +42,7 @@ Test names should follow the `it('X when Y')` pattern so behavior and trigger ar
 
 ## Lint and format
 
-See [package.json](package.json) for lint and format scripts, and [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and formatting expectations.
+See [package.json](package.json) for lint and format scripts, and [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the contributor workflow and formatting expectations.
 
 ## Build and release
 
@@ -50,4 +50,4 @@ See [package.json](package.json) for lint and format scripts, and [CONTRIBUTING.
 
 ## Pull requests and commits
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for PR shape, single-commit guidance, tests on behavior changes, and Conventional Commits. Add unreleased notes only for package-facing changes such as features, fixes, or breaking changes; do not add changelog entries for repo-maintenance-only updates like CI workflow changes, dependency bumps, or documentation-only edits unless they affect the published package or user-facing behavior. Match the checks in [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), and [.github/workflows/security.yml](.github/workflows/security.yml) before opening a PR.
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for PR shape, single-commit guidance, tests on behavior changes, and Conventional Commits. Add unreleased notes only for package-facing changes such as features, fixes, or breaking changes; do not add changelog entries for repo-maintenance-only updates like CI workflow changes, dependency bumps, or documentation-only edits unless they affect the published package or user-facing behavior. Match the checks in [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), and [.github/workflows/security.yml](.github/workflows/security.yml) before opening a PR.
