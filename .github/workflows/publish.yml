@@ -34,4 +34,7 @@ jobs:
 
             - run: bun run test
 
+            - name: Update npm
+              run: npm install -g npm@latest
+
             - run: npm stage publish
