@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.1.2
+
+- Fix interactive repo selection on Windows.
+
 ## 3.1.1
 
 - Sync `assets/help.md` to say branches default to the repository's default branch.

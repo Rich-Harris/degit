@@ -4,16 +4,17 @@ on: [pull_request]
 
 jobs:
     verification:
-        name: Verification (${{ matrix.node-version }})
-        runs-on: ubuntu-latest
+        name: Verification (${{ matrix.os }})
+
+        runs-on: ${{ matrix.os }}
 
         strategy:
             fail-fast: false
             matrix:
-                node-version: [20.x, 22.x, 24.x]
+                os: [ubuntu-latest, macos-latest, windows-latest]
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - uses: oven-sh/setup-bun@v2
               with:
@@ -21,10 +22,10 @@ jobs:
 
             - run: bun --version
 
-            - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v4
+            - name: Use Node.js 20.x
+              uses: actions/setup-node@v5
               with:
-                  node-version: ${{ matrix.node-version }}
+                  node-version: 20.x
 
             - run: bun install --frozen-lockfile
             - run: bun run build
