@@ -72,7 +72,8 @@ export async function main(argv: string[]) {
 		const accessLookup = new Map<string, number>();
 
 		glob('**/access.json', { cwd: base }).forEach((file) => {
-			const [host, user, repo] = file.split(path.sep);
+			const normalizedFile = file.replaceAll('\\', '/');
+			const [host, user, repo] = normalizedFile.split('/');
 			const json = fs.readFileSync(`${base}/${file}`, 'utf8');
 			const logs = JSON.parse(json) as Record<string, string | number>;
 
@@ -83,7 +84,8 @@ export async function main(argv: string[]) {
 		});
 
 		const getChoices = (file: string): Choice[] => {
-			const [host, user, repo] = file.split(path.sep);
+			const normalizedFile = file.replaceAll('\\', '/');
+			const [host, user, repo] = normalizedFile.split('/');
 			const entries = Object.entries(tryRequire(`${base}/${file}`) || {});
 
 			return entries.map(([ref, hash]) => ({

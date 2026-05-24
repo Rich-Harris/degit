@@ -7,7 +7,7 @@ function readFixture(file) {
 }
 
 export function compareDirToExpected(dir, files) {
-	const expected = glob('**', { cwd: dir });
+	const expected = glob('**', { cwd: dir }).map((file) => file.replaceAll('\\', '/'));
 	assert.deepEqual(Object.keys(files).sort(), expected.sort());
 
 	expected.forEach((file) => {
