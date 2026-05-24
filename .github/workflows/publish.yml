@@ -63,4 +63,6 @@ jobs:
 
             - run: bun run test
 
+            - run: npm i -g npm@latest
+
             - run: npm stage publish
