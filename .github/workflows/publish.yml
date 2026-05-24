@@ -10,7 +10,36 @@ permissions:
     id-token: write
 
 jobs:
+    gate:
+        runs-on: ubuntu-latest
+
+        permissions:
+            pull-requests: read
+
+        outputs:
+            skip: ${{ steps.check.outputs.skip }}
+
+        steps:
+            - id: check
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const { data: pulls } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          commit_sha: context.sha,
+                      })
+
+                      const openPulls = pulls.filter((pull) => pull.state === 'open')
+                      core.setOutput('skip', openPulls.length > 0 ? 'true' : 'false')
+
+                      if (openPulls.length > 0) {
+                          core.notice(`Skipping publish for ${context.sha} because it is associated with an open pull request.`)
+                      }
+
     publish:
+        needs: gate
+        if: needs.gate.outputs.skip != 'true'
         runs-on: ubuntu-latest
 
         steps:

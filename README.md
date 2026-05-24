@@ -34,7 +34,7 @@ npm install -g degit
 
 ### Basics
 
-The simplest use of degit is to download the master branch of a repo from GitHub to the current working directory:
+The simplest use of degit is to download the default branch of a repo from GitHub to the current working directory:
 
 ```bash
 degit user/repo
@@ -66,7 +66,7 @@ degit https://git.sr.ht/user/repo
 
 ### Specify a tag, branch or commit
 
-The default branch is `master`.
+When you omit a ref, degit uses the repository's default branch.
 
 ```bash
 degit user/repo#dev       # branch
@@ -96,7 +96,7 @@ If you have an `https_proxy` environment variable, Degit will use it.
 
 ### Private repositories
 
-Private repos can be cloned by specifying `--mode=git` (the default is `tar`). In this mode, Degit will use `git` under the hood. It's much slower than fetching a tarball, which is why it's not the default.
+Use `--mode=git` to clone private repos over SSH. This mode is much slower than fetching a tarball, which is why it is not the default.
 
 Note: this clones over SSH, not HTTPS.
 
@@ -105,10 +105,6 @@ Note: this clones over SSH, not HTTPS.
 ```bash
 degit --help
 ```
-
-## Not supported
-
-- Private repositories
 
 Pull requests are very welcome!
 

@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.1.1
+
+- Sync `assets/help.md` to say branches default to the repository's default branch.
+
 ## 3.1.0
 
 - Add new type definitions for the published package surface.
