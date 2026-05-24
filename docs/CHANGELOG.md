@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.2.0
+
+- Split CLI output by severity so info messages go to stdout while warnings and errors stay on stderr.
+
 ## 3.1.2
 
 - Fix interactive repo selection on Windows.

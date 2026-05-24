@@ -73,7 +73,7 @@ describe('degit bin', () => {
 	const interactiveBase = path.join(base, 'github');
 
 	function clearInteractiveFixtures() {
-		rimraf(interactiveBase);
+		fs.rmSync(interactiveBase, { force: true, recursive: true });
 	}
 
 	beforeEach(async () => {
@@ -90,7 +90,7 @@ describe('degit bin', () => {
 		clearInteractiveFixtures();
 	});
 
-	it('runs the built root bin after build', () => {
+	it('runs the built root bin when --help is executed', () => {
 		const output = child_process.execFileSync('node', [rootBin, '--help'], {
 			env: {
 				...process.env,
@@ -149,7 +149,9 @@ describe('degit bin', () => {
 		);
 
 		mockPrompt.mockImplementation(async (questions) => {
-			const srcQuestion = questions.find((question) => question.name === 'src');
+			const srcQuestion = (
+				questions as Array<{ name?: string; choices?: Array<{ value: string }> }>
+			).find((question) => question.name === 'src');
 			if (srcQuestion) {
 				assert.deepEqual(
 					srcQuestion.choices.map((choice) => choice.value),
@@ -195,29 +197,29 @@ describe('degit bin', () => {
 		}
 	});
 
-	it('prints a verbose hint to stderr when an info event fires', async () => {
+	it('prints a verbose hint to stdout when an info event fires', async () => {
 		mockEventClone('info', 'options.verbose enabled');
-		const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const outSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 		try {
 			run('a/b', 'dest', { verbose: true });
 			await waitForCondition(() =>
-				errSpy.mock.calls.some((c) => String(c[0]).includes('--verbose')),
+				outSpy.mock.calls.some((c) => String(c[0]).includes('--verbose')),
 			);
 		} finally {
-			errSpy.mockRestore();
+			outSpy.mockRestore();
 		}
 	});
 
 	it('prints a force hint to stderr when a warn event fires', async () => {
 		mockEventClone('warn', 'options.force suggested');
-		const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		try {
 			run('a/b', 'dest', {});
 			await waitForCondition(() =>
-				errSpy.mock.calls.some((c) => String(c[0]).includes('--force')),
+				warnSpy.mock.calls.some((c) => String(c[0]).includes('--force')),
 			);
 		} finally {
-			errSpy.mockRestore();
+			warnSpy.mockRestore();
 		}
 	});
 });

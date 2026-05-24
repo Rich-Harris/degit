@@ -193,15 +193,17 @@ class Degit extends EventEmitter {
 					force: true,
 					cache: action.cache,
 					verbose: action.verbose,
+					fetch: this._fetch,
+					exec: this._exec,
 				};
 				const d = degit(action.src, opts);
 
 				d.on('info', (event) => {
-					console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
+					console.log(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
 				});
 
 				d.on('warn', (event) => {
-					console.error(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
+					console.warn(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
 				});
 
 				await d.clone(dest).catch((error) => {

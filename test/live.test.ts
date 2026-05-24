@@ -46,7 +46,7 @@ describeLive('live provider integration', () => {
 	afterEach(() => rimraf(liveTmp));
 
 	for (const test of liveRepos) {
-		it(`clones the pinned ${test.site} repository`, async () => {
+		it(`clones the pinned ${test.site} repository when live tests are enabled`, async () => {
 			const dest = path.join(liveTmp, test.site);
 
 			if (test.transport === 'git') {

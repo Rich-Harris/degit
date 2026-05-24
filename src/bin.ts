@@ -153,14 +153,14 @@ export async function main(argv: string[]) {
 
 /* eslint-enable security/detect-non-literal-fs-filename */
 export function run(src: string, dest: string, args: RunArgs) {
-	const d = degit(src, args);
+	const d = degit(src, args as Parameters<typeof degit>[1]);
 
 	d.on('info', (event) => {
-		console.error(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
+		console.log(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
 	});
 
 	d.on('warn', (event) => {
-		console.error(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
+		console.warn(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
 	});
 
 	d.clone(dest).catch((error: Error) => {

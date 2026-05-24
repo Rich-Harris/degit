@@ -4,7 +4,7 @@ Instructions and entry points for coding agents working on this repository. For 
 
 ## Documentation sync
 
-Treat **AGENTS.md** as the agent-facing index for [README.md](../README.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [help.md](help.md). Keep it aligned with those docs when workflow, release, or navigation facts change.
+Treat **AGENTS.md** as the agent-facing index for [README.md](../README.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [help.md](help.md). When you change workflow steps, release notes, or cross-document links in those files, update the matching AGENTS.md sections in the same commit.
 
 ## Agent index
 
@@ -37,7 +37,8 @@ See [package.json](package.json) for the build, dev, and audit scripts. Source o
 
 ## Testing instructions
 
-Tests live in `test/**/*.test.ts` (see [vitest.config.ts](vitest.config.ts)). See [package.json](package.json) for the test scripts, and prefer updating or adding tests when changing behavior.
+Tests live in `test/**/*.test.ts` (see [vitest.config.ts](vitest.config.ts)). Use `bun run test` for the suite, and prefer updating or adding tests when changing behavior. Use `bun run format:ci` after edits that touch Markdown or JSON.
+Test names should follow the `it('X when Y')` pattern so behavior and trigger are both obvious.
 
 ## Lint and format
 

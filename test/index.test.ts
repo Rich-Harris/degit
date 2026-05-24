@@ -104,6 +104,23 @@ async function createArchiveFixture(rootName) {
 	return archiveFile;
 }
 
+async function createDirectiveArchiveFixture(rootName, directives) {
+	fs.mkdirSync('.tmp/index-suite', { recursive: true });
+	const archiveDir = fs.mkdtempSync(path.join('.tmp/index-suite', 'archive-'));
+	const archiveRoot = path.join(archiveDir, rootName);
+
+	fs.mkdirSync(path.join(archiveRoot, 'packages/app/lib'), { recursive: true });
+	fs.writeFileSync(path.join(archiveRoot, 'packages/app/index.js'), 'export default 1\n');
+	fs.writeFileSync(path.join(archiveRoot, 'packages/app/lib/nested.txt'), 'nested\n');
+	fs.writeFileSync(path.join(archiveRoot, 'packages/ignored.txt'), 'ignored\n');
+	fs.writeFileSync(path.join(archiveRoot, 'degit.json'), JSON.stringify(directives));
+
+	const archiveFile = path.join(archiveDir, `${rootName}.tar.gz`);
+	await tar.create({ C: archiveDir, file: archiveFile, gzip: true }, [rootName]);
+
+	return archiveFile;
+}
+
 function clearArchiveCache(test, hash) {
 	const archiveFile = path.join(base, test.site, test.user, test.name, `${hash}.tar.gz`);
 	fs.rmSync(archiveFile, { force: true });
@@ -115,7 +132,7 @@ describe('degit index', () => {
 	beforeEach(async () => await rimraf(indexTmp));
 	afterEach(async () => await rimraf(indexTmp));
 
-	it('exports a usable JS library from the built entrypoint', async () => {
+	it('exports a usable JS library when importing the built entrypoint', async () => {
 		const { default: builtDegit } = await import(
 			new URL('../dist/index.js', import.meta.url).href
 		);
@@ -186,7 +203,7 @@ describe('degit index', () => {
 		});
 
 		providerCases.forEach((test) => {
-			it(`extracts a nested subdirectory for ${test.site}`, async () => {
+			it(`extracts a nested subdirectory when cloning a nested path for ${test.site}`, async () => {
 				const dest = '.tmp/index-suite/test-repo';
 				clearArchiveCache(test, refsHash);
 				const fetch = createCopyFetch(archiveFile);
@@ -211,7 +228,7 @@ describe('degit index', () => {
 
 	describe('git mode', () => {
 		providerCases.forEach((test) => {
-			it(`runs git clone and strips .git via injected exec when mode is git for ${test.site}`, async () => {
+			it(`clones via git and strips .git when mode is git for ${test.site}`, async () => {
 				const execMock = createMockExec({
 					[`git clone -- git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
 						'',
@@ -230,7 +247,60 @@ describe('degit index', () => {
 			});
 		});
 
-		it('clone rejects with DEST_NOT_EMPTY when destination has files and force is false', async () => {
+		it('routes nested clone info output to stdout when a directive triggers a nested clone', async () => {
+			const outerHash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+			const innerHash = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+			const outerSrc = 'Rich-Harris/degit-test-repo-outer';
+			const innerSrc = 'Rich-Harris/degit-test-repo-inner';
+			const outerArchive = await createDirectiveArchiveFixture(
+				`degit-test-repo-outer-${outerHash}`,
+				[{ action: 'clone', src: innerSrc }],
+			);
+			const innerArchive = await createArchiveFixture(`degit-test-repo-inner-${innerHash}`);
+			const execMock = createMockExec({
+				[`git ls-remote -- https://github.com/Rich-Harris/degit-test-repo-outer`]: `${outerHash}\tHEAD\n`,
+				[`git ls-remote -- https://github.com/Rich-Harris/degit-test-repo-inner`]: `${innerHash}\tHEAD\n`,
+			});
+			const fetchCalls: string[] = [];
+			const fetch = (url, file) => {
+				fetchCalls.push(url);
+				if (
+					url ===
+					`https://github.com/Rich-Harris/degit-test-repo-outer/archive/${outerHash}.tar.gz`
+				) {
+					fs.copyFileSync(outerArchive, file);
+					return Promise.resolve();
+				}
+				if (
+					url ===
+					`https://github.com/Rich-Harris/degit-test-repo-inner/archive/${innerHash}.tar.gz`
+				) {
+					fs.copyFileSync(innerArchive, file);
+					return Promise.resolve();
+				}
+				return Promise.reject(new Error(`Unexpected fetch: ${url}`));
+			};
+
+			try {
+				await degit(outerSrc, {
+					exec: execMock.fn,
+					fetch,
+				}).clone('.tmp/index-suite/test-repo');
+				assert.ok(
+					execMock.calls.includes(
+						'git ls-remote -- https://github.com/Rich-Harris/degit-test-repo-inner',
+					),
+				);
+				assert.ok(
+					fetchCalls.includes(
+						`https://github.com/Rich-Harris/degit-test-repo-inner/archive/${innerHash}.tar.gz`,
+					),
+				);
+			} finally {
+			}
+		});
+
+		it('rejects with DEST_NOT_EMPTY when destination has files and force is false', async () => {
 			fs.mkdirSync('.tmp/index-suite/ne', { recursive: true });
 			fs.writeFileSync('.tmp/index-suite/ne/x', '1');
 			await assert.rejects(
@@ -239,7 +309,7 @@ describe('degit index', () => {
 			);
 		});
 
-		it('constructor throws when mode is not a supported value', () => {
+		it('throws when mode is not a supported value', () => {
 			assert.throws(
 				() => degit('Rich-Harris/degit-test-repo', { mode: 'svn' }),
 				/Valid modes are/,

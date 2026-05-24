@@ -165,6 +165,8 @@ bun run audit
 
 Keep changes focused, squash the branch to a single commit before opening the pull request, add or update tests when behavior changes, and describe the motivation in the pull request so reviewers can follow your intent.
 
+Test names should describe behavior in the form `it('X when Y')`, so the action appears first and the triggering condition comes after `when`.
+
 ### Improving The Documentation
 
 Documentation lives in the repository root (`README.md`, `AGENTS.md`, `LICENSE.md`) and in `docs/` (`ARCHITECTURE.md`, `CHANGELOG.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`), plus `assets/help.md` for the published CLI help text. Typos, clarifications, and examples that match current behavior are welcome as pull requests.
