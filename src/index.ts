@@ -81,7 +81,7 @@ type RemoveDirective = Extract<Directive, { action: 'remove' }>;
 
 type DirectiveActions = {
 	clone: (dir: string, dest: string, action: CloneDirective) => Promise<void>;
-	remove: (dir: string, dest: string, action: RemoveDirective) => void;
+	remove: (dest: string, action: RemoveDirective) => void;
 };
 
 export type Options = ConstructorOptions;
@@ -151,7 +151,6 @@ export default function degit(src: string, opts: ConstructorOptions = {}) {
 }
 
 class Degit extends EventEmitter {
-	src: string;
 	cache?: boolean;
 	force?: boolean;
 	verbose?: boolean;
@@ -166,7 +165,6 @@ class Degit extends EventEmitter {
 	constructor(src: string, opts: ConstructorOptions = {}) {
 		super();
 
-		this.src = src;
 		this.cache = opts.cache;
 		this.force = opts.force;
 		this.verbose = opts.verbose;
@@ -211,7 +209,7 @@ class Degit extends EventEmitter {
 					process.exit(1);
 				});
 			},
-			remove: this.remove.bind(this),
+			remove: (dest, action) => this.remove(dest, action),
 		};
 	}
 
@@ -253,7 +251,7 @@ class Degit extends EventEmitter {
 				if (directive.action === 'clone') {
 					await this.directiveActions.clone(dir, dest, directive);
 				} else {
-					await this.directiveActions.remove(dir, dest, directive);
+					await this.directiveActions.remove(dest, directive);
 				}
 			}
 			if (this._hasStashed === true) {
@@ -263,7 +261,7 @@ class Degit extends EventEmitter {
 	}
 
 	/* eslint-disable security/detect-non-literal-fs-filename */
-	remove(dir: string, dest: string, action: RemoveDirective) {
+	remove(dest: string, action: RemoveDirective) {
 		let { files } = action;
 		if (!Array.isArray(files)) {
 			files = [files];
