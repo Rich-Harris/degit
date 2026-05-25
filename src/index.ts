@@ -15,26 +15,10 @@ import {
 	tryRequire,
 	unstashFiles,
 } from './utils.js';
+import { getProvider, parse, type Repo } from './repo.js';
+import { fetchRefs } from './fetch-refs.js';
 
 const validModes = new Set(['tar', 'git']);
-
-const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
-
-type Provider = {
-	domain: string;
-	archiveUrl(repo: Repo, hash: string): string;
-};
-
-type Repo = {
-	mode: 'tar' | 'git';
-	name: string;
-	ref: string;
-	site: string;
-	ssh: string;
-	subdir?: string;
-	url: string;
-	user: string;
-};
 
 type ExecResult = {
 	stderr: string;
@@ -110,41 +94,6 @@ export type Info = EventInfo;
 export type Action = Directive;
 export type DegitAction = CloneDirective;
 export type RemoveAction = RemoveDirective;
-
-function getProvider(site: string): Provider | undefined {
-	switch (site) {
-		case 'github':
-			return {
-				domain: 'github.com',
-				archiveUrl(repo, hash) {
-					return `${repo.url}/archive/${hash}.tar.gz`;
-				},
-			};
-		case 'gitlab':
-			return {
-				domain: 'gitlab.com',
-				archiveUrl(repo, hash) {
-					return `${repo.url}/repository/archive.tar.gz?ref=${hash}`;
-				},
-			};
-		case 'bitbucket':
-			return {
-				domain: 'bitbucket.org',
-				archiveUrl(repo, hash) {
-					return `${repo.url}/get/${hash}.tar.gz`;
-				},
-			};
-		case 'git.sr.ht':
-			return {
-				domain: 'git.sr.ht',
-				archiveUrl(repo, hash) {
-					return `${repo.url}/archive/${hash}.tar.gz`;
-				},
-			};
-		default:
-			return undefined;
-	}
-}
 
 export default function degit(src: string, opts: ConstructorOptions = {}) {
 	return new Degit(src, opts);
@@ -467,70 +416,6 @@ class Degit extends EventEmitter {
 	}
 }
 
-function parse(src: string): Repo {
-	const [source, refValue = 'HEAD'] = src.split('#', 2);
-	let site = 'github';
-	let remainder = source;
-
-	if (source.startsWith('https://') || source.startsWith('http://')) {
-		const parsed = new URL(source);
-		site = parsed.hostname.replace(/\.(com|org)$/, '');
-		remainder = parsed.pathname.replace(/^\//, '');
-	} else if (source.startsWith('git@')) {
-		const match = /^git@([^:/]+)[:/](.+)$/.exec(source);
-		if (!match) {
-			throw new DegitError(`could not parse ${src}`, {
-				code: 'BAD_SRC',
-			});
-		}
-
-		site = match[1].replace(/\.(com|org)$/, '');
-		remainder = match[2];
-	} else if (source.startsWith('git.sr.ht/')) {
-		site = 'git.sr.ht';
-		remainder = source.slice('git.sr.ht/'.length);
-	} else {
-		const colonIndex = source.indexOf(':');
-		const slashIndex = source.indexOf('/');
-		if (colonIndex !== -1 && (slashIndex === -1 || colonIndex < slashIndex)) {
-			site = source.slice(0, colonIndex);
-			remainder = source.slice(colonIndex + 1);
-		}
-	}
-
-	if (!supported.has(site)) {
-		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
-			code: 'UNSUPPORTED_HOST',
-		});
-	}
-
-	const provider = getProvider(site);
-	if (!provider) {
-		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
-			code: 'UNSUPPORTED_HOST',
-		});
-	}
-
-	const [user, rawName, ...subdirParts] = remainder.split('/').filter(Boolean);
-	if (!user || !rawName) {
-		throw new DegitError(`could not parse ${src}`, {
-			code: 'BAD_SRC',
-		});
-	}
-
-	const name = rawName.replace(/\.git$/, '');
-	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
-	const ref = refValue;
-
-	const domain = provider.domain;
-	const url = `https://${domain}/${user}/${name}`;
-	const ssh = `ssh://git@${domain}/${user}/${name}`;
-
-	const mode = 'tar';
-
-	return { mode, name, ref, site, ssh, subdir, url, user };
-}
-
 async function untar(file: string, dest: string, subdir: string | null = null): Promise<void> {
 	return tar.extract(
 		{
@@ -541,56 +426,6 @@ async function untar(file: string, dest: string, subdir: string | null = null): 
 		subdir ? [subdir] : [],
 	);
 }
-
-async function fetchRefs(repo: Repo, runExec: ExecFn = exec) {
-	try {
-		const provider = getProvider(repo.site);
-		const remote = new URL(repo.url);
-
-		if (!provider || remote.protocol !== 'https:' || remote.hostname !== provider.domain) {
-			throw new DegitError(`could not fetch remote ${repo.url}`, {
-				code: 'COULD_NOT_FETCH',
-				url: repo.url,
-			});
-		}
-
-		const { stdout } = await runExec('git', ['ls-remote', '--', repo.url]);
-
-		return stdout
-			.split('\n')
-			.filter(Boolean)
-			.map((row) => {
-				const [hash, ref] = row.split('\t');
-
-				if (ref === 'HEAD') {
-					return {
-						hash,
-						type: 'HEAD',
-					};
-				}
-
-				const match = /refs\/(\w+)\/(.+)/.exec(ref);
-				if (!match) {
-					throw new DegitError(`could not parse ${ref}`, {
-						code: 'BAD_REF',
-					});
-				}
-
-				return {
-					hash,
-					name: match[2],
-					type: match[1] === 'heads' ? 'branch' : match[1] === 'refs' ? 'ref' : match[1],
-				};
-			});
-	} catch (error) {
-		throw new DegitError(`could not fetch remote ${repo.url}`, {
-			code: 'COULD_NOT_FETCH',
-			original: error,
-			url: repo.url,
-		});
-	}
-}
-
 /* eslint-disable security/detect-non-literal-fs-filename, security/detect-possible-timing-attacks, security/detect-object-injection */
 function updateCache(dir: string, repo: Repo, hash: string, cached: Record<string, string>) {
 	// Update access logs
