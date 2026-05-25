@@ -42,7 +42,7 @@
 		"correctness": "error",
 		"suspicious": "off",
 		"pedantic": "off",
-		"perf": "off",
+		"perf": "warn",
 		"restriction": "off",
 		"style": "off"
 	}

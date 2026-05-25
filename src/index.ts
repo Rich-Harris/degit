@@ -246,14 +246,16 @@ class Degit extends EventEmitter {
 
 		const directives = this._getDirectives(dest);
 		if (directives) {
-			for (const directive of directives) {
+			await directives.reduce(async (previous, directive) => {
+				await previous;
+
 				// TODO, can this be a loop with an index to pass for better error messages?
 				if (directive.action === 'clone') {
 					await this.directiveActions.clone(dir, dest, directive);
 				} else {
 					await this.directiveActions.remove(dest, directive);
 				}
-			}
+			}, Promise.resolve());
 			if (this._hasStashed === true) {
 				unstashFiles(dir, dest);
 			}
