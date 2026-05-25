@@ -121,9 +121,9 @@ async function createDirectiveArchiveFixture(rootName, directives) {
 	return archiveFile;
 }
 
-function clearArchiveCache(test, hash) {
-	const archiveFile = path.join(base, test.site, test.user, test.name, `${hash}.tar.gz`);
-	fs.rmSync(archiveFile, { force: true });
+function clearArchiveCache(test, _hash) {
+	const archiveDir = path.join(base, test.site, test.user, test.name);
+	fs.rmSync(archiveDir, { force: true, recursive: true });
 }
 
 describe('degit index', () => {
@@ -257,6 +257,14 @@ describe('degit index', () => {
 				[{ action: 'clone', src: innerSrc }],
 			);
 			const innerArchive = await createArchiveFixture(`degit-test-repo-inner-${innerHash}`);
+			fs.rmSync(path.join(base, 'github', 'Rich-Harris', 'degit-test-repo-outer'), {
+				force: true,
+				recursive: true,
+			});
+			fs.rmSync(path.join(base, 'github', 'Rich-Harris', 'degit-test-repo-inner'), {
+				force: true,
+				recursive: true,
+			});
 			const execMock = createMockExec({
 				[`git ls-remote -- https://github.com/Rich-Harris/degit-test-repo-outer`]: `${outerHash}\tHEAD\n`,
 				[`git ls-remote -- https://github.com/Rich-Harris/degit-test-repo-inner`]: `${innerHash}\tHEAD\n`,

@@ -41,7 +41,7 @@ degit is a local CLI/library wrapper around remote repository snapshots:
 [User/CLI] -> [src/bin.ts] -> [src/index.ts]
 						   -> [src/utils.ts]
 						   -> [Remote provider tarball or git remote]
-						   -> [Local cache under ~/.degit]
+						   -> [Local cache under the platform cache directory]
 						   -> [Destination directory]
 ```
 
@@ -75,7 +75,7 @@ Name: Runtime helpers
 
 Description: Contains filesystem and process helpers used by the core flow. This includes the HTTPS fetch wrapper with proxy support, `git` command execution, recursive directory creation, local cache root detection, and stash/unstash helpers for directive processing.
 
-Technologies: Node `fs`, `path`, `https`, `child_process`, `home-or-tmp`, `https-proxy-agent`, `sander`
+Technologies: Node `fs`, `path`, `os`, `https`, `child_process`, `https-proxy-agent`, `sander`
 
 Deployment: Internal implementation detail, not exposed as a separate package.
 
@@ -107,7 +107,7 @@ The project does not use an application database or queue. Its persistent state 
 
 Name: degit cache
 
-Type: Filesystem cache under `~/.degit` with a home-or-tmp fallback
+Type: Filesystem cache under the platform-appropriate user cache directory
 
 Purpose: Stores downloaded tarballs and provider metadata so repeated clones can avoid refetching the same commit archive.
 
@@ -191,6 +191,6 @@ Git mode: The fallback mode that uses `git clone` over SSH, mainly for private r
 
 Directive: An entry in `degit.json` that runs after the initial clone. Current directives are `clone` and `remove`.
 
-Cache root: The local storage location at `~/.degit` (or the home-or-tmp fallback) used for downloaded archives and metadata.
+Cache root: The local storage location resolved from the platform cache directory used for downloaded archives and metadata.
 
 Provider: A supported hosting service whose repository URL format degit understands: GitHub, GitLab, Bitbucket, or Sourcehut.

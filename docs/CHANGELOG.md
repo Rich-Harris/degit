@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.3.0
+
+- Add platform-aware cache resolution so degit uses the standard user cache location on each supported OS.
+
 ## 3.2.0
 
 - Split CLI output by severity so info messages go to stdout while warnings and errors stay on stderr.
