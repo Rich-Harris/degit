@@ -33,6 +33,7 @@
 		"lint:ci": "oxlint --import-plugin --deny-warnings .",
 		"audit": "bun audit",
 		"knip:ci": "knip",
+		"prepare": "husky",
 		"format": "oxfmt --write .",
 		"format:ci": "oxfmt --check .",
 		"duplicates:ci": "jscpd --gitignore --reporters console --threshold 5 tsdown.config.ts vitest.config.ts src test",
@@ -52,7 +53,7 @@
 		"eslint-plugin-security": "4.0.0",
 		"fuzzysearch": "1.0.3",
 		"https-proxy-agent": "5.0.0",
-		"husky": "6.0.0",
+		"husky": "9.1.7",
 		"jscpd": "4.0.9",
 		"knip": "6.11.0",
 		"lint-staged": "10.5.4",
@@ -67,11 +68,6 @@
 		"tsdown": "0.21.10",
 		"typescript": "6.0.3",
 		"vitest": "4.1.5"
-	},
-	"husky": {
-		"hooks": {
-			"pre-commit": "lint-staged"
-		}
 	},
 	"lint-staged": {
 		"*.{js,ts}": [
