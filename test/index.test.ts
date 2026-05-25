@@ -44,7 +44,7 @@ const providerCases = [
 			archiveUrl: (hash) => `${url}/archive/${hash}.tar.gz`,
 			gitSrc: `https://${domain}/${user}/${privateName}.git`,
 			lsRemote: `git ls-remote -- ${url}`,
-			ssh: `git@${domain}:${user}/${name}`,
+			ssh: `ssh://git@${domain}/${user}/${name}`,
 		}),
 	}),
 	createProviderCase({
@@ -57,7 +57,7 @@ const providerCases = [
 			archiveUrl: (hash) => `${url}/repository/archive.tar.gz?ref=${hash}`,
 			gitSrc: `gitlab:${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
-			ssh: `git@${domain}:${user}/${name}`,
+			ssh: `ssh://git@${domain}/${user}/${name}`,
 		}),
 	}),
 	createProviderCase({
@@ -70,7 +70,7 @@ const providerCases = [
 			archiveUrl: (hash) => `${url}/get/${hash}.tar.gz`,
 			gitSrc: `bitbucket:${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
-			ssh: `git@${domain}:${user}/${name}`,
+			ssh: `ssh://git@${domain}/${user}/${name}`,
 		}),
 	}),
 	createProviderCase({
@@ -83,7 +83,7 @@ const providerCases = [
 			archiveUrl: (hash) => `${url}/archive/${hash}.tar.gz`,
 			gitSrc: `git.sr.ht/${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
-			ssh: `git@${domain}:${user}/${name}`,
+			ssh: `ssh://git@${domain}/${user}/${name}`,
 		}),
 	}),
 ];
@@ -230,7 +230,7 @@ describe('degit index', () => {
 		providerCases.forEach((test) => {
 			it(`clones via git and strips .git when mode is git for ${test.site}`, async () => {
 				const execMock = createMockExec({
-					[`git clone -- git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
+					[`git clone -- ssh://git@${test.url.split('/')[2]}/${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
 						'',
 					[`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`]: '',
 				});
@@ -241,7 +241,7 @@ describe('degit index', () => {
 				}).clone('.tmp/index-suite/test-repo');
 
 				assert.deepEqual(execMock.calls, [
-					`git clone -- git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`,
+					`git clone -- ssh://git@${test.url.split('/')[2]}/${test.user}/${test.privateName} .tmp/index-suite/test-repo`,
 					`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`,
 				]);
 			});
