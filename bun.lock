@@ -11,7 +11,6 @@
         "enquirer": "2.3.6",
         "eslint-plugin-security": "4.0.0",
         "fuzzysearch": "1.0.3",
-        "home-or-tmp": "3.0.0",
         "https-proxy-agent": "5.0.0",
         "husky": "6.0.0",
         "jscpd": "4.0.9",
@@ -495,8 +494,6 @@
     "has-tostringtag": ["has-tostringtag@1.0.2", "", { "dependencies": { "has-symbols": "^1.0.3" } }, "sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw=="],
 
     "hasown": ["hasown@2.0.3", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg=="],
-
-    "home-or-tmp": ["home-or-tmp@3.0.0", "", {}, "sha512-pj6ktgQDedSIbzwrC108F9aZadnF2ZJ8mP8QbGq2nLPOmqpdqKWMoU4JPJaFEzpoTl6X/jOwE8BlkTOfVPR98A=="],
 
     "hookable": ["hookable@6.1.1", "", {}, "sha512-U9LYDy1CwhMCnprUfeAZWZGByVbhd54hwepegYTK7Pi5NvqEj63ifz5z+xukznehT7i6NIZRu89Ay1AZmRsLEQ=="],
 

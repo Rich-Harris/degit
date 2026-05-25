@@ -6,7 +6,7 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v3.0%20adopted-ff69b4.svg)](docs/CODE_OF_CONDUCT.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-**degit** makes copies of git repositories. When you run `degit some-user/some-repo`, it will find the latest commit on https://github.com/some-user/some-repo and download the associated tar file to `~/.degit/some-user/some-repo/commithash.tar.gz` if it doesn't already exist locally. (This is much quicker than using `git clone`, because you're not downloading the entire git history.)
+**degit** makes copies of git repositories. When you run `degit some-user/some-repo`, it will find the latest commit on https://github.com/some-user/some-repo and download the associated tar file to the platform-appropriate cache directory if it doesn't already exist locally. On Linux/BSD this follows `XDG_CACHE_HOME` when set and otherwise uses `~/.cache/degit`; on macOS it uses `~/Library/Caches/degit`; on Windows it uses `%LOCALAPPDATA%\degit`. (This is much quicker than using `git clone`, because you're not downloading the entire git history.)
 
 ## Requirements
 

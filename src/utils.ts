@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import homeOrTmp from 'home-or-tmp';
+import os from 'node:os';
 import https from 'node:https';
 import child_process from 'node:child_process';
 import * as URL from 'node:url';
@@ -19,6 +19,12 @@ type RequireOptions = {
 type ExecResult = {
 	stderr: string;
 	stdout: string;
+};
+
+type ResolveBaseOptions = {
+	env?: NodeJS.ProcessEnv;
+	homedir?: string;
+	platform?: NodeJS.Platform;
 };
 
 export { degitConfigName };
@@ -139,5 +145,21 @@ export function unstashFiles(dir: string, dest: string): void {
 	rimrafSync(tmpDir);
 }
 
+export function resolveBase({
+	env = process.env,
+	homedir = os.homedir(),
+	platform = process.platform,
+}: ResolveBaseOptions = {}): string {
+	if (platform === 'win32') {
+		return path.join(env.LOCALAPPDATA ?? path.join(homedir, 'AppData', 'Local'), 'degit');
+	}
+
+	if (platform === 'darwin') {
+		return path.join(homedir, 'Library', 'Caches', 'degit');
+	}
+
+	return path.join(env.XDG_CACHE_HOME ?? path.join(homedir, '.cache'), 'degit');
+}
+
 /* eslint-enable security/detect-non-literal-fs-filename */
-export const base = path.join(homeOrTmp, '.degit');
+export const base = resolveBase();

@@ -1,6 +1,6 @@
 {
 	"name": "degit",
-	"version": "3.2.0",
+	"version": "3.3.0",
 	"description": "Straightforward project scaffolding",
 	"keywords": [
 		"git",
@@ -51,7 +51,6 @@
 		"enquirer": "2.3.6",
 		"eslint-plugin-security": "4.0.0",
 		"fuzzysearch": "1.0.3",
-		"home-or-tmp": "3.0.0",
 		"https-proxy-agent": "5.0.0",
 		"husky": "6.0.0",
 		"jscpd": "4.0.9",
