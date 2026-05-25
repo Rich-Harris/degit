@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.3.1
+
+- Harden git-mode command execution and remote validation.
+
 ## 3.3.0
 
 - Add platform-aware cache resolution so degit uses the standard user cache location on each supported OS.

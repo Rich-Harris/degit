@@ -522,7 +522,7 @@ function parse(src: string): Repo {
 
 	const domain = provider.domain;
 	const url = `https://${domain}/${user}/${name}`;
-	const ssh = `git@${domain}:${user}/${name}`;
+	const ssh = `ssh://git@${domain}/${user}/${name}`;
 
 	const mode = 'tar';
 
@@ -542,6 +542,16 @@ async function untar(file: string, dest: string, subdir: string | null = null): 
 
 async function fetchRefs(repo: Repo, runExec: ExecFn = exec) {
 	try {
+		const provider = getProvider(repo.site);
+		const remote = new URL(repo.url);
+
+		if (!provider || remote.protocol !== 'https:' || remote.hostname !== provider.domain) {
+			throw new DegitError(`could not fetch remote ${repo.url}`, {
+				code: 'COULD_NOT_FETCH',
+				url: repo.url,
+			});
+		}
+
 		const { stdout } = await runExec('git', ['ls-remote', '--', repo.url]);
 
 		return stdout
