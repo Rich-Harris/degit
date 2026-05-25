@@ -40,15 +40,17 @@ import enquirer from 'enquirer';
 const mockDegit = vi.mocked(degit);
 const mockPrompt = vi.mocked(enquirer.prompt);
 
-async function waitForCondition(fn, timeoutMs = 3000) {
-	const deadline = Date.now() + timeoutMs;
-	while (Date.now() < deadline) {
-		if (fn()) {
-			return;
-		}
-		await new Promise((r) => setTimeout(r, 5));
+async function waitForCondition(fn, timeoutMs = 3000, startedAt = Date.now()) {
+	if (fn()) {
+		return;
 	}
-	assert.fail('timeout waiting for condition');
+
+	if (Date.now() >= startedAt + timeoutMs) {
+		assert.fail('timeout waiting for condition');
+	}
+
+	await new Promise((r) => setTimeout(r, 5));
+	return waitForCondition(fn, timeoutMs, startedAt);
 }
 
 function mockEventClone(eventName, message) {

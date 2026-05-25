@@ -96,8 +96,7 @@ export async function main(argv: string[]) {
 		};
 
 		const choices = glob('**/map.json', { cwd: base })
-			.map(getChoices)
-			.flat()
+			.flatMap(getChoices)
 			.sort((a, b) => (accessLookup.get(b.value) || 0) - (accessLookup.get(a.value) || 0));
 
 		const sourcePrompt = {
