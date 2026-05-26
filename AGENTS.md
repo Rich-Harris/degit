@@ -39,6 +39,7 @@ See [package.json](package.json) for the build, dev, and audit scripts. Source o
 
 Tests live in `test/**/*.test.ts` (see [vitest.config.ts](vitest.config.ts)). Use `bun run test` for the suite, and prefer updating or adding tests when changing behavior. Use `bun run format:ci` after edits that touch Markdown or JSON.
 Test names should follow the `it('X when Y')` pattern so behavior and trigger are both obvious.
+When verifying production-only bugs in the CLI, reproduce with the published `degit` package (for example `npx degit@latest ...`) instead of running the raw repository source directly.
 
 ## Lint and format
 
