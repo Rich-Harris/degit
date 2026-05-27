@@ -1,0 +1,42 @@
+name: Documentation Sync
+
+on:
+    pull_request:
+        types: [opened, synchronize, ready_for_review]
+        paths:
+            - 'src/**/*.ts'
+
+jobs:
+    docs-sync:
+        name: Docs Sync
+        if: github.event.pull_request.head.ref != 'master' && github.event.pull_request.head.ref != 'main'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            pull-requests: write
+            id-token: write
+
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  ref: ${{ github.event.pull_request.head.ref }}
+                  fetch-depth: 0
+
+            - uses: anthropics/claude-code-action@v1
+              with:
+                  anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+                  prompt: |
+                      REPO: ${{ github.repository }}
+                      PR NUMBER: ${{ github.event.pull_request.number }}
+
+                      This PR changes code that may affect the repository docs.
+                      Work only on the checked-out feature branch, not master or main.
+                      Update only the docs that are actually impacted, keeping the edits minimal.
+                      Do not edit assets/help.md.
+                      If docs changes are needed, keep them on the feature branch and surface them through a PR.
+                      Never push directly to master or main.
+
+                  claude_args: |
+                      --allowedTools Read,Write,Edit,Bash(git:*)
+              env:
+                  ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}

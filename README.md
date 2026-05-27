@@ -24,6 +24,8 @@ bun run build
 
 See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for how to contribute. [docs/SECURITY.md](docs/SECURITY.md) explains how to report vulnerabilities. [AGENTS.md](AGENTS.md) summarizes setup and commands for tooling and coding agents. When verifying production CLI bugs, reproduce with the published package (for example `npx degit@latest ...`) rather than running the raw repository source directly. When you change development workflow, CI, or contributor-facing instructions, update **README.md**, **docs/CONTRIBUTING.md**, and **AGENTS.md** together so they stay consistent.
 
+A small proof-of-concept docs-sync workflow also runs on PRs that change `src/**/*.ts` or `assets/help.md`, using OpenRouter through Claude Code Action. It expects `OPENROUTER_API_KEY` and `OPENROUTER_ANTHROPIC_BASE_URL` repository secrets.
+
 ## Installation
 
 ```bash
