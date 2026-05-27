@@ -224,6 +224,36 @@ describe('degit index', () => {
 				assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
 			});
 		});
+
+		providerCases.forEach((test) => {
+			it(`redownloads the tarball when the cached archive is corrupted for ${test.site}`, async () => {
+				const dest = '.tmp/index-suite/test-repo';
+				const archiveDir = path.join(base, test.site, test.user, test.name);
+				clearArchiveCache(test, refsHash);
+				fs.mkdirSync(archiveDir, { recursive: true });
+				fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
+				const fetch = createCopyFetch(archiveFile);
+				const execMock = createMockExec({
+					[test.lsRemote]: `${refsHash}\tHEAD\n`,
+				});
+
+				await degit(test.publicSrc, {
+					exec: execMock.fn,
+					fetch: fetch.fn,
+				}).clone(dest);
+
+				compareDirToExpected(dest, {
+					packages: '',
+					'packages/app': '',
+					'packages/app/index.js': 'export default 1\n',
+					'packages/app/lib': '',
+					'packages/app/lib/nested.txt': 'nested\n',
+					'packages/ignored.txt': 'ignored\n',
+				});
+				assert.equal(fetch.calls.length, 1);
+				assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+			});
+		});
 	});
 
 	describe('git mode', () => {
