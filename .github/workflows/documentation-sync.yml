@@ -38,5 +38,3 @@ jobs:
 
                   claude_args: |
                       --allowedTools Read,Write,Edit,Bash(git:*)
-              env:
-                  ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
