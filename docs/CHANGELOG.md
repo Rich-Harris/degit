@@ -1,16 +1,20 @@
 # degit changelog
 
+## 3.3.2
+
+- Retry corrupt tarball downloads ([#313](https://github.com/Rich-Harris/degit/issues/313)).
+
 ## 3.3.1
 
 - Harden git-mode command execution and remote validation.
 
 ## 3.3.0
 
-- Add platform-aware cache resolution so degit uses the standard user cache location on each supported OS.
+- Add platform-aware cache resolution so degit uses the standard user cache location on each supported OS ([#45](https://github.com/Rich-Harris/degit/issues/45)).
 
 ## 3.2.0
 
-- Split CLI output by severity so info messages go to stdout while warnings and errors stay on stderr.
+- Split CLI output by severity so info messages go to stdout while warnings and errors stay on stderr ([#382](https://github.com/Rich-Harris/degit/issues/382)).
 
 ## 3.1.2
 

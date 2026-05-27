@@ -403,7 +403,7 @@ class Degit extends EventEmitter {
 		});
 
 		mkdirp(dest);
-		await untar(file, dest, subdir);
+		await this._untarWithRetry(file, dest, subdir, url);
 	}
 
 	async _cloneWithGit(dir: string, dest: string): Promise<void> {
@@ -413,6 +413,26 @@ class Degit extends EventEmitter {
 
 	_fetchRefs(repo: Repo) {
 		return fetchRefs(repo, this._exec);
+	}
+
+	async _untarWithRetry(file: string, dest: string, subdir: string | null, url: string) {
+		try {
+			await untar(file, dest, subdir);
+		} catch (error) {
+			if (error.code !== 'TAR_BAD_ARCHIVE') {
+				throw error;
+			}
+
+			try {
+				// eslint-disable-next-line security/detect-non-literal-fs-filename
+				fs.unlinkSync(file);
+			} catch {
+				// Ignore cleanup failures and let the refetch retry decide the outcome.
+			}
+
+			await this._fetch(url, file, this.proxy);
+			await untar(file, dest, subdir);
+		}
 	}
 }
 
