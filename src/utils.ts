@@ -6,7 +6,10 @@ import child_process from 'node:child_process';
 import * as URL from 'node:url';
 import { createRequire } from 'node:module';
 import Agent from 'https-proxy-agent';
-import { copydirSync, rimrafSync } from 'sander';
+import {
+	copydirSync,
+	rimrafSync,
+} from 'sander';
 
 const require = createRequire(import.meta.url);
 const tmpDirName = 'tmp';
