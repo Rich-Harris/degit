@@ -164,6 +164,8 @@ bun run audit
 
 `bun run audit` runs the dependency audit that also backs [.github/workflows/security.yml](.github/workflows/security.yml).
 
+A small proof-of-concept docs-sync workflow also runs on PRs that change `src/**/*.ts` and `assets/help.md`, using OpenRouter through Claude Code Action. It expects `OPENROUTER_API_KEY` and `OPENROUTER_ANTHROPIC_BASE_URL` repository secrets.
+
 Keep changes focused, squash the branch to a single commit before opening the pull request, add or update tests when behavior changes, and describe the motivation in the pull request so reviewers can follow your intent.
 
 If your pull request resolves an issue, mention it in the PR body with `Fixes #123` or `Closes #123` so GitHub closes the issue automatically when the PR is merged.
