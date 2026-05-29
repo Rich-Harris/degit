@@ -178,6 +178,7 @@ Remove a file at the specified path.
 
 - [zel](https://github.com/vutran/zel) by [Vu Tran](https://twitter.com/tranvu)
 - [gittar](https://github.com/lukeed/gittar) by [Luke Edwards](https://twitter.com/lukeed05)
+- [gitpick](https://github.com/nrjdalal/gitpick) - by [Neeraj Dalal](https://twitter.com/nrjdalal_com)
 
 ## License
 
