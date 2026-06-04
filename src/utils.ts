@@ -75,8 +75,10 @@ export function fetch(url: string, dest: string, proxy?: string): Promise<void> 
 			.get(options, (response) => {
 				const code = response.statusCode;
 				if (code >= 400) {
+					response.resume();
 					reject({ code, message: response.statusMessage });
 				} else if (code >= 300) {
+					response.resume();
 					fetch(response.headers.location, dest, proxy).then(fulfil, reject);
 				} else {
 					response
