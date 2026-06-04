@@ -414,6 +414,9 @@ class Degit extends EventEmitter {
 
 		const file = `${dir}/${hash}.tar.gz`;
 		const url = getProvider(repo.site).archiveUrl(repo, hash);
+		mkdirp(dir);
+		const extractedDir = fs.mkdtempSync(path.join(dir, 'extract-'));
+		let shouldFallbackToGit = false;
 
 		try {
 			if (!this.cache) {
@@ -442,21 +445,36 @@ class Degit extends EventEmitter {
 					await this._fetch(url, file, this.proxy);
 				}
 			}
+
+			this._verbose({
+				code: 'EXTRACTING',
+				message: `extracting ${subdir ? `${repo.subdir} from ` : ''}${file} to ${extractedDir}`,
+			});
+
+			await this._untarWithRetry(file, extractedDir, subdir, url);
+			shouldFallbackToGit = this._hasGitLfsPointers(extractedDir);
+
+			if (!shouldFallbackToGit) {
+				mkdirp(dest);
+				this._copyExtractedFiles(extractedDir, dest);
+			}
 		} catch (error) {
 			throw new DegitError(`could not download ${url}`, {
 				code: 'COULD_NOT_DOWNLOAD',
 				url,
 				original: error,
 			});
+		} finally {
+			rimrafSync(extractedDir);
 		}
 
-		this._verbose({
-			code: 'EXTRACTING',
-			message: `extracting ${subdir ? `${repo.subdir} from ` : ''}${file} to ${dest}`,
-		});
+		if (shouldFallbackToGit) {
+			this._warn({
+				message: `git lfs pointer detected in tar snapshot; falling back to git clone`,
+			});
+			await this._cloneWithGit(dest);
+		}
 
-		mkdirp(dest);
-		await this._untarWithRetry(file, dest, subdir, url);
 		updateCache(dir, repo, hash, cached);
 	}
 
@@ -490,6 +508,49 @@ class Degit extends EventEmitter {
 
 			await this._fetch(url, file, this.proxy);
 			await untar(file, dest, subdir);
+		}
+	}
+
+	_hasGitLfsPointers(dir: string): boolean {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+		for (const entry of entries) {
+			const entryPath = path.join(dir, entry.name);
+
+			if (entry.isDirectory()) {
+				if (this._hasGitLfsPointers(entryPath)) {
+					return true;
+				}
+				continue;
+			}
+
+			if (!entry.isFile()) {
+				continue;
+			}
+
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
+			const contents = fs.readFileSync(entryPath, 'utf8');
+			if (
+				/^version https:\/\/git-lfs\.github\.com\/spec\/v1$/m.test(contents) &&
+				/^oid sha256:[0-9a-f]{64}$/m.test(contents) &&
+				/^size \d+$/m.test(contents)
+			) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	_copyExtractedFiles(sourceDir: string, destDir: string) {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+
+		for (const entry of entries) {
+			const sourcePath = path.join(sourceDir, entry.name);
+			const destinationPath = path.join(destDir, entry.name);
+			fs.cpSync(sourcePath, destinationPath, { recursive: true });
 		}
 	}
 }

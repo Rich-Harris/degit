@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.4.2
+
+- Fix git-lfs pointer files falling through the tarball path.
+
 ## 3.4.1
 
 - Fix first-clone hangs during archive downloads.
