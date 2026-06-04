@@ -180,6 +180,24 @@ async function cloneAndExpectTarContent(test, archiveFile, dest, expectedPath, e
 	assert.deepEqual(gitMock.calls, [`fetchRefs ${test.url}`]);
 }
 
+async function createDirectiveArchive(rootName) {
+	fs.mkdirSync('.tmp/index-suite', { recursive: true });
+	const archiveDir = fs.mkdtempSync(path.join('.tmp/index-suite', 'archive-'));
+	const archiveRoot = path.join(archiveDir, rootName);
+
+	fs.mkdirSync(archiveRoot, { recursive: true });
+	fs.writeFileSync(
+		path.join(archiveRoot, 'degit.json'),
+		JSON.stringify([{ action: 'remove', files: 'remove-me.txt' }]),
+	);
+	fs.writeFileSync(path.join(archiveRoot, 'remove-me.txt'), 'remove me\n');
+
+	const archiveFile = path.join(archiveDir, `${rootName}.tar.gz`);
+	await tar.create({ C: archiveDir, file: archiveFile, gzip: true }, [rootName]);
+
+	return archiveFile;
+}
+
 function clearArchiveCache(test, _hash) {
 	const archiveDir = path.join(base, test.site, test.user, test.name);
 	fs.rmSync(archiveDir, { force: true, recursive: true });
@@ -484,6 +502,34 @@ describe('degit index', () => {
 				`fetchRefs ${test.url}`,
 				`clone ${test.url} ${dest} ${refsHash}`,
 			]);
+		});
+
+		it('emits cloning before success when tar mode finishes post-clone directives', async () => {
+			const test = providerCases[0];
+			const dest = '.tmp/index-suite/directive-order';
+			clearArchiveCache(test, refsHash);
+			const archiveFile = await createDirectiveArchive(`degit-test-repo-${refsHash}`);
+			const fetch = createCopyFetch(archiveFile);
+			const gitMock = createMockGit({
+				[`fetchRefs ${test.url}`]: gitRefs,
+			});
+			const events: string[] = [];
+
+			await degit(test.publicSrc, {
+				git: gitMock.fn,
+				fetch: fetch.fn,
+			})
+				.on('info', (event) => {
+					events.push(event.code ?? event.message);
+				})
+				.clone(dest);
+
+			assert.ok(events.includes('CLONING'));
+			assert.ok(events.includes('REMOVED'));
+			assert.ok(events.includes('SUCCESS'));
+			assert.ok(events.indexOf('CLONING') < events.indexOf('REMOVED'));
+			assert.ok(events.indexOf('REMOVED') < events.indexOf('SUCCESS'));
+			assert.equal(fs.existsSync(path.join(dest, 'remove-me.txt')), false);
 		});
 
 		it('rejects with DEST_NOT_EMPTY when destination has files and force is false', async () => {

@@ -64,6 +64,7 @@ type DirectiveActions = {
 export type Options = ConstructorOptions;
 export type ValidModes = 'tar' | 'git';
 export type InfoCode =
+	| 'CLONING'
 	| 'SUCCESS'
 	| 'FILE_DOES_NOT_EXIST'
 	| 'REMOVED'
@@ -188,57 +189,60 @@ class Degit extends EventEmitter {
 		this._checkDirIsEmpty(dest);
 
 		const { repo } = this;
+		const message = `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`;
+
+		this._info({
+			code: 'CLONING',
+			dest,
+			message: `cloning ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+			repo,
+		});
 
 		if (this.mode === 'git') {
 			const hash = await this._getHash(repo, {});
 			await this._cloneWithGit(dest, hash || repo.ref);
-			this._info({
-				code: 'SUCCESS',
-				dest,
-				message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
-				repo,
-			});
-			return;
 		}
 
-		const dir = path.join(base, repo.site, repo.user, repo.name);
+		if (this.mode !== 'git') {
+			const dir = path.join(base, repo.site, repo.user, repo.name);
 
-		try {
-			await this._cloneWithTar(dir, dest);
-		} catch (error) {
-			if (this._shouldFallbackToGit(error)) {
-				this._warn({
-					message: `tar snapshot download or extraction failed; falling back to git clone`,
-				});
-				await this._cloneWithGit(dest);
-			} else {
-				throw error;
+			try {
+				await this._cloneWithTar(dir, dest);
+			} catch (error) {
+				if (this._shouldFallbackToGit(error)) {
+					this._warn({
+						message: `tar snapshot download or extraction failed; falling back to git clone`,
+					});
+					await this._cloneWithGit(dest);
+				} else {
+					throw error;
+				}
+			}
+
+			const directives = this._getDirectives(dest);
+			if (directives) {
+				await directives.reduce(async (previous, directive) => {
+					await previous;
+
+					// TODO, can this be a loop with an index to pass for better error messages?
+					if (directive.action === 'clone') {
+						await this.directiveActions.clone(dir, dest, directive);
+					} else {
+						await this.directiveActions.remove(dest, directive);
+					}
+				}, Promise.resolve());
+				if (this._hasStashed === true) {
+					unstashFiles(dir, dest);
+				}
 			}
 		}
 
 		this._info({
 			code: 'SUCCESS',
 			dest,
-			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+			message,
 			repo,
 		});
-
-		const directives = this._getDirectives(dest);
-		if (directives) {
-			await directives.reduce(async (previous, directive) => {
-				await previous;
-
-				// TODO, can this be a loop with an index to pass for better error messages?
-				if (directive.action === 'clone') {
-					await this.directiveActions.clone(dir, dest, directive);
-				} else {
-					await this.directiveActions.remove(dest, directive);
-				}
-			}, Promise.resolve());
-			if (this._hasStashed === true) {
-				unstashFiles(dir, dest);
-			}
-		}
 	}
 
 	/* eslint-disable security/detect-non-literal-fs-filename */
