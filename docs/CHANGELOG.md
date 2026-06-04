@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.4.1
+
+- Fix first-clone hangs during archive downloads.
+
 ## 3.4.0
 
 - Tarball downloads are now the default, with SSH fallback on failure.
