@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import path from 'node:path';
 import { describe, it } from 'vitest';
-import { resolveBase } from '../src/utils.js';
+import { resolveBase } from '../../src/utils.js';
 
 describe('resolveBase', () => {
 	it('uses XDG_CACHE_HOME on linux when it is set', () => {

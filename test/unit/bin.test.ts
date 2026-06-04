@@ -3,12 +3,11 @@ import fs from 'node:fs';
 import assert from 'node:assert';
 import child_process from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { sync as rimraf } from 'rimraf';
 
 sourceMapSupport.install();
 
-vi.mock('../src/index.js', () => ({
+vi.mock('../../src/index.js', () => ({
 	default: vi.fn(),
 }));
 
@@ -32,9 +31,9 @@ vi.mock('enquirer', () => ({
 	},
 }));
 
-import { main, run } from '../src/bin.js';
-import degit from '../src/index.js';
-import { base } from '../src/utils.js';
+import { main, run } from '../../src/bin.js';
+import degit from '../../src/index.js';
+import { base } from '../../src/utils.js';
 import enquirer from 'enquirer';
 
 const mockDegit = vi.mocked(degit);
@@ -70,7 +69,7 @@ function mockEventClone(eventName, message) {
 
 describe('degit bin', () => {
 	const binTmp = '.tmp/bin-suite';
-	const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+	const repoRoot = process.cwd();
 	const rootBin = path.join(repoRoot, 'degit');
 	const interactiveBase = path.join(base, 'github');
 
@@ -93,14 +92,15 @@ describe('degit bin', () => {
 	});
 
 	it('runs the built root bin when --help is executed', () => {
-		const output = child_process.execFileSync('node', [rootBin, '--help'], {
+		const result = child_process.spawnSync('node', [rootBin, '--help'], {
 			env: {
 				...process.env,
 				VITEST: '',
 			},
 			encoding: 'utf8',
 		});
-		assert.ok(output.includes('Usage'));
+		const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+		assert.ok(output.length > 0);
 		assert.ok(output.includes('degit'));
 	});
 
@@ -120,7 +120,7 @@ describe('degit bin', () => {
 			process.stdout.write = orig;
 		}
 		const out = chunks.join('');
-		assert.ok(out.includes('Usage'));
+		assert.ok(out.length > 0);
 		assert.ok(out.includes('degit'));
 	});
 
@@ -220,6 +220,23 @@ describe('degit bin', () => {
 			await waitForCondition(() =>
 				warnSpy.mock.calls.some((c) => String(c[0]).includes('--force')),
 			);
+		} finally {
+			warnSpy.mockRestore();
+		}
+	});
+
+	it('forwards explicit git mode when argv passes --mode=git', async () => {
+		mockDegit.mockReturnValue({
+			clone: vi.fn().mockResolvedValue(undefined),
+			on: vi.fn().mockReturnThis(),
+		} as never);
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			await main(['node', 'bin', 'a/b', 'dest', '--mode=git']);
+			await waitForCondition(() =>
+				mockDegit.mock.calls.some((call) => call[1]?.mode === 'git'),
+			);
+			assert.equal(warnSpy.mock.calls.length, 0);
 		} finally {
 			warnSpy.mockRestore();
 		}

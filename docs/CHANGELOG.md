@@ -1,5 +1,12 @@
 # degit changelog
 
+## 3.4.0
+
+- Tarball downloads are now the default, with SSH fallback on failure.
+- Public remotes now prefer HTTPS; explicit SSH sources still use SSH.
+- The JavaScript git backend is bundled for HTTPS ref discovery; SSH/private repos still need system `git`.
+- The published package no longer includes sourcemaps, so the tarball is smaller.
+
 ## 3.3.2
 
 - Retry corrupt tarball downloads ([#313](https://github.com/Rich-Harris/degit/issues/313)).

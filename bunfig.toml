@@ -1,5 +1,6 @@
 [install]
 minimumReleaseAge = 1209600
+exact = true
 
 [install.lockfile]
 saveTextLockfile = true

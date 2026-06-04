@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import https from 'node:https';
-import child_process from 'node:child_process';
 import * as URL from 'node:url';
 import { createRequire } from 'node:module';
 import Agent from 'https-proxy-agent';
@@ -14,11 +13,6 @@ const degitConfigName = 'degit.json';
 
 type RequireOptions = {
 	clearCache?: boolean;
-};
-
-type ExecResult = {
-	stderr: string;
-	stdout: string;
 };
 
 type ResolveBaseOptions = {
@@ -49,19 +43,6 @@ export function tryRequire(file: string, opts: RequireOptions = {}) {
 }
 
 /* eslint-disable security/detect-non-literal-fs-filename */
-export function exec(command: string, args: string[] = []): Promise<ExecResult> {
-	return new Promise((fulfil, reject) => {
-		child_process.execFile(command, args, (err, stdout, stderr) => {
-			if (err) {
-				reject(err);
-				return;
-			}
-
-			fulfil({ stderr, stdout });
-		});
-	});
-}
-
 export function mkdirp(dir: string): void {
 	const parent = path.dirname(dir);
 	if (parent === dir) {
@@ -162,4 +143,5 @@ export function resolveBase({
 }
 
 /* eslint-enable security/detect-non-literal-fs-filename */
+
 export const base = resolveBase();

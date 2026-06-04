@@ -7,6 +7,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 **degit** makes copies of git repositories. When you run `degit some-user/some-repo`, it will find the latest commit on https://github.com/some-user/some-repo and download the associated tar file to the platform-appropriate cache directory if it doesn't already exist locally. On Linux/BSD this follows `XDG_CACHE_HOME` when set and otherwise uses `~/.cache/degit`; on macOS it uses `~/Library/Caches/degit`; on Windows it uses `%LOCALAPPDATA%\degit`. (This is much quicker than using `git clone`, because you're not downloading the entire git history.)
+degit resolves refs through an internal git backend, downloads tar snapshots by default, and falls back to SSH cloning when tarball fetches or extraction fail. Public HTTPS sources do not need a local `git` binary on your `PATH`, but SSH/private repositories still do.
 
 ## Requirements
 
@@ -23,6 +24,8 @@ bun run build
 ```
 
 See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for how to contribute. [docs/SECURITY.md](docs/SECURITY.md) explains how to report vulnerabilities. [AGENTS.md](AGENTS.md) summarizes setup and commands for tooling and coding agents. When verifying production CLI bugs, reproduce with the published package (for example `npx degit@latest ...`) rather than running the raw repository source directly. When you change development workflow, CI, or contributor-facing instructions, update **README.md**, **docs/CONTRIBUTING.md**, and **AGENTS.md** together so they stay consistent.
+
+`bun run test` runs the unit tests in `test/unit/**/*.test.ts` and the public integration tests in `test/integration/public.test.ts`, excluding `test/integration/private.test.ts`. Use `bun run test:integration` for the integration suite.
 
 A small proof-of-concept docs-sync workflow also runs on PRs that change `src/**/*.ts` or `assets/help.md`, using OpenRouter through Claude Code Action. It expects `OPENROUTER_API_KEY` and `OPENROUTER_ANTHROPIC_BASE_URL` repository secrets.
 
@@ -98,9 +101,11 @@ If you have an `https_proxy` environment variable, Degit will use it.
 
 ### Private repositories
 
-Use `--mode=git` to clone private repos over SSH. This mode is much slower than fetching a tarball, which is why it is not the default.
+Private repositories are handled automatically. degit uses the tarball path by default for HTTPS sources and falls back to SSH cloning when it cannot fetch or extract a snapshot.
 
-Note: this clones over SSH, not HTTPS.
+SSH/private repositories still require `git` on your `PATH`.
+
+If you still pass `--mode=git`, degit keeps working and prints a notice that the flag is no longer needed. `--mode=tar` is the default path.
 
 ### See all options
 

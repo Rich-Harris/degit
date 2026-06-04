@@ -160,9 +160,13 @@ bun run knip:ci
 bun run audit
 ```
 
-`bun run test` runs the test suite with [Vitest](https://vitest.dev/). The `pretest` script builds first.
+`bun run test` runs the test suite with [Vitest](https://vitest.dev/) and excludes `test/integration/private.test.ts`. The `pretest` script builds first.
+
+`bun run test:integration` runs the integration suite in `test/integration`.
 
 `bun run audit` runs the dependency audit that also backs [.github/workflows/security.yml](.github/workflows/security.yml).
+
+The scheduled integration workflow in [.github/workflows/integration.yml](.github/workflows/integration.yml) runs `bun run test:integration`. When the `SSH_PRIVATE_KEY` repository secret is available, it also includes built-in SSH-backed private fixtures for [YogliB/degit-test](https://github.com/YogliB/degit-test) and the automatic fallback path.
 
 A small proof-of-concept docs-sync workflow also runs on PRs that change `src/**/*.ts` and `assets/help.md`, using OpenRouter through Claude Code Action. It expects `OPENROUTER_API_KEY` and `OPENROUTER_ANTHROPIC_BASE_URL` repository secrets.
 

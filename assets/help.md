@@ -53,7 +53,9 @@ Options:
 `--cache`, `-c` Only use local cache
 `--force`, `-f` Allow non-empty destination directory
 `--verbose`, `-v` Extra logging
-`--mode=`, `-m=` Force the mode by which degit clones the repo
-Valid options are `tar` or `git` (uses SSH)
+
+Private repositories are handled automatically: degit uses the tarball path by default for HTTPS sources and falls back to SSH cloning when needed. SSH/private repos still require git.
+
+`--mode=git` is still accepted for compatibility. `--mode=tar` is the default path and does not need special handling.
 
 See https://github.com/Rich-Harris/degit for more information

@@ -10,6 +10,7 @@ export type Repo = {
 	name: string;
 	ref: string;
 	site: string;
+	transport: 'https' | 'ssh';
 	ssh: string;
 	subdir?: string;
 	url: string;
@@ -56,12 +57,18 @@ export function getProvider(site: string): Provider | undefined {
 export function parse(src: string): Repo {
 	const [source, refValue = 'HEAD'] = src.split('#', 2);
 	let site = 'github';
+	let transport: 'https' | 'ssh' = 'https';
 	let remainder = source;
 
 	if (source.startsWith('https://') || source.startsWith('http://')) {
 		const parsed = new URL(source);
 		site = parsed.hostname.replace(/\.(com|org)$/, '');
 		remainder = parsed.pathname.replace(/^\//, '');
+	} else if (source.startsWith('ssh://')) {
+		const parsed = new URL(source);
+		site = parsed.hostname.replace(/\.(com|org)$/, '');
+		remainder = parsed.pathname.replace(/^\//, '');
+		transport = 'ssh';
 	} else if (source.startsWith('git@')) {
 		const match = /^git@([^:/]+)[:/](.+)$/.exec(source);
 		if (!match) {
@@ -72,6 +79,7 @@ export function parse(src: string): Repo {
 
 		site = match[1].replace(/\.(com|org)$/, '');
 		remainder = match[2];
+		transport = 'ssh';
 	} else if (source.startsWith('git.sr.ht/')) {
 		site = 'git.sr.ht';
 		remainder = source.slice('git.sr.ht/'.length);
@@ -114,5 +122,5 @@ export function parse(src: string): Repo {
 
 	const mode = 'tar';
 
-	return { mode, name, ref, site, ssh, subdir, url, user };
+	return { mode, name, ref, site, ssh, subdir, transport, url, user };
 }

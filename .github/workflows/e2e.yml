@@ -1,16 +1,17 @@
-name: Integration
+name: E2E
 
 on:
-    pull_request:
-    workflow_dispatch:
+    schedule:
+        - cron: '0 2 * * *'
 
 jobs:
-    integration:
-        name: integration (${{ matrix.os }})
+    e2e:
+        name: e2e (${{ matrix.os }})
         permissions:
             contents: read
         env:
             SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+            DEGIT_TEST_MODE: release
 
         strategy:
             fail-fast: false
@@ -48,5 +49,11 @@ jobs:
                   ssh-keyscan github.com gitlab.com bitbucket.org git.sr.ht >> ~/.ssh/known_hosts
 
             - run: bun install --frozen-lockfile
+
+            - run: npm install -g degit@latest
+
+            - run: npm list -g degit --depth=0
+
+            - run: degit --help
 
             - run: bun run test:integration

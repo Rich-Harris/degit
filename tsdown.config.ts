@@ -12,6 +12,7 @@ export default defineConfig({
 		js: '.js',
 	}),
 	platform: 'node',
-	sourcemap: true,
+	minify: true,
+	sourcemap: false,
 	target: 'node20',
 });

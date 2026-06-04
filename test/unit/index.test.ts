@@ -4,18 +4,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as tar from 'tar';
 import { sync as rimraf } from 'rimraf';
-import degit from '../src/index.js';
-import { base } from '../src/utils.js';
+import degit from '../../src/index.js';
+import { base } from '../../src/utils.js';
 import {
 	compareDirToExpected,
 	createCopyFetch,
-	createMockExec,
+	createMockGit,
 	createMockFetch,
-} from './helpers.js';
+} from '../helpers.js';
 
 sourceMapSupport.install();
 
 const refsHash = '0123456789abcdef0123456789abcdef0123456789';
+const gitRefs = [{ hash: refsHash, type: 'HEAD' }];
+const branchRefs = [{ hash: refsHash, name: 'main', type: 'branch' }];
 
 function createProviderCase({ build, domain, publicSrc, redirectUrl, site, user }) {
 	const name = 'degit-test-repo';
@@ -104,23 +106,6 @@ async function createArchiveFixture(rootName) {
 	return archiveFile;
 }
 
-async function createDirectiveArchiveFixture(rootName, directives) {
-	fs.mkdirSync('.tmp/index-suite', { recursive: true });
-	const archiveDir = fs.mkdtempSync(path.join('.tmp/index-suite', 'archive-'));
-	const archiveRoot = path.join(archiveDir, rootName);
-
-	fs.mkdirSync(path.join(archiveRoot, 'packages/app/lib'), { recursive: true });
-	fs.writeFileSync(path.join(archiveRoot, 'packages/app/index.js'), 'export default 1\n');
-	fs.writeFileSync(path.join(archiveRoot, 'packages/app/lib/nested.txt'), 'nested\n');
-	fs.writeFileSync(path.join(archiveRoot, 'packages/ignored.txt'), 'ignored\n');
-	fs.writeFileSync(path.join(archiveRoot, 'degit.json'), JSON.stringify(directives));
-
-	const archiveFile = path.join(archiveDir, `${rootName}.tar.gz`);
-	await tar.create({ C: archiveDir, file: archiveFile, gzip: true }, [rootName]);
-
-	return archiveFile;
-}
-
 function clearArchiveCache(test, _hash) {
 	const archiveDir = path.join(base, test.site, test.user, test.name);
 	fs.rmSync(archiveDir, { force: true, recursive: true });
@@ -133,9 +118,8 @@ describe('degit index', () => {
 	afterEach(async () => await rimraf(indexTmp));
 
 	it('exports a usable JS library when importing the built entrypoint', async () => {
-		const { default: builtDegit } = await import(
-			new URL('../dist/index.js', import.meta.url).href
-		);
+		const builtEntryPoint = path.resolve(process.cwd(), 'dist/index.js');
+		const { default: builtDegit } = await import(new URL(`file://${builtEntryPoint}`).href);
 		const instance = builtDegit('Rich-Harris/degit-test-repo');
 
 		assert.equal(typeof builtDegit, 'function');
@@ -152,7 +136,15 @@ describe('degit index', () => {
 				assert.equal(repo.name, test.name);
 				assert.equal(repo.url, test.url);
 				assert.equal(repo.ssh, test.ssh);
+				assert.equal(repo.transport, 'https');
 			});
+		});
+
+		it('parses explicit ssh sources as ssh transport', () => {
+			const { repo } = degit('git@github.com:Rich-Harris/degit-test-repo');
+
+			assert.equal(repo.transport, 'ssh');
+			assert.equal(repo.ssh, 'ssh://git@github.com/Rich-Harris/degit-test-repo');
 		});
 
 		it('throws UNSUPPORTED_HOST when the host prefix is not supported', () => {
@@ -167,52 +159,137 @@ describe('degit index', () => {
 
 	describe('tar mode fetch failures', () => {
 		providerCases.forEach((test) => {
-			it(`maps ${test.site} tar download failure to COULD_NOT_DOWNLOAD when redirect leads to 403`, async () => {
+			it(`falls back to git clone using the source transport when redirect leads to 403 for ${test.site}`, async () => {
 				clearArchiveCache(test, refsHash);
 				const fetch = createMockFetch([
 					{ location: test.redirectUrl, status: 302 },
 					{ code: 403, message: 'Forbidden', status: 403 },
 				]);
-				const execMock = createMockExec({
-					[test.lsRemote]: `${refsHash}\tHEAD\n`,
+				const gitMock = createMockGit({
+					[`fetchRefs ${test.url}`]: gitRefs,
+					[`clone ${test.url} .tmp/index-suite/test-repo HEAD`]: '',
 				});
 
-				try {
-					await degit(test.publicSrc, {
-						exec: execMock.fn,
-						fetch: fetch.fn,
-					}).clone('.tmp/index-suite/test-repo');
-					assert.fail('expected to throw');
-				} catch (error) {
-					assert.equal(error.code, 'COULD_NOT_DOWNLOAD');
-					assert.equal(error.url, test.archiveUrl(refsHash));
-				}
+				await degit(test.publicSrc, {
+					git: gitMock.fn,
+					fetch: fetch.fn,
+				}).clone('.tmp/index-suite/test-repo');
 
 				assert.equal(fetch.calls.length, 2);
 				assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
 				assert.equal(fetch.calls[1].url, test.redirectUrl);
+				assert.deepEqual(gitMock.calls, [
+					`fetchRefs ${test.url}`,
+					`clone ${test.url} .tmp/index-suite/test-repo HEAD`,
+				]);
 			});
+		});
+
+		it('falls back to git clone after a repeated extraction failure for github', async () => {
+			const test = providerCases[0];
+			const dest = '.tmp/index-suite/test-repo';
+			const archiveDir = path.join(base, test.site, test.user, test.name);
+			const corruptArchive = path.join('.tmp/index-suite', 'corrupt-archive.tar.gz');
+			clearArchiveCache(test, refsHash);
+			fs.mkdirSync('.tmp/index-suite', { recursive: true });
+			fs.mkdirSync(archiveDir, { recursive: true });
+			fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
+			fs.writeFileSync(corruptArchive, 'not a tarball');
+			const fetch = createCopyFetch(corruptArchive);
+			const gitMock = createMockGit({
+				[`fetchRefs ${test.url}`]: gitRefs,
+				[`clone ${test.url} ${dest} HEAD`]: '',
+			});
+
+			await degit(test.publicSrc, {
+				git: gitMock.fn,
+				fetch: fetch.fn,
+			}).clone(dest);
+
+			assert.equal(fetch.calls.length, 1);
+			assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+			assert.deepEqual(gitMock.calls, [
+				`fetchRefs ${test.url}`,
+				`clone ${test.url} ${dest} HEAD`,
+			]);
+		});
+	});
+
+	describe('tar mode HEAD fallback', () => {
+		providerCases.forEach((test) => {
+			it(`uses the default branch hash when HEAD is missing for ${test.site}`, async () => {
+				clearArchiveCache(test, refsHash);
+				const fetch = createCopyFetch(
+					await createArchiveFixture(`degit-test-repo-${refsHash}`),
+				);
+				const gitMock = createMockGit({
+					[`fetchRefs ${test.url}`]: branchRefs,
+				});
+
+				await degit(test.publicSrc, {
+					git: gitMock.fn,
+					fetch: fetch.fn,
+				}).clone('.tmp/index-suite/test-repo');
+
+				compareDirToExpected('.tmp/index-suite/test-repo', {
+					packages: '',
+					'packages/app': '',
+					'packages/app/index.js': 'export default 1\n',
+					'packages/app/lib': '',
+					'packages/app/lib/nested.txt': 'nested\n',
+					'packages/ignored.txt': 'ignored\n',
+				});
+				assert.equal(fetch.calls.length, 1);
+				assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+				assert.deepEqual(gitMock.calls, [`fetchRefs ${test.url}`]);
+			});
+		});
+
+		it('throws MISSING_REF when no refs are returned for HEAD', async () => {
+			const test = providerCases[1];
+			const dest = '.tmp/index-suite/empty-refs';
+			const gitMock = createMockGit({
+				[`fetchRefs ${test.url}`]: [],
+			});
+
+			await assert.rejects(
+				async () => await degit(test.publicSrc, { git: gitMock.fn }).clone(dest),
+				(err: any) => err && err.code === 'MISSING_REF',
+			);
+		});
+
+		it('uses the git backend for ssh sources when mode is git', async () => {
+			const dest = '.tmp/index-suite/ssh-git-mode';
+			const gitMock = createMockGit({
+				[`fetchRefs ssh://git@github.com/Rich-Harris/degit-test-repo`]: gitRefs,
+				[`clone ssh://git@github.com/Rich-Harris/degit-test-repo ${dest} ${refsHash}`]: '',
+			});
+
+			await degit('git@github.com:Rich-Harris/degit-test-repo', {
+				git: gitMock.fn,
+				mode: 'git',
+			}).clone(dest);
+
+			assert.deepEqual(gitMock.calls, [
+				'fetchRefs ssh://git@github.com/Rich-Harris/degit-test-repo',
+				`clone ssh://git@github.com/Rich-Harris/degit-test-repo ${dest} ${refsHash}`,
+			]);
 		});
 	});
 
 	describe('tar mode extraction', () => {
-		let archiveFile;
-
-		beforeEach(async () => {
-			archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`);
-		});
-
 		providerCases.forEach((test) => {
 			it(`extracts a nested subdirectory when cloning a nested path for ${test.site}`, async () => {
 				const dest = '.tmp/index-suite/test-repo';
 				clearArchiveCache(test, refsHash);
+				const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`);
 				const fetch = createCopyFetch(archiveFile);
-				const execMock = createMockExec({
-					[test.lsRemote]: `${refsHash}\tHEAD\n`,
+				const gitMock = createMockGit({
+					[`fetchRefs ${test.url}`]: gitRefs,
 				});
 
 				await degit(`${test.publicSrc}/packages/app`, {
-					exec: execMock.fn,
+					git: gitMock.fn,
 					fetch: fetch.fn,
 				}).clone(dest);
 
@@ -230,15 +307,16 @@ describe('degit index', () => {
 				const dest = '.tmp/index-suite/test-repo';
 				const archiveDir = path.join(base, test.site, test.user, test.name);
 				clearArchiveCache(test, refsHash);
+				const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`);
 				fs.mkdirSync(archiveDir, { recursive: true });
 				fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
 				const fetch = createCopyFetch(archiveFile);
-				const execMock = createMockExec({
-					[test.lsRemote]: `${refsHash}\tHEAD\n`,
+				const gitMock = createMockGit({
+					[`fetchRefs ${test.url}`]: gitRefs,
 				});
 
 				await degit(test.publicSrc, {
-					exec: execMock.fn,
+					git: gitMock.fn,
 					fetch: fetch.fn,
 				}).clone(dest);
 
@@ -256,86 +334,56 @@ describe('degit index', () => {
 		});
 	});
 
-	describe('git mode', () => {
+	describe('explicit git mode', () => {
 		providerCases.forEach((test) => {
-			it(`clones via git and strips .git when mode is git for ${test.site}`, async () => {
-				const execMock = createMockExec({
-					[`git clone -- ssh://git@${test.url.split('/')[2]}/${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
-						'',
-					[`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`]: '',
+			it(`uses the git backend immediately when mode is git for ${test.site}`, async () => {
+				const dest = '.tmp/index-suite/test-repo';
+				const gitMock = createMockGit({
+					[`fetchRefs ${test.url}`]: gitRefs,
+					[`clone ${test.url} ${dest} ${refsHash}`]: '',
+				});
+				const warnings: string[] = [];
+				const emitter = degit(test.publicSrc, {
+					git: gitMock.fn,
+					mode: 'git',
 				});
 
-				await degit(test.gitSrc, {
-					exec: execMock.fn,
-					mode: 'git',
-				}).clone('.tmp/index-suite/test-repo');
+				emitter.on('warn', (event) => warnings.push(event.message));
 
-				assert.deepEqual(execMock.calls, [
-					`git clone -- ssh://git@${test.url.split('/')[2]}/${test.user}/${test.privateName} .tmp/index-suite/test-repo`,
-					`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`,
+				await emitter.clone(dest);
+
+				assert.deepEqual(warnings, []);
+				assert.deepEqual(gitMock.calls, [
+					`fetchRefs ${test.url}`,
+					`clone ${test.url} ${dest} ${refsHash}`,
 				]);
 			});
 		});
 
-		it('routes nested clone info output to stdout when a directive triggers a nested clone', async () => {
-			const outerHash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-			const innerHash = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
-			const outerSrc = 'Rich-Harris/degit-test-repo-outer';
-			const innerSrc = 'Rich-Harris/degit-test-repo-inner';
-			const outerArchive = await createDirectiveArchiveFixture(
-				`degit-test-repo-outer-${outerHash}`,
-				[{ action: 'clone', src: innerSrc }],
-			);
-			const innerArchive = await createArchiveFixture(`degit-test-repo-inner-${innerHash}`);
-			fs.rmSync(path.join(base, 'github', 'Rich-Harris', 'degit-test-repo-outer'), {
-				force: true,
-				recursive: true,
+		it('uses the git backend on Windows when mode is git', async () => {
+			const test = providerCases[0];
+			const dest = '.tmp/index-suite/windows-git-mode';
+			const gitMock = createMockGit({
+				[`fetchRefs ${test.url}`]: gitRefs,
+				[`clone ${test.url} ${dest} ${refsHash}`]: '',
 			});
-			fs.rmSync(path.join(base, 'github', 'Rich-Harris', 'degit-test-repo-inner'), {
-				force: true,
-				recursive: true,
-			});
-			const execMock = createMockExec({
-				[`git ls-remote -- https://github.com/Rich-Harris/degit-test-repo-outer`]: `${outerHash}\tHEAD\n`,
-				[`git ls-remote -- https://github.com/Rich-Harris/degit-test-repo-inner`]: `${innerHash}\tHEAD\n`,
-			});
-			const fetchCalls: string[] = [];
-			const fetch = (url, file) => {
-				fetchCalls.push(url);
-				if (
-					url ===
-					`https://github.com/Rich-Harris/degit-test-repo-outer/archive/${outerHash}.tar.gz`
-				) {
-					fs.copyFileSync(outerArchive, file);
-					return Promise.resolve();
-				}
-				if (
-					url ===
-					`https://github.com/Rich-Harris/degit-test-repo-inner/archive/${innerHash}.tar.gz`
-				) {
-					fs.copyFileSync(innerArchive, file);
-					return Promise.resolve();
-				}
-				return Promise.reject(new Error(`Unexpected fetch: ${url}`));
-			};
+			const warnings: string[] = [];
 
-			try {
-				await degit(outerSrc, {
-					exec: execMock.fn,
-					fetch,
-				}).clone('.tmp/index-suite/test-repo');
-				assert.ok(
-					execMock.calls.includes(
-						'git ls-remote -- https://github.com/Rich-Harris/degit-test-repo-inner',
-					),
-				);
-				assert.ok(
-					fetchCalls.includes(
-						`https://github.com/Rich-Harris/degit-test-repo-inner/archive/${innerHash}.tar.gz`,
-					),
-				);
-			} finally {
-			}
+			const emitter = degit(test.publicSrc, {
+				git: gitMock.fn,
+				mode: 'git',
+				platform: 'win32',
+			});
+
+			emitter.on('warn', (event) => warnings.push(event.message));
+
+			await emitter.clone(dest);
+
+			assert.deepEqual(warnings, []);
+			assert.deepEqual(gitMock.calls, [
+				`fetchRefs ${test.url}`,
+				`clone ${test.url} ${dest} ${refsHash}`,
+			]);
 		});
 
 		it('rejects with DEST_NOT_EMPTY when destination has files and force is false', async () => {

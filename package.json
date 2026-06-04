@@ -1,6 +1,6 @@
 {
 	"name": "degit",
-	"version": "3.3.2",
+	"version": "3.4.0",
 	"description": "Straightforward project scaffolding",
 	"keywords": [
 		"git",
@@ -22,8 +22,10 @@
 	},
 	"files": [
 		"assets/help.md",
+		"dist",
+		"docs/CHANGELOG.md",
 		"LICENSE.md",
-		"dist"
+		"README.md"
 	],
 	"type": "module",
 	"main": "dist/index.js",
@@ -39,8 +41,8 @@
 		"duplicates:ci": "jscpd --gitignore --reporters console --threshold 5 tsdown.config.ts vitest.config.ts src test",
 		"dev": "tsdown --config tsdown.config.ts --watch",
 		"build": "tsdown --config tsdown.config.ts",
-		"test": "vitest run",
-		"test:live": "LIVE_TESTS=1 vitest run test/live.test.ts",
+		"test": "vitest run --exclude test/integration/private.test.ts",
+		"test:integration": "vitest run test/integration",
 		"test:coverage": "vitest run --coverage",
 		"pretest": "bun run build",
 		"prepublishOnly": "bun run test"
@@ -54,6 +56,7 @@
 		"fuzzysearch": "1.0.3",
 		"https-proxy-agent": "5.0.0",
 		"husky": "9.1.7",
+		"isomorphic-git": "1.38.1",
 		"jscpd": "4.0.9",
 		"knip": "6.11.0",
 		"lint-staged": "10.5.4",

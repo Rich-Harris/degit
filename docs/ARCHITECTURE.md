@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document describes the actual architecture of degit: a single-package TypeScript CLI and library that downloads a snapshot of a remote git repository, caches tarballs locally, and optionally falls back to git mode for private repositories.
+This document describes the actual architecture of degit: a single-package TypeScript CLI and library that downloads a snapshot of a remote git repository, caches tarballs locally, and falls back to SSH cloning when tarball fetching or extraction fails.
 
 ## 1. Project Structure
 
@@ -16,9 +16,15 @@ The repository is intentionally small. The source of truth for behavior lives in
 │   ├── bin.ts        # CLI entrypoint, argument parsing, interactive mode
 │   └── utils.ts      # Fetch, exec, filesystem helpers, cache paths
 ├── test/
-│   ├── bin.test.ts   # CLI behavior and interactive flow
-│   ├── index.test.ts # Core clone flow, providers, cache, directives
-│   ├── live.test.ts  # Optional real-provider integration checks
+│   ├── unit/
+│   │   ├── bin.test.ts   # CLI behavior and interactive flow
+│   │   ├── index.test.ts # Core clone flow, providers, cache, directives
+│   │   ├── git-client.test.ts
+│   │   ├── lazy-git.test.ts
+│   │   └── utils.test.ts
+│   ├── integration/
+│   │   ├── public.test.ts
+│   │   └── private.test.ts
 │   └── helpers.ts    # Test utilities and mocks
 ├── dist/             # Built ESM output and type declarations
 ├── README.md         # User-facing usage and setup guide
@@ -45,7 +51,7 @@ degit is a local CLI/library wrapper around remote repository snapshots:
 						   -> [Destination directory]
 ```
 
-The important boundary is between local orchestration and remote provider access. `src/index.ts` resolves the repo, decides between tar and git mode, downloads or clones, extracts contents, and then applies optional post-clone directives from `degit.json`.
+The important boundary is between local orchestration and remote provider access. `src/index.ts` resolves the repo, prefers tarball downloads, falls back to SSH cloning when needed, extracts contents, and then applies optional post-clone directives from `degit.json`.
 
 ## 3. Core Components
 
@@ -63,7 +69,7 @@ Deployment: Built into the published `degit` executable and run locally via Node
 
 Name: Degit orchestrator
 
-Description: Implements the main clone lifecycle as an `EventEmitter`. It parses supported source formats, resolves refs, checks and uses the local cache, downloads tarballs, performs git clones when requested, and applies `degit.json` directives after the initial clone.
+Description: Implements the main clone lifecycle as an `EventEmitter`. It parses supported source formats, resolves refs, checks and uses the local cache, downloads tarballs, falls back to SSH cloning when tarball fetches or extraction fail, and applies `degit.json` directives after the initial clone.
 
 Technologies: TypeScript, `tar`, `sander`, `chalk`, Node standard library
 
@@ -97,7 +103,7 @@ Description: Validates provider parsing, tar and git modes, caching behavior, di
 
 Technologies: Vitest, Node test fixtures, tar archive generation, mock `fetch` and `exec` helpers
 
-Deployment: Run locally and in CI; `test/live.test.ts` is opt-in through `LIVE_TESTS=1`.
+Deployment: Run locally and in CI; `test/integration/public.test.ts` and `test/integration/private.test.ts` run directly through `bun run test:integration`, and the private fixtures are included only when `SSH_PRIVATE_KEY` is provided in CI or the local shell.
 
 ## 4. Data Stores
 
@@ -125,9 +131,9 @@ Purpose: Preserves existing destination files while `degit.json` directives run,
 
 The tool talks to a small set of external systems:
 
-GitHub, GitLab, Bitbucket, and Sourcehut: Used to resolve repository refs and download archive tarballs over HTTPS, or to clone over SSH in git mode.
+GitHub, GitLab, Bitbucket, and Sourcehut: Used to resolve repository refs and download archive tarballs over HTTPS, or to clone over SSH when tarball fetches fail.
 
-Git: Invoked through `git ls-remote` and `git clone` for ref resolution and private repository cloning.
+Git backend: A native in-process git library is used for SSH ref resolution and fallback cloning.
 
 HTTPS proxy support: `https_proxy` is honored through `https-proxy-agent` when fetching tarballs.
 
@@ -147,7 +153,7 @@ Build and release use tsdown to emit `dist/` ESM output and type declarations. D
 
 ## 7. Security Considerations
 
-Authentication: No application login flow. Repository access relies on public HTTPS archives or SSH-based git cloning for private repositories.
+Authentication: No application login flow. Repository access relies on public HTTPS archives or SSH-based fallback cloning for private repositories.
 
 Authorization: Delegated to the remote git provider and the user’s network credentials.
 
@@ -161,7 +167,7 @@ The clone flow also relies on path-safe extraction via the tar library and does 
 
 Local Setup Instructions: See `../README.md` and `CONTRIBUTING.md`. The expected workflow is `bun install`, `bun run build`, and then the relevant tests or checks.
 
-Testing Frameworks: Vitest for unit and integration tests. `test/live.test.ts` is gated behind `LIVE_TESTS=1` and is not part of the normal default run.
+Testing Frameworks: Vitest for unit and integration tests. `test/integration/private.test.ts` runs directly under `bun run test:integration`, includes private SSH-backed integration repos when `SSH_PRIVATE_KEY` is set, and can add more when configured through CI secrets.
 
 Code Quality Tools: Oxlint, Oxfmt, Knip, and jscpd. The repository also uses Husky and lint-staged for pre-commit checks.
 
@@ -185,9 +191,9 @@ Date of Last Update: 2026-05-23
 
 ## 11. Glossary / Acronyms
 
-Tar mode: The default clone mode. Degit downloads a provider archive and extracts it locally.
+Tar path: The default clone path. Degit downloads a provider archive and extracts it locally.
 
-Git mode: The fallback mode that uses `git clone` over SSH, mainly for private repositories.
+SSH fallback: The compatibility path that clones over SSH when tarball fetches or extraction fail.
 
 Directive: An entry in `degit.json` that runs after the initial clone. Current directives are `clone` and `remove`.
 

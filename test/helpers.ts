@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import glob from 'tiny-glob/sync.js';
 import assert from 'node:assert';
+import { setTimeout as delay } from 'node:timers/promises';
 
 function readFixture(file) {
 	return fs.readFileSync(file, 'utf8');
@@ -17,28 +18,36 @@ export function compareDirToExpected(dir, files) {
 	});
 }
 
-export function createMockExec(stubs = {}) {
+export function createMockGit(stubs = {}) {
 	const calls = [];
-	const fn = (command, args = []) => {
-		const call = [command, ...args].join(' ');
-		calls.push(call);
-
+	const getGitUrl = (repo, transport = repo.transport) =>
+		transport === 'ssh' ? repo.ssh : repo.url;
+	const resolveStub = async (call, ...args) => {
 		if (!Object.hasOwn(stubs, call)) {
-			return Promise.reject(new Error(`Unexpected command: ${call}`));
+			return Promise.reject(new Error(`Unexpected git call: ${call}`));
 		}
 
 		const stub = stubs[call];
-		if (stub && stub.error) {
-			return Promise.reject(stub.error);
+		if (typeof stub === 'function') {
+			return stub(...args);
 		}
 
-		const stdout = typeof stub === 'string' ? stub : stub.stdout || '';
-		const stderr = stub && stub.stderr ? stub.stderr : '';
-
-		return Promise.resolve({ stderr, stdout });
+		return Promise.resolve(stub);
 	};
 
-	return { calls, fn };
+	const fetchRefs = async (repo) => {
+		const call = `fetchRefs ${getGitUrl(repo)}`;
+		calls.push(call);
+		return resolveStub(call, repo);
+	};
+
+	const clone = async (repo, dest, ref, transport) => {
+		const call = `clone ${getGitUrl(repo, transport)} ${dest}${ref ? ` ${ref}` : ''}`;
+		calls.push(call);
+		return resolveStub(call, repo, dest, ref, transport);
+	};
+
+	return { calls, fn: { clone, fetchRefs } };
 }
 
 export function createMockFetch(steps) {
@@ -74,10 +83,25 @@ export function createMockFetch(steps) {
 
 export function createCopyFetch(sourceFile) {
 	const calls = [];
+	const maxAttempts = 6;
 
-	const fn = (url, file, proxy) => {
+	const copyWithRetry = (destination, attempt = 1) => {
+		try {
+			fs.copyFileSync(sourceFile, destination);
+			return Promise.resolve();
+		} catch (error) {
+			const isRetryable = error?.code === 'EPERM' || error?.code === 'EBUSY';
+			if (!isRetryable || attempt === maxAttempts) {
+				return Promise.reject(error);
+			}
+
+			return delay(25 * attempt).then(() => copyWithRetry(destination, attempt + 1));
+		}
+	};
+
+	const fn = async (url, file, proxy) => {
 		calls.push({ file, proxy, url });
-		fs.copyFileSync(sourceFile, file);
+		await copyWithRetry(file);
 
 		return Promise.resolve();
 	};

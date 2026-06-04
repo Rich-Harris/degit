@@ -8,7 +8,6 @@ import {
 	DegitError,
 	base,
 	degitConfigName,
-	exec,
 	fetch,
 	mkdirp,
 	stashFiles,
@@ -16,25 +15,19 @@ import {
 	unstashFiles,
 } from './utils.js';
 import { getProvider, parse, type Repo } from './repo.js';
-import { fetchRefs } from './fetch-refs.js';
+import type { GitClient } from './git-client.js';
 
 const validModes = new Set(['tar', 'git']);
-
-type ExecResult = {
-	stderr: string;
-	stdout: string;
-};
-
-type ExecFn = (command: string, args?: string[]) => Promise<ExecResult>;
 
 type FetchFn = (url: string, dest: string, proxy?: string) => Promise<void>;
 
 type ConstructorOptions = {
 	cache?: boolean;
-	exec?: ExecFn;
 	fetch?: FetchFn;
 	force?: boolean;
+	git?: GitClient;
 	mode?: 'tar' | 'git';
+	platform?: NodeJS.Platform;
 	verbose?: boolean;
 };
 
@@ -102,12 +95,14 @@ export default function degit(src: string, opts: ConstructorOptions = {}) {
 class Degit extends EventEmitter {
 	cache?: boolean;
 	force?: boolean;
+	mode: 'tar' | 'git';
 	verbose?: boolean;
 	proxy?: string;
 	repo: Repo;
-	mode: 'tar' | 'git';
+	platform: NodeJS.Platform;
 	_fetch: FetchFn;
-	_exec: ExecFn;
+	_git?: GitClient;
+	_gitClientPromise?: Promise<GitClient>;
 	_hasStashed: boolean;
 	directiveActions: DirectiveActions;
 
@@ -120,11 +115,12 @@ class Degit extends EventEmitter {
 		this.proxy = process.env.https_proxy; // TODO allow setting via --proxy
 
 		this.repo = parse(src);
-		this.mode = opts.mode || this.repo.mode;
+		this.mode = opts.mode ?? this.repo.mode;
+		this.platform = opts.platform ?? process.platform;
 		this._fetch = opts.fetch || fetch;
-		this._exec = opts.exec || exec;
+		this._git = opts.git;
 
-		if (!validModes.has(this.mode)) {
+		if (opts.mode && !validModes.has(opts.mode)) {
 			throw new Error(`Valid modes are ${[...validModes].join(', ')}`);
 		}
 
@@ -141,7 +137,7 @@ class Degit extends EventEmitter {
 					cache: action.cache,
 					verbose: action.verbose,
 					fetch: this._fetch,
-					exec: this._exec,
+					git: await this._getGitClient(),
 				};
 				const d = degit(action.src, opts);
 
@@ -162,6 +158,21 @@ class Degit extends EventEmitter {
 		};
 	}
 
+	async _getGitClient(): Promise<GitClient> {
+		if (this._git) {
+			return this._git;
+		}
+
+		if (!this._gitClientPromise) {
+			this._gitClientPromise = import('./git-client.js').then(({ defaultGitClient }) => {
+				this._git = defaultGitClient;
+				return defaultGitClient;
+			});
+		}
+
+		return this._gitClientPromise;
+	}
+
 	_getDirectives(dest: string): Directive[] | false {
 		const directivesPath = path.resolve(dest, degitConfigName);
 		const directives = tryRequire(directivesPath, { clearCache: true }) || false;
@@ -178,12 +189,31 @@ class Degit extends EventEmitter {
 
 		const { repo } = this;
 
+		if (this.mode === 'git') {
+			const hash = await this._getHash(repo, {});
+			await this._cloneWithGit(dest, hash || repo.ref);
+			this._info({
+				code: 'SUCCESS',
+				dest,
+				message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+				repo,
+			});
+			return;
+		}
+
 		const dir = path.join(base, repo.site, repo.user, repo.name);
 
-		if (this.mode === 'tar') {
+		try {
 			await this._cloneWithTar(dir, dest);
-		} else {
-			await this._cloneWithGit(dir, dest);
+		} catch (error) {
+			if (this._shouldFallbackToGit(error)) {
+				this._warn({
+					message: `tar snapshot download or extraction failed; falling back to git clone`,
+				});
+				await this._cloneWithGit(dest);
+			} else {
+				throw error;
+			}
 		}
 
 		this._info({
@@ -289,11 +319,8 @@ class Degit extends EventEmitter {
 
 	async _getHash(repo: Repo, cached: Record<string, string>): Promise<string | undefined> {
 		try {
-			const refs = await this._fetchRefs(repo);
-			if (repo.ref === 'HEAD') {
-				return refs.find((ref) => ref.type === 'HEAD').hash;
-			}
-			return this._selectRef(refs, repo.ref);
+			const refs = await (await this._getGitClient()).fetchRefs(repo);
+			return repo.ref === 'HEAD' ? this._selectHead(refs) : this._selectRef(refs, repo.ref);
 		} catch (error) {
 			this._warn(error);
 			this._verbose(error.original);
@@ -338,6 +365,26 @@ class Degit extends EventEmitter {
 		}
 	}
 
+	_selectHead(refs: Array<{ hash: string; name?: string; type?: string }>) {
+		const head = refs.find((ref) => ref.type === 'HEAD');
+		if (head) {
+			return head.hash;
+		}
+
+		for (const branchName of ['main', 'master']) {
+			const branch = refs.find((ref) => {
+				if (ref.type === 'HEAD') return false;
+				if (!ref.name) return false;
+				return ref.name === branchName || ref.name.endsWith(`/${branchName}`);
+			});
+			if (branch) {
+				return branch.hash;
+			}
+		}
+
+		return refs.find((ref) => ref.type === 'branch' && ref.hash)?.hash;
+	}
+
 	async _cloneWithTar(dir: string, dest: string): Promise<void> {
 		const { repo } = this;
 
@@ -350,6 +397,14 @@ class Degit extends EventEmitter {
 		const subdir = repo.subdir ? `${repo.name}-${hash}${repo.subdir}` : null;
 
 		if (!hash) {
+			if (repo.transport === 'ssh') {
+				this._warn({
+					message: `tar lookup failed; falling back to git clone`,
+				});
+				await this._cloneWithGit(dest);
+				return;
+			}
+
 			// TODO 'did you mean...?'
 			throw new DegitError(`could not find commit hash for ${repo.ref}`, {
 				code: 'MISSING_REF',
@@ -395,8 +450,6 @@ class Degit extends EventEmitter {
 			});
 		}
 
-		updateCache(dir, repo, hash, cached);
-
 		this._verbose({
 			code: 'EXTRACTING',
 			message: `extracting ${subdir ? `${repo.subdir} from ` : ''}${file} to ${dest}`,
@@ -404,15 +457,20 @@ class Degit extends EventEmitter {
 
 		mkdirp(dest);
 		await this._untarWithRetry(file, dest, subdir, url);
+		updateCache(dir, repo, hash, cached);
 	}
 
-	async _cloneWithGit(dir: string, dest: string): Promise<void> {
-		await this._exec('git', ['clone', '--', this.repo.ssh, dest]);
-		await this._exec('rm', ['-rf', path.resolve(dest, '.git')]);
+	async _cloneWithGit(dest: string, ref = this.repo.ref): Promise<void> {
+		await (await this._getGitClient()).clone(this.repo, dest, ref, this.repo.transport);
 	}
 
-	_fetchRefs(repo: Repo) {
-		return fetchRefs(repo, this._exec);
+	_shouldFallbackToGit(error: unknown): boolean {
+		if (!error || typeof error !== 'object') {
+			return false;
+		}
+
+		const code = (error as { code?: string }).code;
+		return code === 'COULD_NOT_DOWNLOAD' || code === 'TAR_BAD_ARCHIVE';
 	}
 
 	async _untarWithRetry(file: string, dest: string, subdir: string | null, url: string) {
