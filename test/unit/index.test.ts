@@ -106,6 +106,80 @@ async function createArchiveFixture(rootName) {
 	return archiveFile;
 }
 
+async function createArchiveWithFileFixture(rootName, relativePath, contents) {
+	fs.mkdirSync('.tmp/index-suite', { recursive: true });
+	const archiveDir = fs.mkdtempSync(path.join('.tmp/index-suite', 'archive-'));
+	const archiveRoot = path.join(archiveDir, rootName);
+
+	fs.mkdirSync(path.dirname(path.join(archiveRoot, relativePath)), { recursive: true });
+	fs.writeFileSync(path.join(archiveRoot, relativePath), contents);
+
+	const archiveFile = path.join(archiveDir, `${rootName}.tar.gz`);
+	await tar.create({ C: archiveDir, file: archiveFile, gzip: true }, [rootName]);
+
+	return archiveFile;
+}
+
+async function createArchiveWithGitLfsPointerFixture(rootName) {
+	return createArchiveWithFileFixture(
+		rootName,
+		'packages/app/asset.bin',
+		'version https://git-lfs.github.com/spec/v1\noid sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\nsize 1234\n',
+	);
+}
+
+async function cloneAndReadFile(test, archiveFile, dest, filePath, gitCloneOutput) {
+	const fetch = createCopyFetch(archiveFile);
+	const gitMock = createMockGit({
+		[`fetchRefs ${test.url}`]: gitRefs,
+		[`clone ${test.url} ${dest} HEAD`]: (_repo, cloneDest) => {
+			fs.mkdirSync(cloneDest, { recursive: true });
+			fs.writeFileSync(path.join(cloneDest, filePath), gitCloneOutput);
+		},
+	});
+
+	await degit(test.publicSrc, {
+		git: gitMock.fn,
+		fetch: fetch.fn,
+	}).clone(dest);
+
+	return { fetch, gitMock };
+}
+
+async function cloneAndExpectGitFallback(test, archiveFile, dest) {
+	const { fetch, gitMock } = await cloneAndReadFile(
+		test,
+		archiveFile,
+		dest,
+		'from-git.txt',
+		'git clone output\n',
+	);
+
+	assert.equal(fs.existsSync(path.join(dest, 'from-git.txt')), true);
+	assert.equal(fs.readFileSync(path.join(dest, 'from-git.txt'), 'utf8'), 'git clone output\n');
+	assert.equal(fetch.calls.length, 1);
+	assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+	assert.deepEqual(gitMock.calls, [`fetchRefs ${test.url}`, `clone ${test.url} ${dest} HEAD`]);
+}
+
+async function cloneAndExpectTarContent(test, archiveFile, dest, expectedPath, expectedContent) {
+	const fetch = createCopyFetch(archiveFile);
+	const gitMock = createMockGit({
+		[`fetchRefs ${test.url}`]: gitRefs,
+	});
+
+	await degit(test.publicSrc, {
+		git: gitMock.fn,
+		fetch: fetch.fn,
+	}).clone(dest);
+
+	assert.equal(fs.existsSync(path.join(dest, expectedPath)), true);
+	assert.equal(fs.readFileSync(path.join(dest, expectedPath), 'utf8'), expectedContent);
+	assert.equal(fetch.calls.length, 1);
+	assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+	assert.deepEqual(gitMock.calls, [`fetchRefs ${test.url}`]);
+}
+
 function clearArchiveCache(test, _hash) {
 	const archiveDir = path.join(base, test.site, test.user, test.name);
 	fs.rmSync(archiveDir, { force: true, recursive: true });
@@ -357,6 +431,32 @@ describe('degit index', () => {
 					`fetchRefs ${test.url}`,
 					`clone ${test.url} ${dest} ${refsHash}`,
 				]);
+			});
+		});
+
+		providerCases.forEach((test) => {
+			it(`does not fall back when a file merely quotes a pointer snippet for ${test.site}`, async () => {
+				const dest = '.tmp/index-suite/test-repo';
+				clearArchiveCache(test, refsHash);
+				const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`);
+				await cloneAndExpectTarContent(
+					test,
+					archiveFile,
+					dest,
+					'packages/app/index.js',
+					'export default 1\n',
+				);
+			});
+		});
+
+		providerCases.forEach((test) => {
+			it(`falls back to git clone when the tarball contains git-lfs pointers for ${test.site}`, async () => {
+				const dest = '.tmp/index-suite/test-repo';
+				clearArchiveCache(test, refsHash);
+				const archiveFile = await createArchiveWithGitLfsPointerFixture(
+					`degit-test-repo-${refsHash}`,
+				);
+				await cloneAndExpectGitFallback(test, archiveFile, dest);
 			});
 		});
 
