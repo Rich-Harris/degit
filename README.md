@@ -118,7 +118,7 @@ A few salient differences:
 
 - If you `git clone`, you get a `.git` folder that pertains to the project template, rather than your project. You can easily forget to re-init the repository, and end up confusing yourself
 - Caching and offline support (if you already have a `.tar.gz` file for a specific commit, you don't need to fetch it again).
-- Less to type (`degit user/repo` instead of `git clone --depth 1 git@github.com:user/repo`)
+- Less to type (`degit user/repo` instead of `git clone --depth 1 ssh://git@github.com/user/repo`)
 - Composability via [actions](#actions)
 - Future capabilities — [interactive mode](https://github.com/Rich-Harris/degit/issues/4), [friendly onboarding and postinstall scripts](https://github.com/Rich-Harris/degit/issues/6)
 

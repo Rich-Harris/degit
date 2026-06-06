@@ -2,7 +2,7 @@ import sourceMapSupport from 'source-map-support';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import tar from 'tar';
+import * as tar from 'tar';
 import { sync as rimraf } from 'rimraf';
 import degit from '../src/index.js';
 import { base } from '../src/utils.js';
@@ -22,13 +22,13 @@ const providerCases = [
 		archiveUrl: (hash) =>
 			`https://github.com/Rich-Harris/degit-test-repo/archive/${hash}.tar.gz`,
 		gitSrc: 'https://github.com/Rich-Harris/degit-test-repo-private.git',
-		lsRemote: 'git ls-remote https://github.com/Rich-Harris/degit-test-repo',
+		lsRemote: 'git ls-remote -- https://github.com/Rich-Harris/degit-test-repo',
 		name: 'degit-test-repo',
 		privateName: 'degit-test-repo-private',
 		publicSrc: 'Rich-Harris/degit-test-repo',
 		redirectUrl: 'https://github.com/forbidden',
 		site: 'github',
-		ssh: 'git@github.com:Rich-Harris/degit-test-repo',
+		ssh: 'ssh://git@github.com/Rich-Harris/degit-test-repo',
 		url: 'https://github.com/Rich-Harris/degit-test-repo',
 		user: 'Rich-Harris',
 	},
@@ -36,13 +36,13 @@ const providerCases = [
 		archiveUrl: (hash) =>
 			`https://gitlab.com/Rich-Harris/degit-test-repo/repository/archive.tar.gz?ref=${hash}`,
 		gitSrc: 'gitlab:Rich-Harris/degit-test-repo-private',
-		lsRemote: 'git ls-remote https://gitlab.com/Rich-Harris/degit-test-repo',
+		lsRemote: 'git ls-remote -- https://gitlab.com/Rich-Harris/degit-test-repo',
 		name: 'degit-test-repo',
 		privateName: 'degit-test-repo-private',
 		publicSrc: 'gitlab:Rich-Harris/degit-test-repo',
 		redirectUrl: 'https://gitlab.com/forbidden',
 		site: 'gitlab',
-		ssh: 'git@gitlab.com:Rich-Harris/degit-test-repo',
+		ssh: 'ssh://git@gitlab.com/Rich-Harris/degit-test-repo',
 		url: 'https://gitlab.com/Rich-Harris/degit-test-repo',
 		user: 'Rich-Harris',
 	},
@@ -50,26 +50,26 @@ const providerCases = [
 		archiveUrl: (hash) =>
 			`https://bitbucket.org/Rich_Harris/degit-test-repo/get/${hash}.tar.gz`,
 		gitSrc: 'bitbucket:Rich_Harris/degit-test-repo-private',
-		lsRemote: 'git ls-remote https://bitbucket.org/Rich_Harris/degit-test-repo',
+		lsRemote: 'git ls-remote -- https://bitbucket.org/Rich_Harris/degit-test-repo',
 		name: 'degit-test-repo',
 		privateName: 'degit-test-repo-private',
 		publicSrc: 'bitbucket:Rich_Harris/degit-test-repo',
 		redirectUrl: 'https://bitbucket.org/forbidden',
 		site: 'bitbucket',
-		ssh: 'git@bitbucket.org:Rich_Harris/degit-test-repo',
+		ssh: 'ssh://git@bitbucket.org/Rich_Harris/degit-test-repo',
 		url: 'https://bitbucket.org/Rich_Harris/degit-test-repo',
 		user: 'Rich_Harris',
 	},
 	{
 		archiveUrl: (hash) => `https://git.sr.ht/~satotake/degit-test-repo/archive/${hash}.tar.gz`,
 		gitSrc: 'git.sr.ht/~satotake/degit-test-repo-private',
-		lsRemote: 'git ls-remote https://git.sr.ht/~satotake/degit-test-repo',
+		lsRemote: 'git ls-remote -- https://git.sr.ht/~satotake/degit-test-repo',
 		name: 'degit-test-repo',
 		privateName: 'degit-test-repo-private',
 		publicSrc: 'git.sr.ht/~satotake/degit-test-repo',
 		redirectUrl: 'https://git.sr.ht/forbidden',
 		site: 'git.sr.ht',
-		ssh: 'git@git.sr.ht:~satotake/degit-test-repo',
+		ssh: 'ssh://git@git.sr.ht/~satotake/degit-test-repo',
 		url: 'https://git.sr.ht/~satotake/degit-test-repo',
 		user: '~satotake',
 	},
@@ -189,7 +189,7 @@ describe('degit index', () => {
 		providerCases.forEach((test) => {
 			it(`runs git clone and strips .git via injected exec when mode is git for ${test.site}`, async () => {
 				const execMock = createMockExec({
-					[`git clone git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
+					[`git clone ssh://git@${test.url.split('/')[2]}/${test.user}/${test.privateName} .tmp/index-suite/test-repo`]:
 						'',
 					[`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`]: '',
 				});
@@ -200,7 +200,7 @@ describe('degit index', () => {
 				}).clone('.tmp/index-suite/test-repo');
 
 				assert.deepEqual(execMock.calls, [
-					`git clone git@${test.url.split('/')[2]}:${test.user}/${test.privateName} .tmp/index-suite/test-repo`,
+					`git clone ssh://git@${test.url.split('/')[2]}/${test.user}/${test.privateName} .tmp/index-suite/test-repo`,
 					`rm -rf ${path.resolve('.tmp/index-suite/test-repo', '.git')}`,
 				]);
 			});

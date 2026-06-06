@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import tar from 'tar';
+import * as tar from 'tar';
 import EventEmitter from 'events';
 import chalk from 'chalk';
 import { rimrafSync } from 'sander';
@@ -17,6 +17,12 @@ import {
 } from './utils.js';
 
 const validModes = new Set(['tar', 'git']);
+const providerDomains = {
+	bitbucket: 'bitbucket.org',
+	github: 'github.com',
+	'git.sr.ht': 'git.sr.ht',
+	gitlab: 'gitlab.com',
+};
 
 export default function degit(src, opts) {
 	return new Degit(src, opts);
@@ -379,7 +385,7 @@ function parse(src) {
 	const domain =
 		site === 'git.sr.ht' ? 'git.sr.ht' : site === 'bitbucket' ? `${site}.org` : `${site}.com`;
 	const url = `https://${domain}/${user}/${name}`;
-	const ssh = `git@${domain}:${user}/${name}`;
+	const ssh = `ssh://git@${domain}/${user}/${name}`;
 
 	const mode = supported.has(site) ? 'tar' : 'git';
 
@@ -399,7 +405,17 @@ async function untar(file, dest, subdir = null) {
 
 async function fetchRefs(repo, runExec = exec) {
 	try {
-		const { stdout } = await runExec('git', ['ls-remote', repo.url]);
+		const provider = getProvider(repo.site);
+		const remote = new URL(repo.url);
+
+		if (!provider || remote.protocol !== 'https:' || remote.hostname !== provider.domain) {
+			throw new DegitError(`could not fetch remote ${repo.url}`, {
+				code: 'COULD_NOT_FETCH',
+				url: repo.url,
+			});
+		}
+
+		const { stdout } = await runExec('git', ['ls-remote', '--', repo.url]);
 
 		return stdout
 			.split('\n')
@@ -434,6 +450,11 @@ async function fetchRefs(repo, runExec = exec) {
 			url: repo.url,
 		});
 	}
+}
+
+function getProvider(site) {
+	const domain = providerDomains[site];
+	return domain ? { domain } : null;
 }
 
 /* eslint-disable security/detect-non-literal-fs-filename, security/detect-possible-timing-attacks, security/detect-object-injection */
