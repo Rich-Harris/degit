@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import chalk from 'chalk';
+import colors from 'yoctocolors';
 import enquirer from 'enquirer';
 import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
@@ -59,9 +59,9 @@ function parseCliArgs(argv: string[]) {
 function displayHelp() {
 	const help = fs
 		.readFileSync(path.join(__dirname, '..', 'assets', 'help.md'), 'utf8')
-		.replaceAll(/^(\s*)#+ (.+)/gm, (match, indent, title) => indent + chalk.bold(title))
-		.replaceAll(/_([^_]+)_/g, (match, value) => chalk.underline(value))
-		.replaceAll(/`([^`]+)`/g, (match, value) => chalk.cyan(value));
+		.replaceAll(/^(\s*)#+ (.+)/gm, (match, indent, title) => indent + colors.bold(title))
+		.replaceAll(/_([^_]+)_/g, (match, value) => colors.underline(value))
+		.replaceAll(/`([^`]+)`/g, (match, value) => colors.cyan(value));
 
 	process.stdout.write(`\n${help}\n`);
 }
@@ -153,7 +153,7 @@ export async function main(argv: string[]) {
 
 		if (!empty) {
 			if (!(await confirmOverwrite())) {
-				console.error(chalk.magenta('! Directory not empty — aborting'));
+				console.error(colors.magenta('! Directory not empty — aborting'));
 				return;
 			}
 		}
@@ -173,15 +173,15 @@ export function run(src: string, dest: string, args: RunArgs) {
 	const d = degit(src, args as Parameters<typeof degit>[1]);
 
 	d.on('info', (event) => {
-		console.log(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
+		console.log(colors.cyan(`> ${event.message.replace('options.', '--')}`));
 	});
 
 	d.on('warn', (event) => {
-		console.warn(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
+		console.warn(colors.magenta(`! ${event.message.replace('options.', '--')}`));
 	});
 
 	d.clone(dest).catch((error: Error) => {
-		console.error(chalk.red(`! ${error.message.replace('options.', '--')}`));
+		console.error(colors.red(`! ${error.message.replace('options.', '--')}`));
 		process.exit(1);
 	});
 }
