@@ -1,0 +1,13 @@
+{
+	"version": 1,
+	"benchmarks": {
+		"clone-cached": {
+			"maxRegression": 0.2,
+			"medianMs": 26
+		},
+		"clone-cold": {
+			"maxRegression": 0.2,
+			"medianMs": 32
+		}
+	}
+}
