@@ -7,7 +7,6 @@
       "devDependencies": {
         "@types/node": "25.6.0",
         "@vitest/coverage-v8": "4.1.5",
-        "chalk": "4.1.0",
         "enquirer": "2.3.6",
         "eslint-plugin-security": "4.0.0",
         "fuzzysearch": "1.0.3",
@@ -28,6 +27,7 @@
         "tsdown": "0.21.10",
         "typescript": "6.0.3",
         "vitest": "4.1.5",
+        "yoctocolors": "2.1.2",
       },
     },
   },
@@ -927,6 +927,8 @@
     "yallist": ["yallist@5.0.0", "", {}, "sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw=="],
 
     "yaml": ["yaml@2.8.4", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-ml/JPOj9fOQK8RNnWojA67GbZ0ApXAUlN2UQclwv2eVgTgn7O9gg9o7paZWKMp4g0H3nTLtS9LVzhkpOFIKzog=="],
+
+    "yoctocolors": ["yoctocolors@2.1.2", "", {}, "sha512-CzhO+pFNo8ajLM2d2IW/R93ipy99LWjtwblvC1RsoSUMZgyLbYFr221TnSNT7GjGdYui6P459mw9JH/g/zW2ug=="],
 
     "zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
 

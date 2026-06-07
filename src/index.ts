@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as tar from 'tar';
 import EventEmitter from 'node:events';
-import chalk from 'chalk';
+import colors from 'yoctocolors';
 import { rimrafSync } from 'sander';
 import {
 	DegitError,
@@ -142,15 +142,15 @@ class Degit extends EventEmitter {
 				const d = degit(action.src, opts);
 
 				d.on('info', (event) => {
-					console.log(chalk.cyan(`> ${event.message.replace('options.', '--')}`));
+					console.log(colors.cyan(`> ${event.message.replace('options.', '--')}`));
 				});
 
 				d.on('warn', (event) => {
-					console.warn(chalk.magenta(`! ${event.message.replace('options.', '--')}`));
+					console.warn(colors.magenta(`! ${event.message.replace('options.', '--')}`));
 				});
 
 				await d.clone(dest).catch((error) => {
-					console.error(chalk.red(`! ${error.message}`));
+					console.error(colors.red(`! ${error.message}`));
 					process.exit(1);
 				});
 			},
@@ -195,7 +195,7 @@ class Degit extends EventEmitter {
 			this._info({
 				code: 'SUCCESS',
 				dest,
-				message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+				message: `cloned ${colors.bold(repo.user + '/' + repo.name)}#${colors.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
 				repo,
 			});
 			return;
@@ -219,7 +219,7 @@ class Degit extends EventEmitter {
 		this._info({
 			code: 'SUCCESS',
 			dest,
-			message: `cloned ${chalk.bold(repo.user + '/' + repo.name)}#${chalk.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+			message: `cloned ${colors.bold(repo.user + '/' + repo.name)}#${colors.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
 			repo,
 		});
 
@@ -261,7 +261,7 @@ class Degit extends EventEmitter {
 				}
 				this._warn({
 					code: 'FILE_DOES_NOT_EXIST',
-					message: `action wants to remove ${chalk.bold(file)} but it does not exist`,
+					message: `action wants to remove ${colors.bold(file)} but it does not exist`,
 				});
 				return null;
 			})
@@ -270,7 +270,7 @@ class Degit extends EventEmitter {
 		if (removedFiles.length > 0) {
 			this._info({
 				code: 'REMOVED',
-				message: `removed: ${chalk.bold(removedFiles.map((d) => chalk.bold(d)).join(', '))}`,
+				message: `removed: ${colors.bold(removedFiles.map((d) => colors.bold(d)).join(', '))}`,
 			});
 		}
 	}

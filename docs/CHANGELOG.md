@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.4.3
+
+- Swap terminal colors to yoctocolors.
+
 ## 3.4.2
 
 - Fix git-lfs pointer files falling through the tarball path.
