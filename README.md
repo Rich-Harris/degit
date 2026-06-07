@@ -27,6 +27,8 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for how to contribute. [docs/SE
 
 `bun run test` runs the unit tests in `test/unit/**/*.test.ts` and the public integration tests in `test/integration/public.test.ts`, excluding `test/integration/private.test.ts`. Use `bun run test:integration` for the integration suite.
 
+`bun run perf:ci` runs the fixture-backed performance gate that CI uses to catch clone regressions.
+
 A small proof-of-concept docs-sync workflow also runs on PRs that change `src/**/*.ts` or `assets/help.md`, using OpenRouter through Claude Code Action. It expects `OPENROUTER_API_KEY` and `OPENROUTER_ANTHROPIC_BASE_URL` repository secrets.
 
 ## Installation

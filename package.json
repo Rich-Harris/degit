@@ -35,6 +35,8 @@
 		"lint:ci": "oxlint --import-plugin --deny-warnings .",
 		"audit": "bun audit",
 		"knip:ci": "knip",
+		"perf": "bun perf/bench.ts",
+		"perf:ci": "bun perf/bench.ts",
 		"prepare": "husky",
 		"format": "oxfmt --write .",
 		"format:ci": "oxfmt --check .",
