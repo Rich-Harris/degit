@@ -3,7 +3,6 @@ import path from 'node:path';
 import * as tar from 'tar';
 import EventEmitter from 'node:events';
 import colors from 'yoctocolors';
-import { rimrafSync } from 'sander';
 import {
 	DegitError,
 	base,
@@ -253,7 +252,7 @@ class Degit extends EventEmitter {
 				if (fs.existsSync(filePath)) {
 					const isDir = fs.lstatSync(filePath).isDirectory();
 					if (isDir) {
-						rimrafSync(filePath);
+						fs.rmSync(filePath, { force: true, recursive: true });
 						return `${file}/`;
 					}
 					fs.unlinkSync(filePath);
@@ -465,7 +464,7 @@ class Degit extends EventEmitter {
 				original: error,
 			});
 		} finally {
-			rimrafSync(extractedDir);
+			fs.rmSync(extractedDir, { force: true, recursive: true });
 		}
 
 		if (shouldFallbackToGit) {

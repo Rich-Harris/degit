@@ -501,5 +501,23 @@ describe('degit index', () => {
 				/Valid modes are/,
 			);
 		});
+
+		it('removes nested directories recursively from the destination', () => {
+			const dest = fs.mkdtempSync(path.join(process.cwd(), 'remove-'));
+
+			try {
+				fs.mkdirSync(path.join(dest, 'nested', 'child'), { recursive: true });
+				fs.writeFileSync(path.join(dest, 'nested', 'child', 'file.txt'), 'nested\n');
+				fs.writeFileSync(path.join(dest, 'flat.txt'), 'flat\n');
+
+				const emitter = degit('Rich-Harris/degit-test-repo');
+				emitter.remove(dest, { files: ['nested', 'flat.txt'] });
+
+				assert.equal(fs.existsSync(path.join(dest, 'nested')), false);
+				assert.equal(fs.existsSync(path.join(dest, 'flat.txt')), false);
+			} finally {
+				fs.rmSync(dest, { force: true, recursive: true });
+			}
+		});
 	});
 });

@@ -3,7 +3,7 @@ import https from 'node:https';
 import assert from 'node:assert';
 import path from 'node:path';
 import { describe, it, vi } from 'vitest';
-import { fetch, resolveBase } from '../../src/utils.js';
+import { fetch, resolveBase, stashFiles, unstashFiles } from '../../src/utils.js';
 
 describe('resolveBase', () => {
 	it('uses XDG_CACHE_HOME on linux when it is set', () => {
@@ -48,6 +48,43 @@ describe('resolveBase', () => {
 			}),
 			path.join('C:/Users/user/AppData/Local', 'degit'),
 		);
+	});
+
+	it('stashes and unstashes nested directories with degit.json excluded from restore', () => {
+		const root = fs.mkdtempSync(path.join(process.cwd(), 'stash-'));
+		const cacheDir = path.join(root, 'cache');
+		const dest = path.join(root, 'dest');
+
+		try {
+			fs.mkdirSync(path.join(dest, 'nested'), { recursive: true });
+			fs.writeFileSync(path.join(dest, 'nested', 'file.txt'), 'nested\n');
+			fs.writeFileSync(path.join(dest, 'top.txt'), 'top\n');
+			fs.writeFileSync(path.join(dest, 'degit.json'), 'outer directives\n');
+
+			stashFiles(cacheDir, dest);
+
+			assert.deepEqual(fs.readdirSync(dest), []);
+
+			fs.mkdirSync(path.join(dest, 'nested'), { recursive: true });
+			fs.writeFileSync(path.join(dest, 'nested', 'file.txt'), 'clone\n');
+			fs.writeFileSync(path.join(dest, 'top.txt'), 'clone top\n');
+			fs.writeFileSync(path.join(dest, 'degit.json'), 'clone directives\n');
+
+			unstashFiles(cacheDir, dest);
+
+			assert.equal(
+				fs.readFileSync(path.join(dest, 'nested', 'file.txt'), 'utf8'),
+				'nested\n',
+			);
+			assert.equal(fs.readFileSync(path.join(dest, 'top.txt'), 'utf8'), 'top\n');
+			assert.equal(
+				fs.readFileSync(path.join(dest, 'degit.json'), 'utf8'),
+				'clone directives\n',
+			);
+			assert.equal(fs.existsSync(path.join(cacheDir, 'tmp')), false);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
 	});
 
 	it('resumes redirect responses when following a redirected archive fetch', async () => {
