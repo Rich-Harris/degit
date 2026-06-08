@@ -5,7 +5,6 @@ import https from 'node:https';
 import * as URL from 'node:url';
 import { createRequire } from 'node:module';
 import Agent from 'https-proxy-agent';
-import { copydirSync, rimrafSync } from 'sander';
 
 const require = createRequire(import.meta.url);
 const tmpDirName = 'tmp';
@@ -93,15 +92,15 @@ export function fetch(url: string, dest: string, proxy?: string): Promise<void> 
 
 export function stashFiles(dir: string, dest: string): void {
 	const tmpDir = path.join(dir, tmpDirName);
-	rimrafSync(tmpDir);
+	fs.rmSync(tmpDir, { force: true, recursive: true });
 	mkdirp(tmpDir);
 	fs.readdirSync(dest).forEach((file) => {
 		const filePath = path.join(dest, file);
 		const targetPath = path.join(tmpDir, file);
 		const isDir = fs.lstatSync(filePath).isDirectory();
 		if (isDir) {
-			copydirSync(filePath).to(targetPath);
-			rimrafSync(filePath);
+			fs.cpSync(filePath, targetPath, { recursive: true });
+			fs.rmSync(filePath, { force: true, recursive: true });
 		} else {
 			fs.copyFileSync(filePath, targetPath);
 			fs.unlinkSync(filePath);
@@ -116,8 +115,8 @@ export function unstashFiles(dir: string, dest: string): void {
 		const targetPath = path.join(dest, filename);
 		const isDir = fs.lstatSync(tmpFile).isDirectory();
 		if (isDir) {
-			copydirSync(tmpFile).to(targetPath);
-			rimrafSync(tmpFile);
+			fs.cpSync(tmpFile, targetPath, { recursive: true });
+			fs.rmSync(tmpFile, { force: true, recursive: true });
 		} else {
 			if (filename !== 'degit.json') {
 				fs.copyFileSync(tmpFile, targetPath);
@@ -125,7 +124,7 @@ export function unstashFiles(dir: string, dest: string): void {
 			fs.unlinkSync(tmpFile);
 		}
 	});
-	rimrafSync(tmpDir);
+	fs.rmSync(tmpDir, { force: true, recursive: true });
 }
 
 export function resolveBase({

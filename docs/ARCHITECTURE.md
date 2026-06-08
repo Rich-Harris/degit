@@ -71,7 +71,7 @@ Name: Degit orchestrator
 
 Description: Implements the main clone lifecycle as an `EventEmitter`. It parses supported source formats, resolves refs, checks and uses the local cache, downloads tarballs, falls back to SSH cloning when tarball fetches or extraction fail, and applies `degit.json` directives after the initial clone.
 
-Technologies: TypeScript, `tar`, `sander`, `yoctocolors`, Node standard library
+Technologies: TypeScript, `tar`, `yoctocolors`, Node standard library
 
 Deployment: Bundled into the published library entrypoint and reused by the CLI and tests.
 
@@ -81,7 +81,7 @@ Name: Runtime helpers
 
 Description: Contains filesystem and process helpers used by the core flow. This includes the HTTPS fetch wrapper with proxy support, `git` command execution, recursive directory creation, local cache root detection, and stash/unstash helpers for directive processing.
 
-Technologies: Node `fs`, `path`, `os`, `https`, `child_process`, `https-proxy-agent`, `sander`
+Technologies: Node `fs`, `path`, `os`, `https`, `child_process`, `https-proxy-agent`
 
 Deployment: Internal implementation detail, not exposed as a separate package.
 

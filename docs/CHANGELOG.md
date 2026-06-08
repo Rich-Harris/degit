@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.4.4
+
+- Remove the `sander` dependency in favor of native Node `fs` helpers.
+
 ## 3.4.3
 
 - Swap terminal colors to yoctocolors.
