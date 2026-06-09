@@ -1,15 +1,21 @@
-import sourceMapSupport from 'source-map-support';
 import fs from 'node:fs';
 import assert from 'node:assert';
 import child_process from 'node:child_process';
 import path from 'node:path';
 import { sync as rimraf } from 'rimraf';
 
-sourceMapSupport.install();
-
 vi.mock('../../src/index.js', () => ({
 	default: vi.fn(),
 }));
+
+vi.mock('../../src/utils.js', async () => {
+	const actual = await vi.importActual<typeof import('../../src/utils.js')>('../../src/utils.js');
+
+	return {
+		...actual,
+		base: path.join(process.cwd(), '.tmp', 'bin-suite-cache'),
+	};
+});
 
 vi.mock('tiny-glob/sync.js', () => ({
 	default: vi.fn((pattern: string) => {
@@ -71,7 +77,7 @@ describe('degit bin', () => {
 	const binTmp = '.tmp/bin-suite';
 	const repoRoot = process.cwd();
 	const rootBin = path.join(repoRoot, 'degit');
-	const interactiveBase = path.join(base, 'github');
+	const interactiveBase = path.join(process.cwd(), '.tmp', 'bin-suite-cache', 'github');
 
 	function clearInteractiveFixtures() {
 		fs.rmSync(interactiveBase, { force: true, recursive: true });
