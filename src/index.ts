@@ -65,6 +65,7 @@ export type ValidModes = 'tar' | 'git';
 export type InfoCode =
 	| 'SUCCESS'
 	| 'FILE_DOES_NOT_EXIST'
+	| 'FILE_OUTSIDE_DEST'
 	| 'REMOVED'
 	| 'DEST_NOT_EMPTY'
 	| 'DEST_IS_EMPTY'
@@ -246,9 +247,18 @@ class Degit extends EventEmitter {
 		if (!Array.isArray(files)) {
 			files = [files];
 		}
+		const root = path.resolve(dest);
 		const removedFiles = files
 			.map((file) => {
-				const filePath = path.resolve(dest, file);
+				const filePath = path.resolve(root, file);
+				const relativePath = path.relative(root, filePath);
+				if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+					this._warn({
+						code: 'FILE_OUTSIDE_DEST',
+						message: `action wants to remove ${colors.bold(file)} but it is outside the destination, skipping`,
+					});
+					return null;
+				}
 				if (fs.existsSync(filePath)) {
 					const isDir = fs.lstatSync(filePath).isDirectory();
 					if (isDir) {
