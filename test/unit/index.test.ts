@@ -1,4 +1,3 @@
-import sourceMapSupport from 'source-map-support';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,7 +12,14 @@ import {
 	createMockFetch,
 } from '../helpers.js';
 
-sourceMapSupport.install();
+vi.mock('../../src/utils.js', async () => {
+	const actual = await vi.importActual<typeof import('../../src/utils.js')>('../../src/utils.js');
+
+	return {
+		...actual,
+		base: path.join(process.cwd(), '.tmp', 'index-suite-cache'),
+	};
+});
 
 const refsHash = '0123456789abcdef0123456789abcdef0123456789';
 const gitRefs = [{ hash: refsHash, type: 'HEAD' }];
