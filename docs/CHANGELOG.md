@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.4.6
+
+- Block `remove` path traversal outside the destination.
+
 ## 3.4.5
 
 - Stream `git ls-remote` for SSH ref discovery.
@@ -59,6 +63,10 @@
 
 - Major release for the Node 20+ line; v2 remains the legacy Node 8-compatible branch.
 - Upgrade `tar` to a patched release to address the security issue that affected the previous dependency.
+
+## 2.8.6
+
+- Harden git-mode command execution and remote validation.
 
 ## 2.8.5
 

@@ -525,5 +525,33 @@ describe('degit index', () => {
 				fs.rmSync(dest, { force: true, recursive: true });
 			}
 		});
+
+		it('warns and skips paths that escape the destination when removing files', () => {
+			const workspace = fs.mkdtempSync(path.join(process.cwd(), 'remove-'));
+			const dest = path.join(workspace, 'dest');
+			const sibling = path.join(workspace, 'sibling');
+			const warnings: string[] = [];
+
+			try {
+				fs.mkdirSync(dest, { recursive: true });
+				fs.mkdirSync(sibling, { recursive: true });
+				fs.writeFileSync(path.join(sibling, 'secret.txt'), 'secret\n');
+
+				const emitter = degit('Rich-Harris/degit-test-repo');
+				emitter.on('warn', (event) => warnings.push(event.message));
+
+				emitter.remove(dest, { files: ['../sibling'] });
+
+				assert.equal(fs.existsSync(path.join(sibling, 'secret.txt')), true);
+				assert.equal(warnings.length, 1);
+				assert.match(
+					warnings[0],
+					/action wants to remove .*outside the destination, skipping/,
+				);
+				assert.match(warnings[0], /\.\.\/sibling/);
+			} finally {
+				fs.rmSync(workspace, { force: true, recursive: true });
+			}
+		});
 	});
 });
