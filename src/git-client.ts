@@ -1,4 +1,4 @@
-import { execFile as execFileCallback } from 'node:child_process';
+import { execFile as execFileCallback, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -215,8 +215,43 @@ function getGitClonePlan(ref: string): GitPlan {
 }
 
 async function fetchRefsWithGitCli(repo: Repo) {
-	const { stdout } = await execFile('git', ['ls-remote', '--symref', getGitUrl(repo)]);
-	return parseGitLsRemoteOutput(stdout);
+	return new Promise<Ref[]>((resolve, reject) => {
+		const child = spawn('git', ['ls-remote', '--symref', getGitUrl(repo)], {
+			stdio: ['ignore', 'pipe', 'pipe'],
+		});
+		const stdout = child.stdout;
+		const stderr = child.stderr;
+
+		if (!stdout || !stderr) {
+			reject(new Error('could not start git ls-remote'));
+			return;
+		}
+
+		let stdoutBuffer = '';
+		let stderrBuffer = '';
+
+		stdout.setEncoding('utf8');
+		stderr.setEncoding('utf8');
+		stdout.on('data', (chunk) => {
+			stdoutBuffer += chunk;
+		});
+		stderr.on('data', (chunk) => {
+			stderrBuffer += chunk;
+		});
+		child.once('error', reject);
+		child.once('close', (code) => {
+			if (code !== 0) {
+				const error = new Error(
+					stderrBuffer.trim() || `git ls-remote exited with code ${code}`,
+				);
+				(error as { code?: number | string }).code = code ?? 'GIT_LS_REMOTE_FAILED';
+				reject(error);
+				return;
+			}
+
+			resolve(parseGitLsRemoteOutput(stdoutBuffer));
+		});
+	});
 }
 
 async function fetchRefsWithIsomorphicGit(repo: Repo) {

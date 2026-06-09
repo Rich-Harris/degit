@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.4.5
+
+- Stream `git ls-remote` for SSH ref discovery.
+
 ## 3.4.4
 
 - Remove the `sander` dependency in favor of native Node `fs` helpers.
