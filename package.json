@@ -45,6 +45,7 @@
 		"build": "tsdown --config tsdown.config.ts",
 		"test": "vitest run --exclude test/integration/private.test.ts",
 		"test:integration": "vitest run test/integration",
+		"test:integration:release": "bun test/integration/release.ts",
 		"test:coverage": "vitest run --coverage",
 		"pretest": "bun run build",
 		"prepublishOnly": "bun run test"

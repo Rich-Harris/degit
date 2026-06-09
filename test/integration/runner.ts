@@ -1,7 +1,10 @@
 import child_process from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 const releaseMode = process.env.DEGIT_TEST_MODE === 'release';
+const releasePrefix = fs.mkdtempSync(path.join(os.tmpdir(), 'degit-release-'));
 
 function formatFailure(
 	source: string,
@@ -16,36 +19,46 @@ function formatFailure(
 
 function getReleaseCommand() {
 	if (process.env.DEGIT_TEST_BIN) {
-		return process.env.DEGIT_TEST_BIN;
+		return {
+			args: [],
+			command: process.env.DEGIT_TEST_BIN,
+			cwd: process.cwd(),
+		};
 	}
 
-	const prefixResult = child_process.spawnSync('npm', ['prefix', '-g'], {
-		encoding: 'utf8',
-		env: process.env,
-	});
-
-	if (prefixResult.error) {
-		throw prefixResult.error;
-	}
-
-	if (prefixResult.status !== 0) {
-		throw new Error(
-			`unable to resolve global npm prefix${prefixResult.stderr ? `: ${prefixResult.stderr.trim()}` : ''}`,
-		);
-	}
-
-	const prefix = prefixResult.stdout.trim();
-	const command = process.platform === 'win32' ? 'degit.cmd' : 'degit';
-	const binDir = process.platform === 'win32' ? prefix : path.join(prefix, 'bin');
-	return path.join(binDir, command);
+	return process.platform === 'win32'
+		? {
+				args: [
+					'exec',
+					'--yes',
+					'--prefix',
+					releasePrefix,
+					'--package=degit@latest',
+					'--',
+					'degit',
+				],
+				command: 'npm.cmd',
+			}
+		: {
+				args: [
+					'exec',
+					'--yes',
+					'--prefix',
+					releasePrefix,
+					'--package=degit@latest',
+					'--',
+					'degit',
+				],
+				command: 'npm',
+			};
 }
 
 function createReleaseRunner() {
-	const command = getReleaseCommand();
+	const { command, args } = getReleaseCommand();
 
 	return {
 		async clone(source: string, dest: string) {
-			const result = child_process.spawnSync(command, [source, dest], {
+			const result = child_process.spawnSync(command, [...args, source, dest], {
 				encoding: 'utf8',
 				env: process.env,
 			});
