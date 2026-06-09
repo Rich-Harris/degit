@@ -1,4 +1,6 @@
 import assert from 'node:assert';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import { vi } from 'vitest';
 
 const { getRemoteInfo2Mock, listServerRefsMock } = vi.hoisted(() => ({
@@ -6,6 +8,7 @@ const { getRemoteInfo2Mock, listServerRefsMock } = vi.hoisted(() => ({
 	listServerRefsMock: vi.fn(),
 }));
 
+const spawnMock = vi.hoisted(() => vi.fn());
 const execFileMock = vi.fn(
 	(command: string, _args: string[], callback: (error?: unknown) => void) => {
 		callback(
@@ -19,6 +22,7 @@ const execFileMock = vi.fn(
 
 vi.mock('node:child_process', () => ({
 	execFile: execFileMock,
+	spawn: spawnMock,
 }));
 
 vi.mock('isomorphic-git', () => ({
@@ -54,11 +58,50 @@ const httpsRepo = {
 	user: 'gitlab-org',
 } as const;
 
+function createSpawnProcess() {
+	const child = new EventEmitter() as EventEmitter & {
+		stderr: PassThrough;
+		stdout: PassThrough;
+	};
+
+	child.stdout = new PassThrough();
+	child.stderr = new PassThrough();
+
+	return child;
+}
+
+function writeChunkedLines(child: ReturnType<typeof createSpawnProcess>, lines: string[]) {
+	const chunkSize = 16;
+
+	for (let index = 0; index < lines.length; index += chunkSize) {
+		child.stdout.write(`${lines.slice(index, index + chunkSize).join('\n')}\n`);
+	}
+}
+
 describe('git client', () => {
 	beforeEach(() => {
 		execFileMock.mockClear();
+		spawnMock.mockClear();
 		getRemoteInfo2Mock.mockReset();
 		listServerRefsMock.mockReset();
+		spawnMock.mockImplementation((command: string, args: string[]) => {
+			if (command === 'git' && args[0] === 'ls-remote') {
+				const child = createSpawnProcess();
+				queueMicrotask(() => {
+					child.emit(
+						'error',
+						Object.assign(new Error(`spawn ${command} ENOENT`), {
+							code: 'ENOENT',
+							syscall: `spawn ${command}`,
+						}),
+					);
+				});
+
+				return child;
+			}
+
+			throw new Error(`Unexpected spawn call: ${command} ${args.join(' ')}`);
+		});
 		execFileMock.mockImplementation(
 			(command: string, args: string[], callback: (error?: unknown) => void) => {
 				if (command === 'git' && args[0] === 'clone') {
@@ -100,6 +143,45 @@ describe('git client', () => {
 		assert.equal(listServerRefsMock.mock.calls.length, 1);
 		assert.equal(getRemoteInfo2Mock.mock.calls.length, 1);
 		assert.equal(getRemoteInfo2Mock.mock.calls[0][0].protocolVersion, 1);
+	});
+
+	it('reads chunked ls-remote output when fetching refs over ssh', async () => {
+		spawnMock.mockImplementationOnce(() => {
+			const child = createSpawnProcess();
+			queueMicrotask(() => {
+				writeChunkedLines(child, [
+					'ref: refs/heads/main\tHEAD',
+					'0123456789abcdef0123456789abcdef01234567\trefs/heads/main',
+					...Array.from(
+						{ length: 99 },
+						(_value, index) =>
+							`0123456789abcdef0123456789abcdef012345${String(index).padStart(2, '0')}\trefs/heads/feature-${index}`,
+					),
+				]);
+				child.stderr.end();
+				child.emit('close', 0);
+			});
+
+			return child;
+		});
+
+		const refs = await createGitClient().fetchRefs(sshRepo);
+
+		assert.equal(refs.length, 101);
+		assert.deepEqual(refs[0], {
+			hash: '0123456789abcdef0123456789abcdef01234567',
+			name: 'main',
+			type: 'branch',
+		});
+		assert.deepEqual(refs[50], {
+			hash: '0123456789abcdef0123456789abcdef01234549',
+			name: 'feature-49',
+			type: 'branch',
+		});
+		assert.deepEqual(refs[100], {
+			hash: '0123456789abcdef0123456789abcdef01234567',
+			type: 'HEAD',
+		});
 	});
 
 	it('reports a missing git binary when fetching refs over ssh', async () => {
