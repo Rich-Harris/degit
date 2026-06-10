@@ -5,10 +5,10 @@
 | Version           | Supported          |
 | ----------------- | ------------------ |
 | 3.x and later     | :white_check_mark: |
-| 2.8.5 and earlier | :x:                |
+| 2.8.6 and earlier | :x:                |
 
 Security fixes are only provided for the current 3.x line and newer. The last
-2.x release is 2.8.5, and no further security patches will be issued for 2.x.
+2.x release is 2.8.6, and no further security patches will be issued for 2.x.
 
 ## Reporting a Vulnerability
 
