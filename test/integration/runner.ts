@@ -57,7 +57,7 @@ function createReleaseRunner() {
 	const { command, args } = getReleaseCommand();
 
 	return {
-		async clone(source: string, dest: string) {
+		clone(source: string, dest: string) {
 			const result = child_process.spawnSync(command, [...args, source, dest], {
 				encoding: 'utf8',
 				env: process.env,

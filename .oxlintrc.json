@@ -41,7 +41,7 @@
 	"categories": {
 		"correctness": "error",
 		"suspicious": "warn",
-		"pedantic": "off",
+		"pedantic": "warn",
 		"perf": "warn",
 		"restriction": "off",
 		"style": "off"

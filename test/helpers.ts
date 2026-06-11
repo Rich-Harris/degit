@@ -24,9 +24,9 @@ export function compareDirToExpected(dir, files) {
 
 export function createMockGit(stubs = {}) {
 	const calls = [];
-	const resolveStub = async (call, ...args) => {
+	const resolveStub = (call, ...args) => {
 		if (!Object.hasOwn(stubs, call)) {
-			return Promise.reject(new Error(`Unexpected git call: ${call}`));
+			throw new Error(`Unexpected git call: ${call}`);
 		}
 
 		const stub = stubs[call];
@@ -34,16 +34,16 @@ export function createMockGit(stubs = {}) {
 			return stub(...args);
 		}
 
-		return Promise.resolve(stub);
+		return stub;
 	};
 
-	const fetchRefs = async (repo) => {
+	const fetchRefs = (repo) => {
 		const call = `fetchRefs ${getGitUrl(repo)}`;
 		calls.push(call);
 		return resolveStub(call, repo);
 	};
 
-	const clone = async (repo, dest, ref, transport) => {
+	const clone = (repo, dest, ref, transport) => {
 		const call = `clone ${getGitUrl(repo, transport)} ${dest}${ref ? ` ${ref}` : ''}`;
 		calls.push(call);
 		return resolveStub(call, repo, dest, ref, transport);
@@ -61,7 +61,7 @@ export function createMockFetch(steps) {
 
 		const response = steps[step++];
 		if (!response) {
-			return Promise.reject(new Error('No mock fetch step configured'));
+			throw new Error('No mock fetch step configured');
 		}
 
 		if (response.status >= 300 && response.status < 400) {
@@ -69,15 +69,13 @@ export function createMockFetch(steps) {
 		}
 
 		if (response.status >= 400) {
-			return Promise.reject(
+			throw (
 				response.error || {
 					code: response.code || response.status,
 					message: response.message || 'mock fetch error',
-				},
+				}
 			);
 		}
-
-		return Promise.resolve();
 	};
 
 	return { calls, fn };
@@ -90,11 +88,10 @@ export function createCopyFetch(sourceFile) {
 	const copyWithRetry = (destination, attempt = 1) => {
 		try {
 			fs.copyFileSync(sourceFile, destination);
-			return Promise.resolve();
 		} catch (error) {
 			const isRetryable = error?.code === 'EPERM' || error?.code === 'EBUSY';
 			if (!isRetryable || attempt === maxAttempts) {
-				return Promise.reject(error);
+				throw error;
 			}
 
 			return delay(25 * attempt).then(() => copyWithRetry(destination, attempt + 1));
@@ -104,8 +101,6 @@ export function createCopyFetch(sourceFile) {
 	const fn = async (url, file, proxy) => {
 		calls.push({ file, proxy, url });
 		await copyWithRetry(file);
-
-		return Promise.resolve();
 	};
 
 	return { calls, fn };
