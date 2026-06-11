@@ -9,7 +9,7 @@ import glob from 'tiny-glob/sync.js';
 import degit from './index.js';
 import { base, tryRequire } from './utils.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 type Choice = {
 	message: string;
@@ -58,10 +58,10 @@ function parseCliArgs(argv: string[]) {
 
 function displayHelp() {
 	const help = fs
-		.readFileSync(path.join(__dirname, '..', 'assets', 'help.md'), 'utf8')
-		.replaceAll(/^(\s*)#+ (.+)/gm, (match, indent, title) => indent + colors.bold(title))
-		.replaceAll(/_([^_]+)_/g, (match, value) => colors.underline(value))
-		.replaceAll(/`([^`]+)`/g, (match, value) => colors.cyan(value));
+		.readFileSync(path.join(dirname, '..', 'assets', 'help.md'), 'utf8')
+		.replaceAll(/^(\s*)#+ (.+)/gm, (_match, indent, title) => indent + colors.bold(title))
+		.replaceAll(/_([^_]+)_/g, (_match, value) => colors.underline(value))
+		.replaceAll(/`([^`]+)`/g, (_match, value) => colors.cyan(value));
 
 	process.stdout.write(`\n${help}\n`);
 }
@@ -95,7 +95,7 @@ function getInteractiveChoices(): Choice[] {
 
 	return glob('**/map.json', { cwd: base })
 		.flatMap(getChoices)
-		.sort((a, b) => (accessLookup.get(b.value) || 0) - (accessLookup.get(a.value) || 0));
+		.toSorted((a, b) => (accessLookup.get(b.value) || 0) - (accessLookup.get(a.value) || 0));
 }
 
 async function promptForSource(): Promise<PromptResult> {

@@ -40,7 +40,7 @@
 	],
 	"categories": {
 		"correctness": "error",
-		"suspicious": "off",
+		"suspicious": "warn",
 		"pedantic": "off",
 		"perf": "warn",
 		"restriction": "off",

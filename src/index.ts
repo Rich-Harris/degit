@@ -100,10 +100,10 @@ class Degit extends EventEmitter {
 	proxy?: string;
 	repo: Repo;
 	platform: NodeJS.Platform;
-	_fetch: FetchFn;
-	_git?: GitClient;
-	_gitClientPromise?: Promise<GitClient>;
-	_hasStashed: boolean;
+	fetch: FetchFn;
+	git?: GitClient;
+	gitClientPromise?: Promise<GitClient>;
+	hasStashed: boolean;
 	directiveActions: DirectiveActions;
 
 	constructor(src: string, opts: ConstructorOptions = {}) {
@@ -117,29 +117,29 @@ class Degit extends EventEmitter {
 		this.repo = parse(src);
 		this.mode = opts.mode ?? this.repo.mode;
 		this.platform = opts.platform ?? process.platform;
-		this._fetch = opts.fetch || fetch;
-		this._git = opts.git;
+		this.fetch = opts.fetch || fetch;
+		this.git = opts.git;
 
 		if (opts.mode && !validModes.has(opts.mode)) {
 			throw new Error(`Valid modes are ${[...validModes].join(', ')}`);
 		}
 
-		this._hasStashed = false;
+		this.hasStashed = false;
 
 		this.directiveActions = {
 			clone: async (dir, dest, action) => {
-				if (this._hasStashed === false) {
+				if (this.hasStashed === false) {
 					stashFiles(dir, dest);
-					this._hasStashed = true;
+					this.hasStashed = true;
 				}
-				const opts = {
+				const cloneOptions = {
 					force: true,
 					cache: action.cache,
 					verbose: action.verbose,
-					fetch: this._fetch,
-					git: await this._getGitClient(),
+					fetch: this.fetch,
+					git: await this.getGitClient(),
 				};
-				const d = degit(action.src, opts);
+				const d = degit(action.src, cloneOptions);
 
 				d.on('info', (event) => {
 					console.log(colors.cyan(`> ${event.message.replace('options.', '--')}`));
@@ -158,22 +158,22 @@ class Degit extends EventEmitter {
 		};
 	}
 
-	async _getGitClient(): Promise<GitClient> {
-		if (this._git) {
-			return this._git;
+	async getGitClient(): Promise<GitClient> {
+		if (this.git) {
+			return this.git;
 		}
 
-		if (!this._gitClientPromise) {
-			this._gitClientPromise = import('./git-client.js').then(({ defaultGitClient }) => {
-				this._git = defaultGitClient;
+		if (!this.gitClientPromise) {
+			this.gitClientPromise = import('./git-client.js').then(({ defaultGitClient }) => {
+				this.git = defaultGitClient;
 				return defaultGitClient;
 			});
 		}
 
-		return this._gitClientPromise;
+		return this.gitClientPromise;
 	}
 
-	_getDirectives(dest: string): Directive[] | false {
+	getDirectives(dest: string): Directive[] | false {
 		const directivesPath = path.resolve(dest, degitConfigName);
 		const directives = tryRequire(directivesPath, { clearCache: true }) || false;
 		if (directives) {
@@ -185,15 +185,15 @@ class Degit extends EventEmitter {
 	}
 
 	async clone(dest: string): Promise<void> {
-		this._checkDirIsEmpty(dest);
+		this.checkDirIsEmpty(dest);
 
 		const { repo } = this;
 		const successMessage = cloneSuccessMessage(repo.user, repo.name, repo.ref, dest);
 
 		if (this.mode === 'git') {
-			const hash = await this._getHash(repo, {});
-			await this._cloneWithGit(dest, hash || repo.ref);
-			this._info({
+			const hash = await this.getHash(repo, {});
+			await this.cloneWithGit(dest, hash || repo.ref);
+			this.info({
 				code: 'SUCCESS',
 				dest,
 				message: successMessage,
@@ -205,26 +205,26 @@ class Degit extends EventEmitter {
 		const dir = path.join(base, repo.site, repo.user, repo.name);
 
 		try {
-			await this._cloneWithTar(dir, dest);
+			await this.cloneWithTar(dir, dest);
 		} catch (error) {
-			if (this._shouldFallbackToGit(error)) {
-				this._warn({
+			if (this.shouldFallbackToGit(error)) {
+				this.warn({
 					message: `tar snapshot download or extraction failed; falling back to git clone`,
 				});
-				await this._cloneWithGit(dest);
+				await this.cloneWithGit(dest);
 			} else {
 				throw error;
 			}
 		}
 
-		this._info({
+		this.info({
 			code: 'SUCCESS',
 			dest,
 			message: successMessage,
 			repo,
 		});
 
-		const directives = this._getDirectives(dest);
+		const directives = this.getDirectives(dest);
 		if (directives) {
 			await directives.reduce(async (previous, directive) => {
 				await previous;
@@ -236,7 +236,7 @@ class Degit extends EventEmitter {
 					await this.directiveActions.remove(dest, directive);
 				}
 			}, Promise.resolve());
-			if (this._hasStashed === true) {
+			if (this.hasStashed === true) {
 				unstashFiles(dir, dest);
 			}
 		}
@@ -254,7 +254,7 @@ class Degit extends EventEmitter {
 				const filePath = path.resolve(root, file);
 				const relativePath = path.relative(root, filePath);
 				if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-					this._warn({
+					this.warn({
 						code: 'FILE_OUTSIDE_DEST',
 						message: `action wants to remove ${colors.bold(file)} but it is outside the destination, skipping`,
 					});
@@ -269,7 +269,7 @@ class Degit extends EventEmitter {
 					fs.unlinkSync(filePath);
 					return file;
 				}
-				this._warn({
+				this.warn({
 					code: 'FILE_DOES_NOT_EXIST',
 					message: `action wants to remove ${colors.bold(file)} but it does not exist`,
 				});
@@ -278,19 +278,19 @@ class Degit extends EventEmitter {
 			.filter((d) => d);
 
 		if (removedFiles.length > 0) {
-			this._info({
+			this.info({
 				code: 'REMOVED',
 				message: `removed: ${colors.bold(removedFiles.map((d) => colors.bold(d)).join(', '))}`,
 			});
 		}
 	}
 
-	_checkDirIsEmpty(dir: string) {
+	checkDirIsEmpty(dir: string) {
 		try {
 			const files = fs.readdirSync(dir);
 			if (files.length > 0) {
 				if (this.force) {
-					this._info({
+					this.info({
 						code: 'DEST_NOT_EMPTY',
 						message: `destination directory is not empty. Using options.force, continuing`,
 					});
@@ -303,7 +303,7 @@ class Degit extends EventEmitter {
 					);
 				}
 			} else {
-				this._verbose({
+				this.verboseInfo({
 					code: 'DEST_IS_EMPTY',
 					message: `destination directory is empty`,
 				});
@@ -313,36 +313,36 @@ class Degit extends EventEmitter {
 		}
 	}
 	/* eslint-enable security/detect-non-literal-fs-filename */
-	_info(info: EventInfo) {
+	info(info: EventInfo) {
 		this.emit('info', info);
 	}
 
-	_warn(info: EventInfo) {
+	warn(info: EventInfo) {
 		this.emit('warn', info);
 	}
 
-	_verbose(info: EventInfo) {
+	verboseInfo(info: EventInfo) {
 		if (this.verbose) {
-			this._info(info);
+			this.info(info);
 		}
 	}
 
-	async _getHash(repo: Repo, cached: Record<string, string>): Promise<string | undefined> {
+	async getHash(repo: Repo, cached: Record<string, string>): Promise<string | undefined> {
 		try {
-			const refs = await (await this._getGitClient()).fetchRefs(repo);
-			return repo.ref === 'HEAD' ? this._selectHead(refs) : this._selectRef(refs, repo.ref);
+			const refs = await (await this.getGitClient()).fetchRefs(repo);
+			return repo.ref === 'HEAD' ? this.selectHead(refs) : this.selectRef(refs, repo.ref);
 		} catch (error) {
-			this._warn(error);
-			this._verbose(error.original);
+			this.warn(error);
+			this.verboseInfo(error.original);
 
-			return this._getHashFromCache(repo, cached);
+			return this.getHashFromCache(repo, cached);
 		}
 	}
 
-	_getHashFromCache(repo: Repo, cached: Record<string, string>): string | undefined {
+	getHashFromCache(repo: Repo, cached: Record<string, string>): string | undefined {
 		if (repo.ref in cached) {
 			const hash = cached[repo.ref];
-			this._info({
+			this.info({
 				code: 'USING_CACHE',
 				message: `using cached commit hash ${hash}`,
 			});
@@ -350,13 +350,13 @@ class Degit extends EventEmitter {
 		}
 	}
 
-	_selectRef(
+	selectRef(
 		refs: Array<{ hash: string; name?: string; type?: string }>,
 		selector: string,
 	): string | null | undefined {
 		for (const ref of refs) {
 			if (ref.name === selector) {
-				this._verbose({
+				this.verboseInfo({
 					code: 'FOUND_MATCH',
 					message: `found matching commit hash: ${ref.hash}`,
 				});
@@ -375,7 +375,7 @@ class Degit extends EventEmitter {
 		}
 	}
 
-	_selectHead(refs: Array<{ hash: string; name?: string; type?: string }>) {
+	selectHead(refs: Array<{ hash: string; name?: string; type?: string }>) {
 		const head = refs.find((ref) => ref.type === 'HEAD');
 		if (head) {
 			return head.hash;
@@ -395,23 +395,23 @@ class Degit extends EventEmitter {
 		return refs.find((ref) => ref.type === 'branch' && ref.hash)?.hash;
 	}
 
-	async _cloneWithTar(dir: string, dest: string): Promise<void> {
+	async cloneWithTar(dir: string, dest: string): Promise<void> {
 		const { repo } = this;
 
 		const cached = (tryRequire(path.join(dir, 'map.json')) || {}) as Record<string, string>;
 
 		const hash = this.cache
-			? this._getHashFromCache(repo, cached)
-			: await this._getHash(repo, cached);
+			? this.getHashFromCache(repo, cached)
+			: await this.getHash(repo, cached);
 
 		const subdir = repo.subdir ? `${repo.name}-${hash}${repo.subdir}` : null;
 
 		if (!hash) {
 			if (repo.transport === 'ssh') {
-				this._warn({
+				this.warn({
 					message: `tar lookup failed; falling back to git clone`,
 				});
-				await this._cloneWithGit(dest);
+				await this.cloneWithGit(dest);
 				return;
 			}
 
@@ -433,7 +433,7 @@ class Degit extends EventEmitter {
 				try {
 					// eslint-disable-next-line security/detect-non-literal-fs-filename
 					fs.statSync(file);
-					this._verbose({
+					this.verboseInfo({
 						code: 'FILE_EXISTS',
 						message: `${file} already exists locally`,
 					});
@@ -441,32 +441,32 @@ class Degit extends EventEmitter {
 					mkdirp(path.dirname(file));
 
 					if (this.proxy) {
-						this._verbose({
+						this.verboseInfo({
 							code: 'PROXY',
 							message: `using proxy ${this.proxy}`,
 						});
 					}
 
-					this._verbose({
+					this.verboseInfo({
 						code: 'DOWNLOADING',
 						message: `downloading ${url} to ${file}`,
 					});
 
-					await this._fetch(url, file, this.proxy);
+					await this.fetch(url, file, this.proxy);
 				}
 			}
 
-			this._verbose({
+			this.verboseInfo({
 				code: 'EXTRACTING',
 				message: `extracting ${subdir ? `${repo.subdir} from ` : ''}${file} to ${extractedDir}`,
 			});
 
-			await this._untarWithRetry(file, extractedDir, subdir, url);
-			shouldFallbackToGit = this._hasGitLfsPointers(extractedDir);
+			await this.untarWithRetry(file, extractedDir, subdir, url);
+			shouldFallbackToGit = this.hasGitLfsPointers(extractedDir);
 
 			if (!shouldFallbackToGit) {
 				mkdirp(dest);
-				this._copyExtractedFiles(extractedDir, dest);
+				this.copyExtractedFiles(extractedDir, dest);
 			}
 		} catch (error) {
 			throw new DegitError(`could not download ${url}`, {
@@ -479,20 +479,20 @@ class Degit extends EventEmitter {
 		}
 
 		if (shouldFallbackToGit) {
-			this._warn({
+			this.warn({
 				message: `git lfs pointer detected in tar snapshot; falling back to git clone`,
 			});
-			await this._cloneWithGit(dest);
+			await this.cloneWithGit(dest);
 		}
 
 		updateCache(dir, repo, hash, cached);
 	}
 
-	async _cloneWithGit(dest: string, ref = this.repo.ref): Promise<void> {
-		await (await this._getGitClient()).clone(this.repo, dest, ref, this.repo.transport);
+	async cloneWithGit(dest: string, ref = this.repo.ref): Promise<void> {
+		await (await this.getGitClient()).clone(this.repo, dest, ref, this.repo.transport);
 	}
 
-	_shouldFallbackToGit(error: unknown): boolean {
+	shouldFallbackToGit(error: unknown): boolean {
 		if (!error || typeof error !== 'object') {
 			return false;
 		}
@@ -501,7 +501,7 @@ class Degit extends EventEmitter {
 		return code === 'COULD_NOT_DOWNLOAD' || code === 'TAR_BAD_ARCHIVE';
 	}
 
-	async _untarWithRetry(file: string, dest: string, subdir: string | null, url: string) {
+	async untarWithRetry(file: string, dest: string, subdir: string | null, url: string) {
 		try {
 			await untar(file, dest, subdir);
 		} catch (error) {
@@ -516,12 +516,12 @@ class Degit extends EventEmitter {
 				// Ignore cleanup failures and let the refetch retry decide the outcome.
 			}
 
-			await this._fetch(url, file, this.proxy);
+			await this.fetch(url, file, this.proxy);
 			await untar(file, dest, subdir);
 		}
 	}
 
-	_hasGitLfsPointers(dir: string): boolean {
+	hasGitLfsPointers(dir: string): boolean {
 		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		const entries = fs.readdirSync(dir, { withFileTypes: true });
 
@@ -529,7 +529,7 @@ class Degit extends EventEmitter {
 			const entryPath = path.join(dir, entry.name);
 
 			if (entry.isDirectory()) {
-				if (this._hasGitLfsPointers(entryPath)) {
+				if (this.hasGitLfsPointers(entryPath)) {
 					return true;
 				}
 				continue;
@@ -553,7 +553,7 @@ class Degit extends EventEmitter {
 		return false;
 	}
 
-	_copyExtractedFiles(sourceDir: string, destDir: string) {
+	copyExtractedFiles(sourceDir: string, destDir: string) {
 		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
 
