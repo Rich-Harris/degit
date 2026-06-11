@@ -96,10 +96,16 @@ const providerCases = [
 	}),
 ];
 
-async function createArchiveFixture(rootName) {
+function createArchiveRootFixture(rootName) {
 	fs.mkdirSync('.tmp/index-suite', { recursive: true });
 	const archiveDir = fs.mkdtempSync(path.join('.tmp/index-suite', 'archive-'));
 	const archiveRoot = path.join(archiveDir, rootName);
+
+	return { archiveDir, archiveRoot };
+}
+
+async function createArchiveFixture(rootName) {
+	const { archiveDir, archiveRoot } = createArchiveRootFixture(rootName);
 
 	fs.mkdirSync(path.join(archiveRoot, 'packages/app/lib'), { recursive: true });
 	fs.writeFileSync(path.join(archiveRoot, 'packages/app/index.js'), 'export default 1\n');
@@ -113,9 +119,7 @@ async function createArchiveFixture(rootName) {
 }
 
 async function createArchiveWithFileFixture(rootName, relativePath, contents) {
-	fs.mkdirSync('.tmp/index-suite', { recursive: true });
-	const archiveDir = fs.mkdtempSync(path.join('.tmp/index-suite', 'archive-'));
-	const archiveRoot = path.join(archiveDir, rootName);
+	const { archiveDir, archiveRoot } = createArchiveRootFixture(rootName);
 
 	fs.mkdirSync(path.dirname(path.join(archiveRoot, relativePath)), { recursive: true });
 	fs.writeFileSync(path.join(archiveRoot, relativePath), contents);

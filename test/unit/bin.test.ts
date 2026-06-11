@@ -73,6 +73,30 @@ function mockEventClone(eventName, message) {
 	return handlers;
 }
 
+async function withCloneFailure(
+	args: Parameters<typeof run>[2],
+	error: Error,
+	assertions: (exitSpy: ReturnType<typeof vi.spyOn>, errSpy: ReturnType<typeof vi.spyOn>) => void,
+) {
+	mockDegit.mockReturnValue({
+		clone: vi.fn().mockReturnValue(Promise.reject(error)),
+		on: vi.fn().mockReturnThis(),
+	} as never);
+
+	const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+	const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+	try {
+		run('a/b', 'dest', args);
+		await waitForCondition(() => exitSpy.mock.calls.length > 0);
+		assert.equal(exitSpy.mock.calls[0][0], 1);
+		assertions(exitSpy, errSpy);
+	} finally {
+		exitSpy.mockRestore();
+		errSpy.mockRestore();
+	}
+}
+
 describe('degit bin', () => {
 	const binTmp = '.tmp/bin-suite';
 	const repoRoot = process.cwd();
@@ -188,21 +212,34 @@ describe('degit bin', () => {
 	});
 
 	it('exits with status 1 when the clone promise rejects', async () => {
-		const err = new Error('clone failed');
-		mockDegit.mockReturnValue({
-			clone: vi.fn().mockReturnValue(Promise.reject(err)),
-			on: vi.fn().mockReturnThis(),
-		} as never);
-		const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
-		const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-		try {
-			run('a/b', 'dest', { force: true });
-			await waitForCondition(() => exitSpy.mock.calls.length > 0);
-			assert.equal(exitSpy.mock.calls[0][0], 1);
-		} finally {
-			exitSpy.mockRestore();
-			errSpy.mockRestore();
-		}
+		const err = Object.assign(new Error('clone failed'), { original: 'nested failure' });
+
+		await withCloneFailure({ force: true }, err, (_exitSpy, errSpy) => {
+			assert.equal(errSpy.mock.calls.length, 1);
+			assert.ok(String(errSpy.mock.calls[0][0]).includes('clone failed'));
+			assert.ok(!String(errSpy.mock.calls[0][0]).includes('nested failure'));
+		});
+	});
+
+	it('prints nested clone failure details when verbose mode is enabled', async () => {
+		const err = Object.assign(new Error('clone failed'), { original: 'nested failure' });
+
+		await withCloneFailure({ force: true, verbose: true }, err, (_exitSpy, errSpy) => {
+			assert.equal(errSpy.mock.calls.length, 2);
+			assert.ok(String(errSpy.mock.calls[0][0]).includes('clone failed'));
+			assert.ok(String(errSpy.mock.calls[1][0]).includes('nested failure'));
+		});
+	});
+
+	it('keeps verbose clone failures stable when nested details are missing', async () => {
+		await withCloneFailure(
+			{ force: true, verbose: true },
+			new Error('clone failed'),
+			(_exitSpy, errSpy) => {
+				assert.equal(errSpy.mock.calls.length, 1);
+				assert.ok(String(errSpy.mock.calls[0][0]).includes('clone failed'));
+			},
+		);
 	});
 
 	it('prints a verbose hint to stdout when an info event fires', async () => {
