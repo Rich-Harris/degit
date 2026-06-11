@@ -45,6 +45,26 @@ import enquirer from 'enquirer';
 const mockDegit = vi.mocked(degit);
 const mockPrompt = vi.mocked(enquirer.prompt);
 
+type MockDegitInstance = ReturnType<typeof degit>;
+
+function createMockDegit(
+	cloneImpl: () => Promise<void>,
+	handlers?: Record<string, (event: { message: string }) => void>,
+): MockDegitInstance {
+	const instance = {
+		clone: vi.fn(cloneImpl),
+		on(event: string, handler: (event: { message: string }) => void) {
+			if (handlers) {
+				handlers[event] = handler;
+			}
+
+			return instance;
+		},
+	};
+
+	return instance as MockDegitInstance;
+}
+
 async function waitForCondition(fn, timeoutMs = 3000, startedAt = Date.now()) {
 	if (fn()) {
 		return;
@@ -54,22 +74,20 @@ async function waitForCondition(fn, timeoutMs = 3000, startedAt = Date.now()) {
 		assert.fail('timeout waiting for condition');
 	}
 
-	await new Promise((r) => setTimeout(r, 5));
+	await new Promise<void>((resolve) => {
+		setTimeout(resolve, 5);
+	});
 	return waitForCondition(fn, timeoutMs, startedAt);
 }
 
 function mockEventClone(eventName, message) {
-	const handlers = {};
-	mockDegit.mockReturnValue({
-		clone: vi.fn().mockImplementation(() => {
-			handlers[eventName]({ message });
+	const handlers: Record<string, (event: { message: string }) => void> = {};
+	mockDegit.mockReturnValue(
+		createMockDegit(() => {
+			handlers[eventName]?.({ message });
 			return Promise.resolve();
-		}),
-		on: vi.fn(function on(ev, fn) {
-			handlers[ev] = fn;
-			return this;
-		}),
-	} as never);
+		}, handlers),
+	);
 	return handlers;
 }
 
@@ -78,12 +96,9 @@ async function withCloneFailure(
 	error: Error,
 	assertions: (exitSpy: ReturnType<typeof vi.spyOn>, errSpy: ReturnType<typeof vi.spyOn>) => void,
 ) {
-	mockDegit.mockReturnValue({
-		clone: vi.fn().mockReturnValue(Promise.reject(error)),
-		on: vi.fn().mockReturnThis(),
-	} as never);
+	mockDegit.mockReturnValue(createMockDegit(() => Promise.reject(error)));
 
-	const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+	const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
 	const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 	try {
@@ -97,7 +112,6 @@ async function withCloneFailure(
 	}
 }
 
-describe('degit bin', () => {
 	const binTmp = '.tmp/bin-suite';
 	const repoRoot = process.cwd();
 	const rootBin = path.join(repoRoot, 'degit');
@@ -107,34 +121,32 @@ describe('degit bin', () => {
 		fs.rmSync(interactiveBase, { force: true, recursive: true });
 	}
 
-	beforeEach(async () => {
-		await rimraf(binTmp);
-		clearInteractiveFixtures();
-		vi.clearAllMocks();
-		mockDegit.mockReturnValue({
-			clone: vi.fn().mockResolvedValue(undefined),
-			on: vi.fn().mockReturnThis(),
-		} as never);
-	});
-	afterEach(async () => {
-		await rimraf(binTmp);
-		clearInteractiveFixtures();
-	});
+beforeEach(async () => {
+	await rimraf(binTmp);
+	clearInteractiveFixtures();
+	vi.clearAllMocks();
+	mockDegit.mockReturnValue(createMockDegit(() => Promise.resolve()));
+});
 
-	it('runs the built root bin when --help is executed', () => {
-		const result = child_process.spawnSync('node', [rootBin, '--help'], {
-			env: {
-				...process.env,
-				VITEST: '',
-			},
-			encoding: 'utf8',
-		});
-		const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-		assert.ok(output.length > 0);
-		assert.ok(output.includes('degit'));
-	});
+afterEach(async () => {
+	await rimraf(binTmp);
+	clearInteractiveFixtures();
+});
 
-	it('writes help to stdout when argv includes --help', async () => {
+it('runs the built root bin when --help is executed', () => {
+	const result = child_process.spawnSync('node', [rootBin, '--help'], {
+		env: {
+			...process.env,
+			VITEST: '',
+		},
+		encoding: 'utf8',
+	});
+	const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+	assert.ok(output.length > 0);
+	assert.ok(output.includes('degit'));
+});
+
+it('writes help to stdout when argv includes --help', async () => {
 		const chunks: string[] = [];
 		const orig = process.stdout.write.bind(process.stdout);
 		process.stdout.write = ((chunk, enc, cb) => {
@@ -158,7 +170,7 @@ describe('degit bin', () => {
 		await main(['node', 'bin', 'user/repo', 'out', '-f']);
 		assert.equal(mockDegit.mock.calls.length, 1);
 		assert.equal(mockDegit.mock.calls[0][0], 'user/repo');
-		assert.equal((mockDegit.mock.calls[0][1] as any).force, true);
+		assert.equal(mockDegit.mock.calls[0][1]?.force, true);
 		const instance = mockDegit.mock.results[0].value;
 		assert.equal(instance.clone.mock.calls[0][0], 'out');
 	});
@@ -180,7 +192,7 @@ describe('degit bin', () => {
 			JSON.stringify({ main: '2026-01-01T00:00:00.000Z' }),
 		);
 
-		mockPrompt.mockImplementation(async (questions) => {
+		mockPrompt.mockImplementation((questions) => {
 			const srcQuestion = (
 				questions as Array<{ name?: string; choices?: Array<{ value: string }> }>
 			).find((question) => question.name === 'src');
@@ -269,10 +281,7 @@ describe('degit bin', () => {
 	});
 
 	it('forwards explicit git mode when argv passes --mode=git', async () => {
-		mockDegit.mockReturnValue({
-			clone: vi.fn().mockResolvedValue(undefined),
-			on: vi.fn().mockReturnThis(),
-		} as never);
+		mockDegit.mockReturnValue(createMockDegit(() => Promise.resolve()));
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		try {
 			await main(['node', 'bin', 'a/b', 'dest', '--mode=git']);
@@ -284,4 +293,3 @@ describe('degit bin', () => {
 			warnSpy.mockRestore();
 		}
 	});
-});

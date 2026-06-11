@@ -106,7 +106,7 @@ async function promptForSource(): Promise<PromptResult> {
 		suggest: (input: string, promptChoices: Choice[]) =>
 			promptChoices.filter(({ value }) => fuzzysearch(input, value)),
 		type: 'autocomplete',
-	} as any;
+	};
 
 	return enquirer.prompt<PromptResult>([
 		sourcePrompt,
@@ -121,7 +121,7 @@ async function promptForSource(): Promise<PromptResult> {
 			name: 'cache',
 			type: 'toggle',
 		},
-	] as any);
+	]);
 }
 
 async function confirmOverwrite(): Promise<boolean> {
@@ -131,7 +131,7 @@ async function confirmOverwrite(): Promise<boolean> {
 			name: 'force',
 			type: 'toggle',
 		},
-	] as any);
+	]);
 
 	return force;
 }

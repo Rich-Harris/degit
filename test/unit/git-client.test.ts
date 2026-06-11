@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { vi } from 'vitest';
 
@@ -58,16 +57,37 @@ const httpsRepo = {
 	user: 'gitlab-org',
 } as const;
 
-function createSpawnProcess() {
-	const child = new EventEmitter() as EventEmitter & {
-		stderr: PassThrough;
-		stdout: PassThrough;
+type SpawnEvent = 'close' | 'error';
+
+type SpawnProcess = {
+	emit(event: SpawnEvent, value: unknown): boolean;
+	once(event: SpawnEvent, handler: (value: unknown) => void): void;
+	stderr: PassThrough;
+	stdout: PassThrough;
+};
+
+function createSpawnProcess(): SpawnProcess {
+	const handlers = new Map<SpawnEvent, Array<(value: unknown) => void>>();
+
+	return {
+		emit(event: SpawnEvent, value: unknown) {
+			const eventHandlers = handlers.get(event);
+			if (!eventHandlers) {
+				return false;
+			}
+
+			handlers.delete(event);
+			eventHandlers.forEach((handler) => handler(value));
+			return true;
+		},
+		once(event: SpawnEvent, handler: (value: unknown) => void) {
+			const eventHandlers = handlers.get(event) ?? [];
+			eventHandlers.push(handler);
+			handlers.set(event, eventHandlers);
+		},
+		stderr: new PassThrough(),
+		stdout: new PassThrough(),
 	};
-
-	child.stdout = new PassThrough();
-	child.stderr = new PassThrough();
-
-	return child;
 }
 
 function writeChunkedLines(child: ReturnType<typeof createSpawnProcess>, lines: string[]) {
@@ -78,48 +98,47 @@ function writeChunkedLines(child: ReturnType<typeof createSpawnProcess>, lines: 
 	}
 }
 
-describe('git client', () => {
-	beforeEach(() => {
-		execFileMock.mockClear();
-		spawnMock.mockClear();
-		getRemoteInfo2Mock.mockReset();
-		listServerRefsMock.mockReset();
-		spawnMock.mockImplementation((command: string, args: string[]) => {
-			if (command === 'git' && args[0] === 'ls-remote') {
-				const child = createSpawnProcess();
-				queueMicrotask(() => {
-					child.emit(
-						'error',
-						Object.assign(new Error(`spawn ${command} ENOENT`), {
-							code: 'ENOENT',
-							syscall: `spawn ${command}`,
-						}),
-					);
-				});
-
-				return child;
-			}
-
-			throw new Error(`Unexpected spawn call: ${command} ${args.join(' ')}`);
-		});
-		execFileMock.mockImplementation(
-			(command: string, args: string[], callback: (error?: unknown) => void) => {
-				if (command === 'git' && args[0] === 'clone') {
-					callback();
-					return;
-				}
-
-				callback(
+beforeEach(() => {
+	execFileMock.mockClear();
+	spawnMock.mockClear();
+	getRemoteInfo2Mock.mockReset();
+	listServerRefsMock.mockReset();
+	spawnMock.mockImplementation((command: string, args: string[]) => {
+		if (command === 'git' && args[0] === 'ls-remote') {
+			const child = createSpawnProcess();
+			queueMicrotask(() => {
+				child.emit(
+					'error',
 					Object.assign(new Error(`spawn ${command} ENOENT`), {
 						code: 'ENOENT',
 						syscall: `spawn ${command}`,
 					}),
 				);
-			},
-		);
-	});
+			});
 
-	it('falls back to protocol v1 discovery when protocol v2 ref listing fails for https repos', async () => {
+			return child;
+		}
+
+		throw new Error(`Unexpected spawn call: ${command} ${args.join(' ')}`);
+	});
+	execFileMock.mockImplementation(
+		(command: string, args: string[], callback: (error?: unknown) => void) => {
+			if (command === 'git' && args[0] === 'clone') {
+				callback();
+				return;
+			}
+
+			callback(
+				Object.assign(new Error(`spawn ${command} ENOENT`), {
+					code: 'ENOENT',
+					syscall: `spawn ${command}`,
+				}),
+			);
+		},
+	);
+});
+
+it('falls back to protocol v1 discovery when protocol v2 ref listing fails for https repos', async () => {
 		listServerRefsMock.mockRejectedValueOnce(
 			Object.assign(new Error('HTTP Error: 422 Unprocessable Entity'), {
 				code: 'HttpError',
@@ -145,7 +164,7 @@ describe('git client', () => {
 		assert.equal(getRemoteInfo2Mock.mock.calls[0][0].protocolVersion, 1);
 	});
 
-	it('reads chunked ls-remote output when fetching refs over ssh', async () => {
+it('reads chunked ls-remote output when fetching refs over ssh', async () => {
 		spawnMock.mockImplementationOnce(() => {
 			const child = createSpawnProcess();
 			queueMicrotask(() => {
@@ -184,7 +203,7 @@ describe('git client', () => {
 		});
 	});
 
-	it('reports a missing git binary when fetching refs over ssh', async () => {
+it('reports a missing git binary when fetching refs over ssh', async () => {
 		await assert.rejects(
 			createGitClient().fetchRefs(sshRepo),
 			(error: any) =>
@@ -192,7 +211,7 @@ describe('git client', () => {
 		);
 	});
 
-	it('reports a missing git binary when cloning over ssh', async () => {
+it('reports a missing git binary when cloning over ssh', async () => {
 		execFileMock.mockImplementationOnce(
 			(command: string, _args: string[], callback: (error?: unknown) => void) => {
 				callback(
@@ -211,7 +230,7 @@ describe('git client', () => {
 		);
 	});
 
-	it('uses a shallow clone when cloning over ssh', async () => {
+it('uses a shallow clone when cloning over ssh', async () => {
 		await createGitClient().clone(sshRepo, '.tmp/git-client-test');
 
 		assert.equal(execFileMock.mock.calls[0][0], 'git');
@@ -222,5 +241,4 @@ describe('git client', () => {
 			sshRepo.ssh,
 			'.tmp/git-client-test',
 		]);
-	});
 });

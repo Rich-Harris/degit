@@ -69,11 +69,11 @@ try {
 		const samplesMs: number[] = [];
 
 		try {
-			for (let _ = 0; _ < config.warmups; _ += 1) {
+			for (let warmupIndex = 0; warmupIndex < config.warmups; warmupIndex += 1) {
 				await runtime.clone();
 			}
 
-			for (let _ = 0; _ < config.iterations; _ += 1) {
+			for (let iterationIndex = 0; iterationIndex < config.iterations; iterationIndex += 1) {
 				const startedAt = performance.now();
 				await runtime.clone();
 				samplesMs.push(performance.now() - startedAt);

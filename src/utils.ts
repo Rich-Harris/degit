@@ -64,7 +64,7 @@ export function fetch(url: string, dest: string, proxy?: string): Promise<void> 
 		if (proxy) {
 			const parsedUrl = URL.parse(url);
 			options = {
-				agent: Agent(proxy) as unknown as import('node:http').Agent,
+				agent: Agent(proxy) as import('node:http').Agent,
 				hostname: parsedUrl.host,
 				path: parsedUrl.path,
 			};

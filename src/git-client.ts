@@ -117,7 +117,7 @@ function mapRemoteRef(refName: string, refHash: string): Ref {
 	};
 }
 
-function mapServerRef(serverRef: any): Ref | undefined {
+function mapServerRef(serverRef: { hash?: string; name?: string; oid?: string; ref?: string }): Ref | undefined {
 	const refName = String(serverRef.ref || serverRef.name || '');
 	const refHash = String(serverRef.oid || serverRef.hash || '');
 

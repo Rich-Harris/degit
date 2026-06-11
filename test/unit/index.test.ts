@@ -130,7 +130,7 @@ async function createArchiveWithFileFixture(rootName, relativePath, contents) {
 	return archiveFile;
 }
 
-async function createArchiveWithGitLfsPointerFixture(rootName) {
+function createArchiveWithGitLfsPointerFixture(rootName) {
 	return createArchiveWithFileFixture(
 		rootName,
 		'packages/app/asset.bin',
@@ -190,12 +190,11 @@ async function cloneAndExpectTarContent(test, archiveFile, dest, expectedPath, e
 	assert.deepEqual(gitMock.calls, [`fetchRefs ${test.url}`]);
 }
 
-function clearArchiveCache(test, _hash) {
+function clearArchiveCache(test) {
 	const archiveDir = path.join(base, test.site, test.user, test.name);
 	fs.rmSync(archiveDir, { force: true, recursive: true });
 }
 
-describe('degit index', () => {
 	const indexTmp = '.tmp/index-suite';
 
 	beforeEach(async () => await rimraf(indexTmp));
@@ -241,10 +240,10 @@ describe('degit index', () => {
 		});
 	});
 
-	describe('tar mode fetch failures', () => {
+	function registerTarModeFetchFailures() {
 		providerCases.forEach((test) => {
 			it(`falls back to git clone using the source transport when redirect leads to 403 for ${test.site}`, async () => {
-				clearArchiveCache(test, refsHash);
+				clearArchiveCache(test);
 				const fetch = createMockFetch([
 					{ location: test.redirectUrl, status: 302 },
 					{ code: 403, message: 'Forbidden', status: 403 },
@@ -274,7 +273,7 @@ describe('degit index', () => {
 			const dest = '.tmp/index-suite/test-repo';
 			const archiveDir = path.join(base, test.site, test.user, test.name);
 			const corruptArchive = path.join('.tmp/index-suite', 'corrupt-archive.tar.gz');
-			clearArchiveCache(test, refsHash);
+			clearArchiveCache(test);
 			fs.mkdirSync('.tmp/index-suite', { recursive: true });
 			fs.mkdirSync(archiveDir, { recursive: true });
 			fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
@@ -299,15 +298,17 @@ describe('degit index', () => {
 		});
 	});
 
-	describe('tar mode HEAD fallback', () => {
+	function registerTarModeHeadFallback() {
 		providerCases.forEach((test) => {
 			it(`uses the default branch hash when HEAD is missing for ${test.site}`, async () => {
-				clearArchiveCache(test, refsHash);
+				clearArchiveCache(test);
 				const fetch = createCopyFetch(
 					await createArchiveFixture(`degit-test-repo-${refsHash}`),
 				);
 				const gitMock = createMockGit({
-					[`fetchRefs ${test.url}`]: branchRefs,
+		}
+
+		describe('tar mode HEAD fallback', registerTarModeHeadFallback);
 				});
 
 				await degit(test.publicSrc, {
@@ -361,11 +362,11 @@ describe('degit index', () => {
 		});
 	});
 
-	describe('tar mode extraction', () => {
+	function registerTarModeExtraction() {
 		providerCases.forEach((test) => {
 			it(`extracts a nested subdirectory when cloning a nested path for ${test.site}`, async () => {
 				const dest = '.tmp/index-suite/test-repo';
-				clearArchiveCache(test, refsHash);
+				clearArchiveCache(test);
 				const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`);
 				const fetch = createCopyFetch(archiveFile);
 				const gitMock = createMockGit({
@@ -390,7 +391,7 @@ describe('degit index', () => {
 			it(`redownloads the tarball when the cached archive is corrupted for ${test.site}`, async () => {
 				const dest = '.tmp/index-suite/test-repo';
 				const archiveDir = path.join(base, test.site, test.user, test.name);
-				clearArchiveCache(test, refsHash);
+				clearArchiveCache(test);
 				const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`);
 				fs.mkdirSync(archiveDir, { recursive: true });
 				fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
@@ -416,9 +417,11 @@ describe('degit index', () => {
 				assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
 			});
 		});
-	});
+	}
 
-	describe('explicit git mode', () => {
+	describe('tar mode fetch failures', registerTarModeFetchFailures);
+
+	function registerExplicitGitMode() {
 		providerCases.forEach((test) => {
 			it(`uses the git backend immediately when mode is git for ${test.site}`, async () => {
 				const dest = '.tmp/index-suite/test-repo';
@@ -442,12 +445,16 @@ describe('degit index', () => {
 					`clone ${test.url} ${dest} ${refsHash}`,
 				]);
 			});
-		});
+		}
+
+		describe('explicit git mode', registerExplicitGitMode);
+
+		describe('tar mode extraction', registerTarModeExtraction);
 
 		providerCases.forEach((test) => {
 			it(`does not fall back when a file merely quotes a pointer snippet for ${test.site}`, async () => {
 				const dest = '.tmp/index-suite/test-repo';
-				clearArchiveCache(test, refsHash);
+				clearArchiveCache(test);
 				const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`);
 				await cloneAndExpectTarContent(
 					test,
@@ -462,7 +469,7 @@ describe('degit index', () => {
 		providerCases.forEach((test) => {
 			it(`falls back to git clone when the tarball contains git-lfs pointers for ${test.site}`, async () => {
 				const dest = '.tmp/index-suite/test-repo';
-				clearArchiveCache(test, refsHash);
+				clearArchiveCache(test);
 				const archiveFile = await createArchiveWithGitLfsPointerFixture(
 					`degit-test-repo-${refsHash}`,
 				);
@@ -558,4 +565,3 @@ describe('degit index', () => {
 			}
 		});
 	});
-});
