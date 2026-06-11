@@ -188,6 +188,7 @@ class Degit extends EventEmitter {
 		this._checkDirIsEmpty(dest);
 
 		const { repo } = this;
+		const successMessage = cloneSuccessMessage(repo.user, repo.name, repo.ref, dest);
 
 		if (this.mode === 'git') {
 			const hash = await this._getHash(repo, {});
@@ -195,7 +196,7 @@ class Degit extends EventEmitter {
 			this._info({
 				code: 'SUCCESS',
 				dest,
-				message: `cloned ${colors.bold(repo.user + '/' + repo.name)}#${colors.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+				message: successMessage,
 				repo,
 			});
 			return;
@@ -219,7 +220,7 @@ class Degit extends EventEmitter {
 		this._info({
 			code: 'SUCCESS',
 			dest,
-			message: `cloned ${colors.bold(repo.user + '/' + repo.name)}#${colors.bold(repo.ref)}${dest !== '.' ? ` to ${dest}` : ''}`,
+			message: successMessage,
 			repo,
 		});
 
@@ -562,6 +563,10 @@ class Degit extends EventEmitter {
 			fs.cpSync(sourcePath, destinationPath, { recursive: true });
 		}
 	}
+}
+
+function cloneSuccessMessage(user: string, name: string, ref: string, dest: string) {
+	return `cloned ${colors.bold(user + '/' + name)}#${colors.bold(ref)}${dest !== '.' ? ` to ${dest}` : ''}`;
 }
 
 async function untar(file: string, dest: string, subdir: string | null = null): Promise<void> {

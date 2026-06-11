@@ -182,8 +182,42 @@ export function run(src: string, dest: string, args: RunArgs) {
 
 	d.clone(dest).catch((error: Error) => {
 		console.error(colors.red(`! ${error.message.replace('options.', '--')}`));
+		if (args.verbose) {
+			const detail = getCloneErrorDetail(error);
+
+			if (detail) {
+				console.error(detail);
+			}
+		}
 		process.exit(1);
 	});
+}
+
+function getCloneErrorDetail(error: unknown): string | undefined {
+	if (!error || typeof error !== 'object') {
+		return undefined;
+	}
+
+	const nestedError =
+		'original' in error ? error.original : 'cause' in error ? error.cause : undefined;
+
+	if (!nestedError) {
+		return undefined;
+	}
+
+	if (nestedError instanceof Error) {
+		return nestedError.stack || nestedError.message;
+	}
+
+	if (typeof nestedError === 'string') {
+		return nestedError;
+	}
+
+	try {
+		return JSON.stringify(nestedError);
+	} catch {
+		return String(nestedError);
+	}
 }
 
 if (!process.env.VITEST) {
