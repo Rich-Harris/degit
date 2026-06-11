@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.4.7
+
+- Gate clone error details behind `--verbose`.
+
 ## 3.4.6
 
 - Block `remove` path traversal outside the destination.
