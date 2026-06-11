@@ -59,21 +59,21 @@ const [{ default: degit }, { base }] = await Promise.all([
 ]);
 
 const baseline = readBaseline();
-const fixture = await createFixture(degit);
+const fixtureData = await createFixture(degit);
 
 try {
 	const reports: BenchmarkReport[] = [];
 
-	for (const benchmark of benchmarks(fixture)) {
+	for (const benchmark of benchmarks(fixtureData)) {
 		const runtime = await benchmark.setup();
 		const samplesMs: number[] = [];
 
 		try {
-			for (let index = 0; index < config.warmups; index += 1) {
+			for (let _ = 0; _ < config.warmups; _ += 1) {
 				await runtime.clone();
 			}
 
-			for (let index = 0; index < config.iterations; index += 1) {
+			for (let _ = 0; _ < config.iterations; _ += 1) {
 				const startedAt = performance.now();
 				await runtime.clone();
 				samplesMs.push(performance.now() - startedAt);
@@ -244,7 +244,7 @@ function createMockGit(hash: string, url: string) {
 }
 
 function median(samples: number[]) {
-	const sorted = [...samples].sort((left, right) => left - right);
+	const sorted = samples.toSorted((left, right) => left - right);
 	const middle = Math.floor(sorted.length / 2);
 
 	return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];

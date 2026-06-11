@@ -7,9 +7,13 @@ function readFixture(file) {
 	return fs.readFileSync(file, 'utf8');
 }
 
+function getGitUrl(repo, transport = repo.transport) {
+	return transport === 'ssh' ? repo.ssh : repo.url;
+}
+
 export function compareDirToExpected(dir, files) {
 	const expected = glob('**', { cwd: dir }).map((file) => file.replaceAll('\\', '/'));
-	assert.deepEqual(Object.keys(files).sort(), expected.sort());
+	assert.deepEqual(Object.keys(files).toSorted(), expected.toSorted());
 
 	expected.forEach((file) => {
 		if (!fs.lstatSync(`${dir}/${file}`).isDirectory()) {
@@ -20,8 +24,6 @@ export function compareDirToExpected(dir, files) {
 
 export function createMockGit(stubs = {}) {
 	const calls = [];
-	const getGitUrl = (repo, transport = repo.transport) =>
-		transport === 'ssh' ? repo.ssh : repo.url;
 	const resolveStub = async (call, ...args) => {
 		if (!Object.hasOwn(stubs, call)) {
 			return Promise.reject(new Error(`Unexpected git call: ${call}`));
