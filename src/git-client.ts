@@ -6,215 +6,30 @@ import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
 import { DegitError } from './utils.js';
 import type { Repo } from './repo.js';
-
-type Ref = {
-	hash: string;
-	name?: string;
-	type?: string;
-};
+import {
+	createMissingGitError,
+	createSshError,
+	getGitClonePlan,
+	getGitUrl,
+	isMissingGitBinaryError,
+	isMissingSshKeyError,
+	normalizeGitRef,
+	normalizeServerRefs,
+	parseGitLsRemoteOutput,
+	type Ref,
+} from './git-client-utils.js';
 
 type IsomorphicGitHttp = typeof import('isomorphic-git/http/node');
-
-type GitPlan = {
-	cloneRef?: string;
-	checkoutRef?: string;
-	singleBranch?: boolean;
-};
 
 const execFile = promisify(execFileCallback);
 
 const isomorphicGitHttp = http as IsomorphicGitHttp['default'];
-
-function getGitUrl(repo: Repo, transport: Repo['transport'] = repo.transport) {
-	return transport === 'ssh' ? repo.ssh : repo.url;
-}
-
-function isCommitHash(ref: string) {
-	return /^[0-9a-f]{7,40}$/i.test(ref);
-}
-
-function normalizeGitRef(ref: string) {
-	if (ref.startsWith('refs/heads/')) {
-		return ref.slice('refs/heads/'.length);
-	}
-
-	if (ref.startsWith('refs/tags/')) {
-		return ref.slice('refs/tags/'.length);
-	}
-
-	return ref;
-}
-
-function isMissingSshKeyError(error: unknown) {
-	if (!error || typeof error !== 'object') {
-		return false;
-	}
-
-	const code = (error as { code?: string }).code || '';
-	const message = (error as { message?: string }).message || '';
-	const normalized = `${code} ${message}`.toLowerCase();
-
-	return (
-		normalized.includes('ssh') &&
-		(normalized.includes('agent') ||
-			normalized.includes('key') ||
-			normalized.includes('identity') ||
-			normalized.includes('publickey') ||
-			normalized.includes('authentication'))
-	);
-}
-
-function isMissingGitBinaryError(error: unknown) {
-	if (!error || typeof error !== 'object') {
-		return false;
-	}
-
-	return (error as { code?: string }).code === 'ENOENT';
-}
-
-function createSshError(repo: Repo, error: unknown) {
-	return new DegitError(
-		`SSH authentication failed for ${repo.url}. Start ssh-agent and add a key, or use the HTTPS source instead.`,
-		{
-			code: 'SSH_NO_KEY',
-			original: error,
-			url: repo.url,
-		},
-	);
-}
-
-function createMissingGitError(repo: Repo, error: unknown) {
-	return new DegitError(`git is not installed. Install git to clone ${repo.url}.`, {
-		code: 'GIT_NOT_FOUND',
-		original: error,
-		url: repo.url,
-	});
-}
 export type GitClient = {
 	fetchRefs(repo: Repo): Promise<Ref[]>;
 	clone(repo: Repo, dest: string, ref?: string, transport?: Repo['transport']): Promise<void>;
 };
 
-function mapRemoteRef(refName: string, refHash: string): Ref {
-	if (refName === 'HEAD') {
-		return {
-			hash: refHash,
-			type: 'HEAD',
-		};
-	}
-
-	const match = /refs\/([^/]+)\/(.+)/.exec(refName);
-	if (!match) {
-		throw new DegitError(`could not parse ${refName}`, {
-			code: 'BAD_REF',
-		});
-	}
-
-	return {
-		hash: refHash,
-		name: match[2],
-		type: match[1] === 'heads' ? 'branch' : match[1] === 'refs' ? 'ref' : match[1],
-	};
-}
-
-function mapServerRef(serverRef: any): Ref | undefined {
-	const refName = String(serverRef.ref || serverRef.name || '');
-	const refHash = String(serverRef.oid || serverRef.hash || '');
-
-	if (!refName || !refHash) {
-		return undefined;
-	}
-
-	return mapRemoteRef(refName, refHash);
-}
-
-function dedupeRefs(refs: Ref[]): Ref[] {
-	const seen = new Set<string>();
-	return refs.filter((ref) => {
-		const key = ref.type === 'HEAD' ? 'HEAD' : ref.name ? `${ref.type}:${ref.name}` : ref.hash;
-		if (seen.has(key)) return false;
-		seen.add(key);
-		return true;
-	});
-}
-
-function parseGitLsRemoteOutput(output: string): Ref[] {
-	const refs = new Map<string, Ref>();
-	const symrefs = new Map<string, string>();
-
-	for (const rawLine of output.split(/\r?\n/)) {
-		const line = rawLine.trim();
-		if (!line) continue;
-
-		const symrefMatch = /^ref:\s+(.+)\t(.+)$/.exec(line);
-		if (symrefMatch) {
-			symrefs.set(symrefMatch[2], symrefMatch[1]);
-			continue;
-		}
-
-		const tabIndex = line.indexOf('\t');
-		if (tabIndex === -1) continue;
-
-		const hash = line.slice(0, tabIndex);
-		const refName = line.slice(tabIndex + 1);
-		refs.set(refName, mapRemoteRef(refName, hash));
-	}
-
-	for (const [name, target] of symrefs) {
-		if (name !== 'HEAD') continue;
-
-		const targetRef = refs.get(target);
-		if (targetRef) {
-			refs.set('HEAD', {
-				hash: targetRef.hash,
-				type: 'HEAD',
-			});
-		}
-	}
-
-	return dedupeRefs([...refs.values()]);
-}
-
-function getGitClonePlan(ref: string): GitPlan {
-	const normalizedRef = normalizeGitRef(ref);
-	if (normalizedRef === 'HEAD') {
-		return {};
-	}
-
-	if (isCommitHash(normalizedRef)) {
-		return {
-			checkoutRef: normalizedRef,
-		};
-	}
-
-	if (normalizedRef.startsWith('refs/heads/')) {
-		return {
-			cloneRef: normalizedRef.slice('refs/heads/'.length),
-			singleBranch: true,
-		};
-	}
-
-	if (normalizedRef.startsWith('refs/tags/')) {
-		return {
-			cloneRef: normalizedRef.slice('refs/tags/'.length),
-			singleBranch: true,
-		};
-	}
-
-	if (normalizedRef.startsWith('refs/')) {
-		return {
-			checkoutRef: normalizedRef,
-		};
-	}
-
-	return {
-		cloneRef: normalizedRef,
-		checkoutRef: normalizedRef,
-		singleBranch: true,
-	};
-}
-
-async function fetchRefsWithGitCli(repo: Repo) {
+function fetchRefsWithGitCli(repo: Repo) {
 	return new Promise<Ref[]>((resolve, reject) => {
 		const child = spawn('git', ['ls-remote', '--symref', getGitUrl(repo)], {
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -256,9 +71,6 @@ async function fetchRefsWithGitCli(repo: Repo) {
 
 async function fetchRefsWithIsomorphicGit(repo: Repo) {
 	const url = getGitUrl(repo);
-	const normalizeRefs = (
-		refs: Array<{ hash?: string; oid?: string; ref?: string; name?: string }>,
-	) => dedupeRefs(refs.map(mapServerRef).filter((ref): ref is Ref => Boolean(ref)));
 
 	try {
 		const refs = await git.listServerRefs({
@@ -267,7 +79,7 @@ async function fetchRefsWithIsomorphicGit(repo: Repo) {
 			symrefs: true,
 			url,
 		});
-		const normalizedRefs = normalizeRefs(refs);
+		const normalizedRefs = normalizeServerRefs(refs);
 
 		if (normalizedRefs.length > 0) {
 			return normalizedRefs;
@@ -284,7 +96,7 @@ async function fetchRefsWithIsomorphicGit(repo: Repo) {
 			url,
 		});
 
-		const normalizedRefs = normalizeRefs(remote.refs || []);
+		const normalizedRefs = normalizeServerRefs(remote.refs || []);
 		if (normalizedRefs.length > 0) {
 			return normalizedRefs;
 		}

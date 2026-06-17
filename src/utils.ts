@@ -82,7 +82,7 @@ export function fetch(url: string, dest: string, proxy?: string): Promise<void> 
 				} else {
 					response
 						.pipe(fs.createWriteStream(dest))
-						.on('finish', () => fulfil(undefined))
+						.on('finish', () => fulfil())
 						.on('error', reject);
 				}
 			})

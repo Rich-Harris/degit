@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import colors from 'yoctocolors';
 import enquirer from 'enquirer';
 import fuzzysearch from 'fuzzysearch';
@@ -9,7 +8,7 @@ import glob from 'tiny-glob/sync.js';
 import degit from './index.js';
 import { base, tryRequire } from './utils.js';
 
-const dirname = path.dirname(fileURLToPath(import.meta.url));
+const dirname = import.meta.dirname;
 
 type Choice = {
 	message: string;
@@ -94,11 +93,11 @@ function getInteractiveChoices(): Choice[] {
 	};
 
 	return glob('**/map.json', { cwd: base })
-		.flatMap(getChoices)
+		.flatMap((file) => getChoices(file))
 		.toSorted((a, b) => (accessLookup.get(b.value) || 0) - (accessLookup.get(a.value) || 0));
 }
 
-async function promptForSource(): Promise<PromptResult> {
+function promptForSource(): Promise<PromptResult> {
 	const sourcePrompt = {
 		choices: getInteractiveChoices(),
 		message: 'Repo to clone?',
@@ -151,11 +150,9 @@ export async function main(argv: string[]) {
 
 		const empty = !fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
 
-		if (!empty) {
-			if (!(await confirmOverwrite())) {
-				console.error(colors.magenta('! Directory not empty — aborting'));
-				return;
-			}
+		if (!empty && !(await confirmOverwrite())) {
+			console.error(colors.magenta('! Directory not empty — aborting'));
+			return;
 		}
 
 		run(options.src, options.dest, {
@@ -221,8 +218,10 @@ function getCloneErrorDetail(error: unknown): string | undefined {
 }
 
 if (!process.env.VITEST) {
-	main(process.argv).catch((error) => {
+	try {
+		await main(process.argv);
+	} catch (error) {
 		console.error(error);
 		process.exit(1);
-	});
+	}
 }
