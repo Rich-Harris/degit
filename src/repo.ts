@@ -54,8 +54,10 @@ export function getProvider(site: string): Provider | undefined {
 	}
 }
 
-export function parse(src: string): Repo {
-	const [source, refValue = 'HEAD'] = src.split('#', 2);
+function resolveSource(
+	source: string,
+	src: string,
+): { remainder: string; site: string; transport: 'https' | 'ssh' } {
 	let site = 'github';
 	let transport: 'https' | 'ssh' = 'https';
 	let remainder = source;
@@ -92,6 +94,13 @@ export function parse(src: string): Repo {
 		}
 	}
 
+	return { remainder, site, transport };
+}
+
+export function parse(src: string): Repo {
+	const [source, refValue = 'HEAD'] = src.split('#', 2);
+	const { remainder, site, transport } = resolveSource(source, src);
+
 	if (!supported.has(site)) {
 		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
 			code: 'UNSUPPORTED_HOST',
@@ -114,13 +123,10 @@ export function parse(src: string): Repo {
 
 	const name = rawName.replace(/\.git$/, '');
 	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
-	const ref = refValue;
 
 	const domain = provider.domain;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `ssh://git@${domain}/${user}/${name}`;
 
-	const mode = 'tar';
-
-	return { mode, name, ref, site, ssh, subdir, transport, url, user };
+	return { mode: 'tar', name, ref: refValue, site, ssh, subdir, transport, url, user };
 }

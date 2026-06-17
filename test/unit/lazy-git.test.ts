@@ -5,7 +5,7 @@ import assert from 'node:assert';
 import { vi } from 'vitest';
 
 let gitClientLoaded = false;
-const fetchRefs = vi.fn(async () => [
+const fetchRefs = vi.fn(() => [
 	{ hash: '0123456789abcdef0123456789abcdef0123456789', type: 'HEAD' },
 ]);
 const clone = vi.fn(async () => {});

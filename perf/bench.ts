@@ -183,7 +183,7 @@ async function createFixture(degitFactory: typeof degit): Promise<Fixture> {
 	};
 }
 
-async function createColdRuntime(fixture: Fixture): Promise<BenchmarkRuntime> {
+function createColdRuntime(fixture: Fixture): BenchmarkRuntime {
 	const fetch = createCopyFetch(fixture.archiveFile);
 	const git = createMockGit(fixture.hash, fixture.repo.url);
 	const client = degit('Rich-Harris/degit-test-repo', {
@@ -205,7 +205,7 @@ async function createColdRuntime(fixture: Fixture): Promise<BenchmarkRuntime> {
 	};
 }
 
-async function createCachedRuntime(fixture: Fixture): Promise<BenchmarkRuntime> {
+function createCachedRuntime(fixture: Fixture): BenchmarkRuntime {
 	fixture.updateCache();
 	const client = degit('Rich-Harris/degit-test-repo', {
 		cache: true,
@@ -228,7 +228,7 @@ async function createCachedRuntime(fixture: Fixture): Promise<BenchmarkRuntime> 
 
 function createCopyFetch(sourceFile: string) {
 	return {
-		fn: async (_url: string, file: string) => {
+		fn: (_url: string, file: string) => {
 			fs.copyFileSync(sourceFile, file);
 		},
 	};
@@ -236,10 +236,10 @@ function createCopyFetch(sourceFile: string) {
 
 function createMockGit(hash: string, url: string) {
 	return {
-		clone: async () => {
+		clone: () => {
 			throw new Error(`unexpected git clone for ${url}`);
 		},
-		fetchRefs: async () => [{ hash, name: 'main', type: 'HEAD' }],
+		fetchRefs: () => [{ hash, name: 'main', type: 'HEAD' }],
 	};
 }
 

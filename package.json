@@ -50,9 +50,13 @@
 		"pretest": "bun run build",
 		"prepublishOnly": "bun run test"
 	},
+	"dependencies": {
+		"@types/fs-extra": "11.0.4",
+		"fs-extra": "11.3.5"
+	},
 	"devDependencies": {
 		"@types/node": "25.6.0",
-		"@vitest/coverage-v8": "4.1.5",
+		"@vitest/coverage-v8": "4.1.8",
 		"enquirer": "2.3.6",
 		"eslint-plugin-security": "4.0.0",
 		"fuzzysearch": "1.0.3",
@@ -66,12 +70,16 @@
 		"oxfmt": "0.47.0",
 		"oxlint": "1.62.0",
 		"rimraf": "3.0.2",
-		"tar": "7.5.11",
+		"tar": "^7.5.16",
 		"tiny-glob": "0.2.8",
 		"tsdown": "0.21.10",
 		"typescript": "6.0.3",
-		"vitest": "4.1.5",
+		"vite": "8.0.16",
+		"vitest": "4.1.8",
 		"yoctocolors": "2.1.2"
+	},
+	"overrides": {
+		"vite": "8.0.16"
 	},
 	"lint-staged": {
 		"*.{js,ts}": [
