@@ -4,15 +4,13 @@
   "workspaces": {
     "": {
       "name": "degit",
-      "dependencies": {
-        "@types/fs-extra": "11.0.4",
-        "fs-extra": "11.3.5",
-      },
       "devDependencies": {
+        "@types/fs-extra": "11.0.4",
         "@types/node": "25.6.0",
         "@vitest/coverage-v8": "4.1.8",
         "enquirer": "2.3.6",
         "eslint-plugin-security": "4.0.0",
+        "fs-extra": "11.3.5",
         "fuzzysearch": "1.0.3",
         "https-proxy-agent": "5.0.0",
         "husky": "9.1.7",
