@@ -1,8 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
 import fs from 'fs-extra';
 import path from 'node:path';
-import type { Repo } from './repo.js';
-import { tryRequire } from './utils.js';
+import type { Repo } from '../../domain/repo.js';
+import { tryRequire } from '../../shared/utils.js';
 
 function sameHash(left: string | undefined, right: string) {
 	if (!left || left.length !== right.length) {

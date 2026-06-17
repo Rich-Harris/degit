@@ -1,5 +1,5 @@
-import { Degit } from './degit-core.js';
-import type { ConstructorOptions } from './degit-types.js';
+import { Degit } from './core/orchestrator.js';
+import type { ConstructorOptions } from './domain/types.js';
 
 export type {
 	Action,
@@ -11,7 +11,7 @@ export type {
 	Options,
 	RemoveAction,
 	ValidModes,
-} from './degit-types.js';
+} from './domain/types.js';
 
 export default function degit(src: string, opts: ConstructorOptions = {}) {
 	return new Degit(src, opts);

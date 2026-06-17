@@ -1,9 +1,9 @@
 import path from 'node:path';
 import colors from 'yoctocolors';
-import { parse, type Repo } from './repo.js';
-import { applyDirectives } from './degit-directives.js';
-import { checkDirIsEmpty, getDirectives, removeFiles } from './degit-fs.js';
-import { cloneWithTar as cloneWithTarMode } from './degit-tar.js';
+import { parse, type Repo } from '../domain/repo.js';
+import { applyDirectives } from '../operations/directives.js';
+import { checkDirIsEmpty, getDirectives, removeFiles } from '../operations/filesystem.js';
+import { cloneWithTar as cloneWithTarMode } from '../transports/tar/archive.js';
 import {
 	validModes,
 	type ConstructorOptions,
@@ -12,9 +12,9 @@ import {
 	type FetchFn,
 	type RemoveDirective,
 	type ValidModes,
-} from './degit-types.js';
-import type { GitClient } from './git-client.js';
-import { base, fetch } from './utils.js';
+} from '../domain/types.js';
+import type { GitClient } from '../domain/types.js';
+import { base, fetch } from '../shared/utils.js';
 
 type InfoListener = (info: EventInfo) => void;
 
@@ -72,10 +72,12 @@ export class Degit {
 		}
 
 		if (!this.gitClientPromise) {
-			this.gitClientPromise = import('./git-client.js').then(({ defaultGitClient }) => {
-				this.git = defaultGitClient;
-				return defaultGitClient;
-			});
+			this.gitClientPromise = import('../transports/git/client.js').then(
+				({ defaultGitClient }) => {
+					this.git = defaultGitClient;
+					return defaultGitClient;
+				},
+			);
 		}
 
 		return this.gitClientPromise;

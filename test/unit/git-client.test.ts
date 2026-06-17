@@ -33,7 +33,7 @@ vi.mock('isomorphic-git/http/node', () => ({
 	default: {},
 }));
 
-const { createGitClient } = await import('../../src/git-client.js');
+const { createGitClient } = await import('../../src/transports/git/client.js');
 
 const sshRepo = {
 	mode: 'tar',

@@ -1,10 +1,10 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 import * as tar from 'tar';
-import { getProvider, type Repo } from './repo.js';
-import { readCachedRefs, updateCache } from './degit-cache.js';
-import { DegitError, mkdirp } from './utils.js';
-import type { FetchFn, EventInfo } from './degit-types.js';
+import { getProvider, type Repo } from '../../domain/repo.js';
+import { readCachedRefs, updateCache } from './cache.js';
+import { DegitError, mkdirp } from '../../shared/utils.js';
+import type { EventInfo, FetchFn } from '../../domain/types.js';
 
 type TarContext = {
 	cache?: boolean;

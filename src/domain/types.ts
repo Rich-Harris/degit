@@ -1,5 +1,9 @@
-import type { GitClient } from './git-client.js';
 import type { Repo } from './repo.js';
+
+export type GitClient = {
+	fetchRefs(repo: Repo): Promise<Ref[]>;
+	clone(repo: Repo, dest: string, ref?: string, transport?: Repo['transport']): Promise<void>;
+};
 
 export const validModes = new Set(['tar', 'git']);
 
@@ -46,6 +50,12 @@ export type EventInfo = {
 	url?: string;
 	original?: unknown;
 	ref?: string;
+};
+
+export type Ref = {
+	hash: string;
+	name?: string;
+	type?: string;
 };
 
 export type Directive =

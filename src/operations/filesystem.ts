@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import colors from 'yoctocolors';
-import { DegitError, degitConfigName, tryRequire } from './utils.js';
-import type { Directive, EventInfo, RemoveDirective } from './degit-types.js';
+import { DegitError, degitConfigName, tryRequire } from '../shared/utils.js';
+import type { Directive, EventInfo, RemoveDirective } from '../domain/types.js';
 
 type Emit = (info: EventInfo) => void;
 

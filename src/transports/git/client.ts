@@ -4,8 +4,8 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
-import { DegitError } from './utils.js';
-import type { Repo } from './repo.js';
+import { DegitError } from '../../shared/utils.js';
+import type { Repo } from '../../domain/repo.js';
 import {
 	createMissingGitError,
 	createSshError,
@@ -17,18 +17,14 @@ import {
 	normalizeServerRefs,
 	parseGitLsRemoteOutput,
 	type Ref,
-} from './git-client-utils.js';
+} from './client-utils.js';
+import type { GitClient } from '../../domain/types.js';
 
 type IsomorphicGitHttp = typeof import('isomorphic-git/http/node');
 
 const execFile = promisify(execFileCallback);
 
 const isomorphicGitHttp = http as IsomorphicGitHttp['default'];
-export type GitClient = {
-	fetchRefs(repo: Repo): Promise<Ref[]>;
-	clone(repo: Repo, dest: string, ref?: string, transport?: Repo['transport']): Promise<void>;
-};
-
 function fetchRefsWithGitCli(repo: Repo) {
 	return new Promise<Ref[]>((resolve, reject) => {
 		const child = spawn('git', ['ls-remote', '--symref', getGitUrl(repo)], {
