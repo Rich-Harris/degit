@@ -55,7 +55,7 @@ process.env.LOCALAPPDATA = path.join(sandboxHome, 'AppData', 'Local');
 
 const [{ default: degit }, { base }] = await Promise.all([
 	import(new URL('../src/index.ts', import.meta.url).href),
-	import(new URL('../src/utils.ts', import.meta.url).href),
+	import(new URL('../src/shared/utils.ts', import.meta.url).href),
 ]);
 
 const baseline = readBaseline();

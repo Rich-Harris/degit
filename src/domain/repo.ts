@@ -1,4 +1,4 @@
-import { DegitError } from './utils.js';
+import { DegitError } from '../shared/utils.js';
 
 type Provider = {
 	domain: string;

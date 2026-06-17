@@ -1,11 +1,6 @@
-import { DegitError } from './utils.js';
-import type { Repo } from './repo.js';
-
-export type Ref = {
-	hash: string;
-	name?: string;
-	type?: string;
-};
+import { DegitError } from '../../shared/utils.js';
+import type { Ref } from '../../domain/types.js';
+import type { Repo } from '../../domain/repo.js';
 
 type GitPlan = {
 	cloneRef?: string;

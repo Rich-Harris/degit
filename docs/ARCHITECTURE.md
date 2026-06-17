@@ -12,9 +12,25 @@ The repository is intentionally small. The source of truth for behavior lives in
 ├── assets/
 │   └── help.md       # Published CLI help text
 ├── src/
-│   ├── index.ts      # Core Degit class, provider logic, caching, clone flow
+│   ├── index.ts      # Public library entrypoint
 │   ├── bin.ts        # CLI entrypoint, argument parsing, interactive mode
-│   └── utils.ts      # Fetch, exec, filesystem helpers, cache paths
+│   ├── core/
+│   │   └── orchestrator.ts   # Clone orchestration and mode selection
+│   ├── domain/
+│   │   ├── repo.ts           # Source parsing and provider URL resolution
+│   │   └── types.ts          # Public and internal type surface
+│   ├── operations/
+│   │   ├── directives.ts     # Post-clone directives
+│   │   └── filesystem.ts    # Empty-dir checks and remove helpers
+│   ├── transports/
+│   │   ├── git/
+│   │   │   ├── client.ts     # Git backend
+│   │   │   └── client-utils.ts
+│   │   └── tar/
+│   │       ├── archive.ts    # Tar snapshot clone path
+│   │       └── cache.ts      # Tar cache persistence
+│   └── shared/
+│       └── utils.ts          # Fetch, exec, filesystem helpers, cache paths
 ├── test/
 │   ├── unit/
 │   │   ├── bin.test.ts   # CLI behavior and interactive flow
@@ -45,13 +61,14 @@ degit is a local CLI/library wrapper around remote repository snapshots:
 
 ```text
 [User/CLI] -> [src/bin.ts] -> [src/index.ts]
-						   -> [src/utils.ts]
+					   -> [src/core/orchestrator.ts]
+					   -> [src/shared/utils.ts]
 						   -> [Remote provider tarball or git remote]
 						   -> [Local cache under the platform cache directory]
 						   -> [Destination directory]
 ```
 
-The important boundary is between local orchestration and remote provider access. `src/index.ts` resolves the repo, prefers tarball downloads, falls back to SSH cloning when needed, extracts contents, and then applies optional post-clone directives from `degit.json`.
+The important boundary is between local orchestration and remote provider access. `src/core/orchestrator.ts` resolves the repo, prefers tarball downloads, falls back to SSH cloning when needed, extracts contents, and then applies optional post-clone directives from `degit.json`.
 
 ## 3. Core Components
 
@@ -93,7 +110,7 @@ Description: Encodes provider-specific rules for GitHub, GitLab, Bitbucket, and 
 
 Technologies: TypeScript data mapping and URL construction
 
-Deployment: In-process logic within `src/index.ts`.
+Deployment: In-process logic within `src/domain/repo.ts`.
 
 ### 3.5. Test Suite
 

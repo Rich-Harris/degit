@@ -10,7 +10,7 @@ const fetchRefs = vi.fn(() => [
 ]);
 const clone = vi.fn(async () => {});
 
-vi.mock('../../src/git-client.js', () => {
+vi.mock('../../src/transports/git/client.js', () => {
 	gitClientLoaded = true;
 	return {
 		defaultGitClient: {

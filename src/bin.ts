@@ -6,7 +6,7 @@ import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
 import degit from './index.js';
-import { base, tryRequire } from './utils.js';
+import { base, tryRequire } from './shared/utils.js';
 
 const dirname = import.meta.dirname;
 

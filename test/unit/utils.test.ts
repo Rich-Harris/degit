@@ -3,7 +3,7 @@ import https from 'node:https';
 import assert from 'node:assert';
 import path from 'node:path';
 import { describe, it, vi } from 'vitest';
-import { fetch, resolveBase, stashFiles, unstashFiles } from '../../src/utils.js';
+import { fetch, resolveBase, stashFiles, unstashFiles } from '../../src/shared/utils.js';
 
 describe('resolveBase', () => {
 	it('uses XDG_CACHE_HOME on linux when it is set', () => {

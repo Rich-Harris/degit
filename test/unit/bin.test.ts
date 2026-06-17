@@ -8,8 +8,10 @@ vi.mock('../../src/index.js', () => ({
 	default: vi.fn(),
 }));
 
-vi.mock('../../src/utils.js', async () => {
-	const actual = await vi.importActual<typeof import('../../src/utils.js')>('../../src/utils.js');
+vi.mock('../../src/shared/utils.js', async () => {
+	const actual = await vi.importActual<typeof import('../../src/shared/utils.js')>(
+		'../../src/shared/utils.js',
+	);
 
 	return {
 		...actual,
@@ -39,7 +41,7 @@ vi.mock('enquirer', () => ({
 
 import { main, run } from '../../src/bin.js';
 import degit from '../../src/index.js';
-import { base } from '../../src/utils.js';
+import { base } from '../../src/shared/utils.js';
 import enquirer from 'enquirer';
 
 const mockDegit = vi.mocked(degit);
@@ -235,7 +237,6 @@ describe('degit bin main mode forwarding', () => {
 		}
 	});
 });
-
 describe('degit bin run clone failures', () => {
 	it('exits with status 1 when the clone promise rejects', async () => {
 		const err = Object.assign(new Error('clone failed'), { original: 'nested failure' });
@@ -268,7 +269,6 @@ describe('degit bin run clone failures', () => {
 		);
 	});
 });
-
 describe('degit bin run info events', () => {
 	it('prints a verbose hint to stdout when an info event fires', async () => {
 		mockEventClone('info', 'options.verbose enabled');

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { sync as rimraf } from 'rimraf';
 import degit from '../../src/index.js';
-import { base } from '../../src/utils.js';
+import { base } from '../../src/shared/utils.js';
 import { providerCases } from './index-support.js';
 import {
 	registerTarExtractionSuites,
@@ -11,8 +11,10 @@ import {
 } from './index-tar-suites.js';
 import { registerGitModeSuites } from './index-git-suites.js';
 
-vi.mock('../../src/utils.js', async () => {
-	const actual = await vi.importActual<typeof import('../../src/utils.js')>('../../src/utils.js');
+vi.mock('../../src/shared/utils.js', async () => {
+	const actual = await vi.importActual<typeof import('../../src/shared/utils.js')>(
+		'../../src/shared/utils.js',
+	);
 
 	return {
 		...actual,

@@ -1,6 +1,6 @@
 import colors from 'yoctocolors';
-import { stashFiles, unstashFiles } from './utils.js';
-import type { GitClient } from './git-client.js';
+import { stashFiles, unstashFiles } from '../shared/utils.js';
+import type { GitClient } from '../domain/types.js';
 import type {
 	CloneDirective,
 	ConstructorOptions,
@@ -8,7 +8,7 @@ import type {
 	EventInfo,
 	FetchFn,
 	RemoveDirective,
-} from './degit-types.js';
+} from '../domain/types.js';
 
 type ChildDegit = {
 	clone(dest: string): Promise<void>;
