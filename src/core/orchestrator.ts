@@ -18,27 +18,27 @@ import { base, fetch } from '../shared/utils.js';
 
 type InfoListener = (info: EventInfo) => void;
 
-function cloneSuccessMessage(user: string, name: string, ref: string, dest: string) {
+function cloneSuccessMessage(user: string, name: string, ref: string, dest: string): string {
 	const destination = dest === '.' ? '' : ` to ${dest}`;
 	return `cloned ${colors.bold(`${user}/${name}`)}#${colors.bold(ref)}${destination}`;
 }
 
 export class Degit {
-	cache?: boolean;
-	force?: boolean;
-	mode: ValidModes;
-	verbose?: boolean;
-	proxy?: string;
-	repo: Repo;
-	platform: NodeJS.Platform;
-	fetch: FetchFn;
-	git?: GitClient;
-	gitClientPromise?: Promise<GitClient>;
-	hasStashed: boolean;
+	public cache?: boolean;
+	public force?: boolean;
+	public mode: ValidModes;
+	public verbose?: boolean;
+	public proxy?: string;
+	public repo: Repo;
+	public platform: NodeJS.Platform;
+	public fetch: FetchFn;
+	public git?: GitClient;
+	public gitClientPromise?: Promise<GitClient>;
+	public hasStashed: boolean;
 	private infoListeners: InfoListener[];
 	private warnListeners: InfoListener[];
 
-	constructor(src: string, opts: ConstructorOptions = {}) {
+	public constructor(src: string, opts: ConstructorOptions = {}) {
 		this.cache = opts.cache;
 		this.force = opts.force;
 		this.verbose = opts.verbose;
@@ -53,11 +53,11 @@ export class Degit {
 		this.warnListeners = [];
 
 		if (opts.mode && !validModes.has(opts.mode)) {
-			throw new Error(`Valid modes are ${[...validModes].join(', ')}`);
+			throw new Error(`Valid modes are ${Array.from(validModes).join(', ')}`);
 		}
 	}
 
-	on(eventName: 'info' | 'warn', listener: InfoListener) {
+	public on(eventName: 'info' | 'warn', listener: InfoListener): this {
 		if (eventName === 'info') {
 			this.infoListeners.push(listener);
 		} else {
@@ -66,7 +66,7 @@ export class Degit {
 		return this;
 	}
 
-	getGitClient(): Promise<GitClient> {
+	public getGitClient(): Promise<GitClient> {
 		if (this.git) {
 			return Promise.resolve(this.git);
 		}
@@ -83,56 +83,59 @@ export class Degit {
 		return this.gitClientPromise;
 	}
 
-	getDirectives(dest: string): Directive[] | false {
+	public getDirectives(dest: string): Directive[] | false {
 		return getDirectives(dest);
 	}
 
-	async clone(dest: string): Promise<void> {
+	public clone(dest: string): Promise<void> {
 		checkDirIsEmpty(dest, this.force, this.info.bind(this), this.verboseInfo.bind(this));
-		await this.cloneToDestination(dest);
-		this.info({
-			code: 'SUCCESS',
-			dest,
-			message: cloneSuccessMessage(this.repo.user, this.repo.name, this.repo.ref, dest),
-			repo: this.repo,
+		return this.cloneToDestination(dest).then(() => {
+			this.info({
+				code: 'SUCCESS',
+				dest,
+				message: cloneSuccessMessage(this.repo.user, this.repo.name, this.repo.ref, dest),
+				repo: this.repo,
+			});
+			return this.runDirectives(dest);
 		});
-		await this.runDirectives(dest);
 	}
 
-	remove(dest: string, action: RemoveDirective) {
+	public remove(dest: string, action: RemoveDirective): void {
 		removeFiles(dest, action, this.info.bind(this), this.warn.bind(this));
 	}
 
-	info(info: EventInfo) {
+	public info(info: EventInfo): void {
 		this.emitEvent('info', info);
 	}
 
-	warn(info: EventInfo) {
+	public warn(info: EventInfo): void {
 		this.emitEvent('warn', info);
 	}
 
-	verboseInfo(info: EventInfo) {
+	public verboseInfo(info: EventInfo): void {
 		if (this.verbose) {
 			this.info(info);
 		}
 	}
 
-	async getHash(repo: Repo, cached: Record<string, string>): Promise<string | undefined> {
-		try {
-			const refs = await (await this.getGitClient()).fetchRefs(repo);
-			return repo.ref === 'HEAD' ? this.selectHead(refs) : this.selectRef(refs, repo.ref);
-		} catch (error) {
-			this.warn(error as EventInfo);
-			const original = (error as { original?: EventInfo }).original;
-			if (original) {
-				this.verboseInfo(original);
-			}
+	public getHash(repo: Repo, cached: Record<string, string>): Promise<string | undefined> {
+		return this.getGitClient()
+			.then((gitClient) => gitClient.fetchRefs(repo))
+			.then((refs) =>
+				repo.ref === 'HEAD' ? this.selectHead(refs) : this.selectRef(refs, repo.ref),
+			)
+			.catch((error) => {
+				this.warn(error as EventInfo);
+				const original = (error as { original?: EventInfo }).original;
+				if (original) {
+					this.verboseInfo(original);
+				}
 
-			return this.getHashFromCache(repo, cached);
-		}
+				return this.getHashFromCache(repo, cached);
+			});
 	}
 
-	getHashFromCache(repo: Repo, cached: Record<string, string>): string | undefined {
+	public getHashFromCache(repo: Repo, cached: Record<string, string>): string | undefined {
 		if (repo.ref in cached) {
 			const hash = cached[repo.ref];
 			this.info({
@@ -143,7 +146,7 @@ export class Degit {
 		}
 	}
 
-	selectRef(
+	public selectRef(
 		refs: Array<{ hash: string; name?: string; type?: string }>,
 		selector: string,
 	): string | null | undefined {
@@ -168,7 +171,9 @@ export class Degit {
 		}
 	}
 
-	selectHead(refs: Array<{ hash: string; name?: string; type?: string }>) {
+	public selectHead(
+		refs: Array<{ hash: string; name?: string; type?: string }>,
+	): string | undefined {
 		const head = refs.find((ref) => ref.type === 'HEAD');
 		if (head) {
 			return head.hash;
@@ -187,18 +192,21 @@ export class Degit {
 			}
 		}
 
-		return refs.find((ref) => ref.type === 'branch' && ref.hash)?.hash;
+		const branch = refs.find((ref) => ref.type === 'branch' && ref.hash);
+		return branch ? branch.hash : undefined;
 	}
 
-	async cloneWithTar(dest: string): Promise<void> {
-		await cloneWithTarMode(this, this.getRepoDir(), dest);
+	public cloneWithTar(dest: string): Promise<void> {
+		return cloneWithTarMode(this, this.getRepoDir(), dest);
 	}
 
-	async cloneWithGit(dest: string, ref = this.repo.ref): Promise<void> {
-		await (await this.getGitClient()).clone(this.repo, dest, ref, this.repo.transport);
+	public cloneWithGit(dest: string, ref = this.repo.ref): Promise<void> {
+		return this.getGitClient().then((gitClient) =>
+			gitClient.clone(this.repo, dest, ref, this.repo.transport),
+		);
 	}
 
-	shouldFallbackToGit(error: unknown): boolean {
+	public shouldFallbackToGit(error: unknown): boolean {
 		if (!error || typeof error !== 'object') {
 			return false;
 		}
@@ -207,27 +215,25 @@ export class Degit {
 		return code === 'COULD_NOT_DOWNLOAD' || code === 'TAR_BAD_ARCHIVE';
 	}
 
-	private emitEvent(eventName: 'info' | 'warn', info: EventInfo) {
+	private emitEvent(eventName: 'info' | 'warn', info: EventInfo): void {
 		const listeners = eventName === 'info' ? this.infoListeners : this.warnListeners;
 		for (const listener of listeners) {
 			listener(info);
 		}
 	}
 
-	private getRepoDir() {
+	private getRepoDir(): string {
 		return path.join(base, this.repo.site, this.repo.user, this.repo.name);
 	}
 
-	private async cloneToDestination(dest: string) {
+	private cloneToDestination(dest: string): Promise<void> {
 		if (this.mode === 'git') {
-			const hash = await this.getHash(this.repo, {});
-			await this.cloneWithGit(dest, hash || this.repo.ref);
-			return;
+			return this.getHash(this.repo, {}).then((hash) =>
+				this.cloneWithGit(dest, hash || this.repo.ref),
+			);
 		}
 
-		try {
-			await this.cloneWithTar(dest);
-		} catch (error) {
+		return this.cloneWithTar(dest).catch((error) => {
 			if (!this.shouldFallbackToGit(error)) {
 				throw error;
 			}
@@ -235,17 +241,17 @@ export class Degit {
 			this.warn({
 				message: `tar snapshot download or extraction failed; falling back to git clone`,
 			});
-			await this.cloneWithGit(dest);
-		}
+			return this.cloneWithGit(dest);
+		});
 	}
 
-	private async runDirectives(dest: string) {
+	private runDirectives(dest: string): Promise<void> | undefined {
 		const directives = this.getDirectives(dest);
 		if (!directives) {
 			return;
 		}
 
-		await applyDirectives(
+		return applyDirectives(
 			this,
 			directives,
 			this.getRepoDir(),

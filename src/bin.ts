@@ -42,8 +42,37 @@ type RunArgs = {
 	verbose?: boolean;
 };
 
+type EnquirerPrompt = Parameters<typeof enquirer.prompt>[0];
+
+function getCloneErrorDetail(error: unknown): string | null {
+	if (!error || typeof error !== 'object') {
+		return null;
+	}
+
+	const nestedError =
+		'original' in error ? error.original : 'cause' in error ? error.cause : null;
+
+	if (!nestedError) {
+		return null;
+	}
+
+	if (nestedError instanceof Error) {
+		return nestedError.stack || nestedError.message;
+	}
+
+	if (typeof nestedError === 'string') {
+		return nestedError;
+	}
+
+	try {
+		return JSON.stringify(nestedError);
+	} catch {
+		return String(nestedError);
+	}
+}
+
 /* eslint-disable security/detect-non-literal-fs-filename */
-function parseCliArgs(argv: string[]) {
+function parseCliArgs(argv: string[]): CliArgs {
 	return mri(argv.slice(2), {
 		alias: {
 			c: 'cache',
@@ -55,7 +84,7 @@ function parseCliArgs(argv: string[]) {
 	}) as CliArgs;
 }
 
-function displayHelp() {
+function displayHelp(): void {
 	const help = fs
 		.readFileSync(path.join(dirname, '..', 'assets', 'help.md'), 'utf8')
 		.replaceAll(/^(\s*)#+ (.+)/gm, (_match, indent, title) => indent + colors.bold(title))
@@ -68,17 +97,17 @@ function displayHelp() {
 function getInteractiveChoices(): Choice[] {
 	const accessLookup = new Map<string, number>();
 
-	glob('**/access.json', { cwd: base }).forEach((file) => {
+	for (const file of glob('**/access.json', { cwd: base })) {
 		const normalizedFile = file.replaceAll('\\', '/');
 		const [host, user, repo] = normalizedFile.split('/');
 		const json = fs.readFileSync(`${base}/${file}`, 'utf8');
 		const logs = JSON.parse(json) as Record<string, string | number>;
 
-		Object.entries(logs).forEach(([ref, timestamp]) => {
+		for (const [ref, timestamp] of Object.entries(logs)) {
 			const id = `${host}:${user}/${repo}#${ref}`;
 			accessLookup.set(id, new Date(String(timestamp)).getTime());
-		});
-	});
+		}
+	}
 
 	const getChoices = (file: string): Choice[] => {
 		const normalizedFile = file.replaceAll('\\', '/');
@@ -105,123 +134,103 @@ function promptForSource(): Promise<PromptResult> {
 		suggest: (input: string, promptChoices: Choice[]) =>
 			promptChoices.filter(({ value }) => fuzzysearch(input, value)),
 		type: 'autocomplete',
-	} as any;
+	} as EnquirerPrompt;
 
-	return enquirer.prompt<PromptResult>([
-		sourcePrompt,
-		{
-			initial: '.',
-			message: 'Destination directory?',
-			name: 'dest',
-			type: 'input',
-		},
-		{
-			message: 'Use cached version?',
-			name: 'cache',
-			type: 'toggle',
-		},
-	] as any);
+	return Promise.resolve(
+		enquirer.prompt<PromptResult>([
+			sourcePrompt,
+			{
+				initial: '.',
+				message: 'Destination directory?',
+				name: 'dest',
+				type: 'input',
+			},
+			{
+				message: 'Use cached version?',
+				name: 'cache',
+				type: 'toggle',
+			},
+		] as EnquirerPrompt),
+	);
 }
 
-async function confirmOverwrite(): Promise<boolean> {
-	const { force } = await enquirer.prompt<ForceResult>([
-		{
-			message: 'Overwrite existing files?',
-			name: 'force',
-			type: 'toggle',
-		},
-	] as any);
-
-	return force;
+function confirmOverwrite(): Promise<boolean> {
+	return Promise.resolve(
+		enquirer.prompt<ForceResult>([
+			{
+				message: 'Overwrite existing files?',
+				name: 'force',
+				type: 'toggle',
+			},
+		] as EnquirerPrompt),
+	).then(({ force }) => force);
 }
 
-export async function main(argv: string[]) {
-	const args = parseCliArgs(argv);
-
-	const [src, dest = '.'] = args._;
-
-	if (args.help) {
-		displayHelp();
-		return;
-	}
-
-	if (!src) {
-		const options = await promptForSource();
-
-		const empty = !fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
-
-		if (!empty && !(await confirmOverwrite())) {
-			console.error(colors.magenta('! Directory not empty — aborting'));
-			return;
-		}
-
-		run(options.src, options.dest, {
-			cache: options.cache,
-			force: true,
-		});
-		return;
-	}
-
-	run(src, dest, args);
-}
-
-/* eslint-enable security/detect-non-literal-fs-filename */
-export function run(src: string, dest: string, args: RunArgs) {
+export function run(src: string, dest: string, args: RunArgs): void {
 	const d = degit(src, args as Parameters<typeof degit>[1]);
 
 	d.on('info', (event) => {
-		console.log(colors.cyan(`> ${event.message.replace('options.', '--')}`));
+		process.stdout.write(`${colors.cyan(`> ${event.message.replace('options.', '--')}`)}\n`);
 	});
 
 	d.on('warn', (event) => {
-		console.warn(colors.magenta(`! ${event.message.replace('options.', '--')}`));
+		process.stderr.write(`${colors.magenta(`! ${event.message.replace('options.', '--')}`)}\n`);
 	});
 
 	d.clone(dest).catch((error: Error) => {
-		console.error(colors.red(`! ${error.message.replace('options.', '--')}`));
+		process.stderr.write(`${colors.red(`! ${error.message.replace('options.', '--')}`)}\n`);
 		if (args.verbose) {
 			const detail = getCloneErrorDetail(error);
 
 			if (detail) {
-				console.error(detail);
+				process.stderr.write(`${detail}\n`);
 			}
 		}
-		process.exit(1);
+		process.exitCode = 1;
 	});
 }
 
-function getCloneErrorDetail(error: unknown): string | undefined {
-	if (!error || typeof error !== 'object') {
-		return undefined;
+export function main(argv: string[]): Promise<void> {
+	const args = parseCliArgs(argv);
+	const [src, dest = '.'] = args._;
+
+	if (args.help) {
+		displayHelp();
+		return Promise.resolve();
 	}
 
-	const nestedError =
-		'original' in error ? error.original : 'cause' in error ? error.cause : undefined;
+	if (!src) {
+		return promptForSource().then((options) => {
+			const empty = !fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
 
-	if (!nestedError) {
-		return undefined;
+			if (!empty) {
+				return confirmOverwrite().then((force) => {
+					if (!force) {
+						process.stderr.write(
+							`${colors.magenta('! Directory not empty — aborting')}\n`,
+						);
+						return;
+					}
+
+					run(options.src, options.dest, { cache: options.cache, force: true });
+				});
+			}
+
+			run(options.src, options.dest, { cache: options.cache, force: true });
+		});
 	}
 
-	if (nestedError instanceof Error) {
-		return nestedError.stack || nestedError.message;
-	}
-
-	if (typeof nestedError === 'string') {
-		return nestedError;
-	}
-
-	try {
-		return JSON.stringify(nestedError);
-	} catch {
-		return String(nestedError);
-	}
+	run(src, dest, args);
+	return Promise.resolve();
 }
+
+/* eslint-enable security/detect-non-literal-fs-filename */
 
 if (!process.env.VITEST) {
 	try {
 		await main(process.argv);
 	} catch (error) {
-		console.error(error);
-		process.exit(1);
+		process.stderr.write(`${String(error)}\n`);
+		process.exitCode = 1;
 	}
 }

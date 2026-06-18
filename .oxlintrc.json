@@ -21,20 +21,139 @@
 		{
 			"files": ["test/**"],
 			"rules": {
-				"security/detect-bidi-characters": "off",
-				"security/detect-buffer-noassert": "off",
-				"security/detect-child-process": "off",
-				"security/detect-disable-mustache-escape": "off",
-				"security/detect-eval-with-expression": "off",
-				"security/detect-new-buffer": "off",
-				"security/detect-no-csrf-before-method-override": "off",
 				"security/detect-non-literal-fs-filename": "off",
-				"security/detect-non-literal-regexp": "off",
-				"security/detect-non-literal-require": "off",
-				"security/detect-object-injection": "off",
-				"security/detect-possible-timing-attacks": "off",
-				"security/detect-pseudoRandomBytes": "off",
-				"security/detect-unsafe-regex": "off"
+				"security/detect-object-injection": "off"
+			}
+		},
+		{
+			"files": [
+				"test/unit/bin.test.ts",
+				"test/unit/git-client.test.ts",
+				"test/integration/runner.ts"
+			],
+			"rules": {
+				"security/detect-child-process": "off"
+			}
+		},
+		{
+			"files": ["test/**/*.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off",
+				"no-array-for-each": "off",
+				"no-async-await": "off",
+				"no-empty-function": "off",
+				"no-explicit-any": "off",
+				"no-optional-chaining": "off",
+				"explicit-function-return-type": "off",
+				"explicit-module-boundary-types": "off"
+			}
+		},
+		{
+			"files": ["perf/bench.ts"],
+			"rules": {
+				"no-console": "off",
+				"no-use-before-define": "off"
+			}
+		},
+		{
+			"files": ["src/index.ts", "tsdown.config.ts", "vitest.config.ts"],
+			"rules": {
+				"import/no-default-export": "off"
+			}
+		},
+		{
+			"files": ["src/transports/git/client.ts", "src/transports/tar/archive.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off"
+			}
+		},
+		{
+			"files": ["src/transports/git/client.ts"],
+			"rules": {
+				"max-lines-per-function": "off",
+				"no-async-await": "off"
+			}
+		},
+		{
+			"files": ["src/transports/git/client-utils.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off"
+			}
+		},
+		{
+			"files": ["src/operations/filesystem.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off",
+				"no-use-before-define": "off"
+			}
+		},
+		{
+			"files": ["src/domain/repo.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off"
+			}
+		},
+		{
+			"files": ["test/helpers.ts"],
+			"rules": {
+				"no-array-for-each": "off",
+				"no-plusplus": "off",
+				"no-async-await": "off",
+				"no-optional-chaining": "off",
+				"explicit-function-return-type": "off",
+				"explicit-module-boundary-types": "off"
+			}
+		},
+		{
+			"files": ["test/unit/bin.test.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off",
+				"no-empty-function": "off",
+				"no-async-await": "off",
+				"no-optional-chaining": "off",
+				"no-rest-spread-properties": "off",
+				"no-explicit-any": "off",
+				"explicit-function-return-type": "off",
+				"explicit-module-boundary-types": "off"
+			}
+		},
+		{
+			"files": ["test/unit/**/*.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off",
+				"no-async-await": "off",
+				"no-empty-function": "off",
+				"no-explicit-any": "off",
+				"no-optional-chaining": "off",
+				"no-rest-spread-properties": "off",
+				"explicit-function-return-type": "off",
+				"explicit-module-boundary-types": "off"
+			}
+		},
+		{
+			"files": ["src/transports/tar/archive.ts"],
+			"rules": {
+				"no-async-await": "off"
+			}
+		},
+		{
+			"files": ["src/transports/tar/cache.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off"
+			}
+		},
+		{
+			"files": ["src/operations/directives.ts"],
+			"rules": {
+				"import/no-relative-parent-imports": "off"
+			}
+		},
+		{
+			"files": ["src/core/orchestrator.ts"],
+			"rules": {
+				"class-methods-use-this": "off",
+				"import/no-relative-parent-imports": "off",
+				"no-undefined": "off"
 			}
 		}
 	],
@@ -43,7 +162,7 @@
 		"suspicious": "warn",
 		"pedantic": "warn",
 		"perf": "warn",
-		"restriction": "off",
+		"restriction": "warn",
 		"style": "off"
 	}
 }

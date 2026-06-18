@@ -25,7 +25,7 @@ type IsomorphicGitHttp = typeof import('isomorphic-git/http/node');
 const execFile = promisify(execFileCallback);
 
 const isomorphicGitHttp = http as IsomorphicGitHttp['default'];
-function fetchRefsWithGitCli(repo: Repo) {
+function fetchRefsWithGitCli(repo: Repo): Promise<Ref[]> {
 	return new Promise<Ref[]>((resolve, reject) => {
 		const child = spawn('git', ['ls-remote', '--symref', getGitUrl(repo)], {
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -65,7 +65,7 @@ function fetchRefsWithGitCli(repo: Repo) {
 	});
 }
 
-async function fetchRefsWithIsomorphicGit(repo: Repo) {
+async function fetchRefsWithIsomorphicGit(repo: Repo): Promise<Ref[]> {
 	const url = getGitUrl(repo);
 
 	try {
@@ -109,7 +109,7 @@ async function cloneWithGitCli(
 	dest: string,
 	ref: string | undefined,
 	transport: Repo['transport'] = repo.transport,
-) {
+): Promise<void> {
 	const plan = getGitClonePlan(ref || repo.ref);
 	const cloneArgs = ['clone', '--depth', '1'];
 
@@ -135,23 +135,26 @@ async function cloneWithIsomorphicGit(
 	dest: string,
 	ref: string | undefined,
 	transport: Repo['transport'] = repo.transport,
-) {
+): Promise<void> {
 	const url = getGitUrl(repo, transport);
 	const plan = getGitClonePlan(ref || repo.ref);
-	const cloneRef = plan.cloneRef && !isCommitHash(plan.cloneRef) ? plan.cloneRef : undefined;
-	const checkoutRef =
-		plan.checkoutRef || (cloneRef ? undefined : normalizeGitRef(ref || repo.ref));
+	const cloneRef = plan.cloneRef && !isCommitHash(plan.cloneRef) ? plan.cloneRef : null;
+	const checkoutRef = plan.checkoutRef || (cloneRef ? null : normalizeGitRef(ref || repo.ref));
 
 	try {
-		await git.clone({
-			fs,
-			http: isomorphicGitHttp,
-			dir: dest,
-			depth: 1,
-			ref: cloneRef,
-			singleBranch: Boolean(cloneRef),
-			url,
-		});
+		await git.clone(
+			Object.assign(
+				{
+					fs,
+					http: isomorphicGitHttp,
+					dir: dest,
+					depth: 1,
+					singleBranch: Boolean(cloneRef),
+					url,
+				},
+				cloneRef ? { ref: cloneRef } : {},
+			),
+		);
 	} catch (error) {
 		if (transport !== 'https') {
 			throw error;
@@ -175,7 +178,7 @@ async function cloneWithIsomorphicGit(
 
 export function createGitClient(): GitClient {
 	return {
-		async fetchRefs(repo) {
+		async fetchRefs(repo: Repo): Promise<Ref[]> {
 			try {
 				return repo.transport === 'ssh'
 					? await fetchRefsWithGitCli(repo)
@@ -197,7 +200,12 @@ export function createGitClient(): GitClient {
 			}
 		},
 
-		async clone(repo, dest, ref, transport = repo.transport) {
+		async clone(
+			repo: Repo,
+			dest: string,
+			ref?: string,
+			transport = repo.transport,
+		): Promise<void> {
 			try {
 				if (transport === 'ssh') {
 					await cloneWithGitCli(repo, dest, ref, transport);

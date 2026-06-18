@@ -24,7 +24,7 @@ export function checkDirIsEmpty(
 	force: boolean | undefined,
 	info: Emit,
 	verboseInfo: Emit,
-) {
+): void {
 	try {
 		const files = fs.readdirSync(dir);
 		if (files.length > 0) {
@@ -53,7 +53,7 @@ export function checkDirIsEmpty(
 	}
 }
 
-export function removeFiles(dest: string, action: RemoveDirective, info: Emit, warn: Emit) {
+export function removeFiles(dest: string, action: RemoveDirective, info: Emit, warn: Emit): void {
 	const files = Array.isArray(action.files) ? action.files : [action.files];
 	const root = path.resolve(dest);
 	const removedFiles = files.flatMap((file) => removeFile(root, file, warn));
@@ -66,7 +66,7 @@ export function removeFiles(dest: string, action: RemoveDirective, info: Emit, w
 	}
 }
 
-function removeFile(root: string, file: string, warn: Emit) {
+function removeFile(root: string, file: string, warn: Emit): string[] {
 	const filePath = path.resolve(root, file);
 	const relativePath = path.relative(root, filePath);
 

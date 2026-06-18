@@ -82,12 +82,13 @@ try {
 			runtime.cleanup();
 		}
 
-		reports.push({
-			...baseline.benchmarks[benchmark.name],
-			currentMedianMs: median(samplesMs),
-			name: benchmark.name,
-			samplesMs,
-		});
+		reports.push(
+			Object.assign({}, baseline.benchmarks[benchmark.name], {
+				currentMedianMs: median(samplesMs),
+				name: benchmark.name,
+				samplesMs,
+			}),
+		);
 	}
 
 	const failures: string[] = [];
@@ -116,17 +117,17 @@ try {
 	fs.rmSync(sandboxRoot, { force: true, recursive: true });
 }
 
-function benchmarks(fixture: Fixture) {
+function benchmarks(fixture: Fixture): BenchmarkDefinition[] {
 	return [
 		{
 			cache: false,
 			name: 'clone-cold',
-			setup: () => createColdRuntime(fixture),
+			setup: (): Promise<BenchmarkRuntime> => Promise.resolve(createColdRuntime(fixture)),
 		},
 		{
 			cache: true,
 			name: 'clone-cached',
-			setup: () => createCachedRuntime(fixture),
+			setup: (): Promise<BenchmarkRuntime> => Promise.resolve(createCachedRuntime(fixture)),
 		},
 	] satisfies BenchmarkDefinition[];
 }
@@ -141,7 +142,7 @@ type Fixture = {
 	updateCache: () => void;
 };
 
-async function createFixture(degitFactory: typeof degit): Promise<Fixture> {
+function createFixture(degitFactory: typeof degit): Promise<Fixture> {
 	const rootDir = fs.mkdtempSync(path.join(sandboxRoot, 'fixture-'));
 	const archiveRoot = path.join(rootDir, 'degit-perf-fixture');
 	const treeRoot = path.join(archiveRoot, 'packages/app');
@@ -163,24 +164,24 @@ async function createFixture(degitFactory: typeof degit): Promise<Fixture> {
 	fs.writeFileSync(path.join(treeRoot, 'README.md'), '# fixture\n');
 	fs.writeFileSync(path.join(archiveRoot, 'packages/ignored.txt'), 'ignored\n');
 
-	await tar.create({ C: rootDir, file: archiveFile, gzip: true }, ['degit-perf-fixture']);
-
-	return {
-		archiveFile,
-		cacheRoot,
-		destRoot,
-		hash,
-		repo,
-		rootDir,
-		updateCache: () => {
-			fs.mkdirSync(cacheRoot, { recursive: true });
-			fs.writeFileSync(
-				path.join(cacheRoot, 'map.json'),
-				JSON.stringify({ [repo.ref]: hash }, null, '\t'),
-			);
-			fs.copyFileSync(archiveFile, path.join(cacheRoot, `${hash}.tar.gz`));
-		},
-	};
+	return tar
+		.create({ C: rootDir, file: archiveFile, gzip: true }, ['degit-perf-fixture'])
+		.then(() => ({
+			archiveFile,
+			cacheRoot,
+			destRoot,
+			hash,
+			repo,
+			rootDir,
+			updateCache: (): void => {
+				fs.mkdirSync(cacheRoot, { recursive: true });
+				fs.writeFileSync(
+					path.join(cacheRoot, 'map.json'),
+					JSON.stringify({ [repo.ref]: hash }, null, '\t'),
+				);
+				fs.copyFileSync(archiveFile, path.join(cacheRoot, `${hash}.tar.gz`));
+			},
+		}));
 }
 
 function createColdRuntime(fixture: Fixture): BenchmarkRuntime {
@@ -197,10 +198,10 @@ function createColdRuntime(fixture: Fixture): BenchmarkRuntime {
 			fs.rmSync(dest, { force: true, recursive: true });
 			fs.rmSync(fixture.cacheRoot, { force: true, recursive: true });
 		},
-		clone: async () => {
+		clone: () => {
 			fs.rmSync(dest, { force: true, recursive: true });
 			fs.rmSync(fixture.cacheRoot, { force: true, recursive: true });
-			await client.clone(dest);
+			return client.clone(dest);
 		},
 	};
 }
@@ -218,39 +219,44 @@ function createCachedRuntime(fixture: Fixture): BenchmarkRuntime {
 			fs.rmSync(dest, { force: true, recursive: true });
 			fs.rmSync(fixture.cacheRoot, { force: true, recursive: true });
 		},
-		clone: async () => {
+		clone: () => {
 			fs.rmSync(dest, { force: true, recursive: true });
 			fixture.updateCache();
-			await client.clone(dest);
+			return client.clone(dest);
 		},
 	};
 }
 
-function createCopyFetch(sourceFile: string) {
+function createCopyFetch(sourceFile: string): { fn: (_url: string, file: string) => void } {
 	return {
-		fn: (_url: string, file: string) => {
+		fn: (_url: string, file: string): void => {
 			fs.copyFileSync(sourceFile, file);
 		},
 	};
 }
 
-function createMockGit(hash: string, url: string) {
+function createMockGit(
+	hash: string,
+	url: string,
+): { clone: () => never; fetchRefs: () => Array<{ hash: string; name: string; type: string }> } {
 	return {
-		clone: () => {
+		clone: (): never => {
 			throw new Error(`unexpected git clone for ${url}`);
 		},
-		fetchRefs: () => [{ hash, name: 'main', type: 'HEAD' }],
+		fetchRefs: (): Array<{ hash: string; name: string; type: string }> => [
+			{ hash, name: 'main', type: 'HEAD' },
+		],
 	};
 }
 
-function median(samples: number[]) {
+function median(samples: number[]): number {
 	const sorted = samples.toSorted((left, right) => left - right);
 	const middle = Math.floor(sorted.length / 2);
 
 	return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 }
 
-function printReport(report: BenchmarkReport, limitMs: number, isRegression: boolean) {
+function printReport(report: BenchmarkReport, limitMs: number, isRegression: boolean): void {
 	const verdict = isRegression ? 'FAIL' : 'PASS';
 	console.log(
 		`${verdict} ${report.name}: ${report.currentMedianMs.toFixed(1)}ms ` +

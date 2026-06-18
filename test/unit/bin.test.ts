@@ -79,24 +79,24 @@ function mockEventClone(eventName, message) {
 async function withCloneFailure(
 	args: Parameters<typeof run>[2],
 	error: Error,
-	assertions: (exitSpy: ReturnType<typeof vi.spyOn>, errSpy: ReturnType<typeof vi.spyOn>) => void,
+	assertions: (stderrSpy: ReturnType<typeof vi.spyOn>) => void,
 ) {
 	mockDegit.mockReturnValue({
 		clone: vi.fn().mockReturnValue(Promise.reject(error)),
 		on: vi.fn().mockReturnThis(),
 	} as never);
 
-	const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
-	const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+	const previousExitCode = process.exitCode;
+	process.exitCode = 0;
+	const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
 	try {
 		run('a/b', 'dest', args);
-		await waitForCondition(() => exitSpy.mock.calls.length > 0);
-		assert.equal(exitSpy.mock.calls[0][0], 1);
-		assertions(exitSpy, errSpy);
+		await waitForCondition(() => process.exitCode === 1);
+		assertions(stderrSpy);
 	} finally {
-		exitSpy.mockRestore();
-		errSpy.mockRestore();
+		stderrSpy.mockRestore();
+		process.exitCode = previousExitCode ?? 0;
 	}
 }
 
@@ -225,7 +225,7 @@ describe('degit bin main mode forwarding', () => {
 			clone: vi.fn().mockResolvedValue(),
 			on: vi.fn().mockReturnThis(),
 		} as never);
-		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 		try {
 			await main(['node', 'bin', 'a/b', 'dest', '--mode=git']);
 			await waitForCondition(() =>
@@ -241,20 +241,20 @@ describe('degit bin run clone failures', () => {
 	it('exits with status 1 when the clone promise rejects', async () => {
 		const err = Object.assign(new Error('clone failed'), { original: 'nested failure' });
 
-		await withCloneFailure({ force: true }, err, (_exitSpy, errSpy) => {
-			assert.equal(errSpy.mock.calls.length, 1);
-			assert.ok(String(errSpy.mock.calls[0][0]).includes('clone failed'));
-			assert.ok(!String(errSpy.mock.calls[0][0]).includes('nested failure'));
+		await withCloneFailure({ force: true }, err, (stderrSpy) => {
+			assert.equal(stderrSpy.mock.calls.length, 1);
+			assert.ok(String(stderrSpy.mock.calls[0][0]).includes('clone failed'));
+			assert.ok(!String(stderrSpy.mock.calls[0][0]).includes('nested failure'));
 		});
 	});
 
 	it('prints nested clone failure details when verbose mode is enabled', async () => {
 		const err = Object.assign(new Error('clone failed'), { original: 'nested failure' });
 
-		await withCloneFailure({ force: true, verbose: true }, err, (_exitSpy, errSpy) => {
-			assert.equal(errSpy.mock.calls.length, 2);
-			assert.ok(String(errSpy.mock.calls[0][0]).includes('clone failed'));
-			assert.ok(String(errSpy.mock.calls[1][0]).includes('nested failure'));
+		await withCloneFailure({ force: true, verbose: true }, err, (stderrSpy) => {
+			assert.equal(stderrSpy.mock.calls.length, 2);
+			assert.ok(String(stderrSpy.mock.calls[0][0]).includes('clone failed'));
+			assert.ok(String(stderrSpy.mock.calls[1][0]).includes('nested failure'));
 		});
 	});
 
@@ -262,9 +262,9 @@ describe('degit bin run clone failures', () => {
 		await withCloneFailure(
 			{ force: true, verbose: true },
 			new Error('clone failed'),
-			(_exitSpy, errSpy) => {
-				assert.equal(errSpy.mock.calls.length, 1);
-				assert.ok(String(errSpy.mock.calls[0][0]).includes('clone failed'));
+			(stderrSpy) => {
+				assert.equal(stderrSpy.mock.calls.length, 1);
+				assert.ok(String(stderrSpy.mock.calls[0][0]).includes('clone failed'));
 			},
 		);
 	});
@@ -272,7 +272,7 @@ describe('degit bin run clone failures', () => {
 describe('degit bin run info events', () => {
 	it('prints a verbose hint to stdout when an info event fires', async () => {
 		mockEventClone('info', 'options.verbose enabled');
-		const outSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+		const outSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
 		try {
 			run('a/b', 'dest', { verbose: true });
 			await waitForCondition(() =>
@@ -287,7 +287,7 @@ describe('degit bin run info events', () => {
 describe('degit bin run warn events', () => {
 	it('prints a force hint to stderr when a warn event fires', async () => {
 		mockEventClone('warn', 'options.force suggested');
-		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 		try {
 			run('a/b', 'dest', {});
 			await waitForCondition(() =>

@@ -23,18 +23,18 @@ type ResolveBaseOptions = {
 export { degitConfigName };
 
 export class DegitError extends Error {
-	constructor(message: string, opts: Record<string, unknown> = {}) {
+	public constructor(message: string, opts: Record<string, unknown> = {}) {
 		super(message);
 		Object.assign(this, opts);
 	}
 }
 
-export function tryRequire(file: string, opts: RequireOptions = {}) {
+export function tryRequire(file: string, opts: RequireOptions = {}): unknown | null {
 	try {
 		if (opts && opts.clearCache === true) {
-			delete require.cache[require.resolve(file)];
+			Reflect.deleteProperty(require.cache, require.resolve(file));
 		}
-		// oxlint-disable-next-line security/detect-non-literal-require
+		// oxlint-disable-next-line import/no-dynamic-require, security/detect-non-literal-require
 		return require(file);
 	} catch {
 		return null;
@@ -94,7 +94,7 @@ export function stashFiles(dir: string, dest: string): void {
 	const tmpDir = path.join(dir, tmpDirName);
 	fs.rmSync(tmpDir, { force: true, recursive: true });
 	mkdirp(tmpDir);
-	fs.readdirSync(dest).forEach((file) => {
+	for (const file of fs.readdirSync(dest)) {
 		const filePath = path.join(dest, file);
 		const targetPath = path.join(tmpDir, file);
 		const isDir = fs.lstatSync(filePath).isDirectory();
@@ -105,12 +105,12 @@ export function stashFiles(dir: string, dest: string): void {
 			fs.copyFileSync(filePath, targetPath);
 			fs.unlinkSync(filePath);
 		}
-	});
+	}
 }
 
 export function unstashFiles(dir: string, dest: string): void {
 	const tmpDir = path.join(dir, tmpDirName);
-	fs.readdirSync(tmpDir).forEach((filename) => {
+	for (const filename of fs.readdirSync(tmpDir)) {
 		const tmpFile = path.join(tmpDir, filename);
 		const targetPath = path.join(dest, filename);
 		const isDir = fs.lstatSync(tmpFile).isDirectory();
@@ -123,7 +123,7 @@ export function unstashFiles(dir: string, dest: string): void {
 			}
 			fs.unlinkSync(tmpFile);
 		}
-	});
+	}
 	fs.rmSync(tmpDir, { force: true, recursive: true });
 }
 

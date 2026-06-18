@@ -8,15 +8,15 @@ type GitPlan = {
 	singleBranch?: boolean;
 };
 
-export function getGitUrl(repo: Repo, transport: Repo['transport'] = repo.transport) {
+export function getGitUrl(repo: Repo, transport: Repo['transport'] = repo.transport): string {
 	return transport === 'ssh' ? repo.ssh : repo.url;
 }
 
-function isCommitHash(ref: string) {
+function isCommitHash(ref: string): boolean {
 	return /^[0-9a-f]{7,40}$/i.test(ref);
 }
 
-export function normalizeGitRef(ref: string) {
+export function normalizeGitRef(ref: string): string {
 	if (ref.startsWith('refs/heads/')) {
 		return ref.slice('refs/heads/'.length);
 	}
@@ -28,7 +28,7 @@ export function normalizeGitRef(ref: string) {
 	return ref;
 }
 
-export function isMissingSshKeyError(error: unknown) {
+export function isMissingSshKeyError(error: unknown): boolean {
 	if (!error || typeof error !== 'object') {
 		return false;
 	}
@@ -47,7 +47,7 @@ export function isMissingSshKeyError(error: unknown) {
 	);
 }
 
-export function isMissingGitBinaryError(error: unknown) {
+export function isMissingGitBinaryError(error: unknown): boolean {
 	if (!error || typeof error !== 'object') {
 		return false;
 	}
@@ -55,7 +55,7 @@ export function isMissingGitBinaryError(error: unknown) {
 	return (error as { code?: string }).code === 'ENOENT';
 }
 
-export function createSshError(repo: Repo, error: unknown) {
+export function createSshError(repo: Repo, error: unknown): DegitError {
 	return new DegitError(
 		`SSH authentication failed for ${repo.url}. Start ssh-agent and add a key, or use the HTTPS source instead.`,
 		{
@@ -66,7 +66,7 @@ export function createSshError(repo: Repo, error: unknown) {
 	);
 }
 
-export function createMissingGitError(repo: Repo, error: unknown) {
+export function createMissingGitError(repo: Repo, error: unknown): DegitError {
 	return new DegitError(`git is not installed. Install git to clone ${repo.url}.`, {
 		code: 'GIT_NOT_FOUND',
 		original: error,
@@ -101,12 +101,12 @@ function mapServerRef(serverRef: {
 	oid?: string;
 	ref?: string;
 	name?: string;
-}): Ref | undefined {
+}): Ref | null {
 	const refName = String(serverRef.ref || serverRef.name || '');
 	const refHash = String(serverRef.oid || serverRef.hash || '');
 
 	if (!refName || !refHash) {
-		return undefined;
+		return null;
 	}
 
 	return mapRemoteRef(refName, refHash);
@@ -165,12 +165,12 @@ export function parseGitLsRemoteOutput(output: string): Ref[] {
 		}
 	}
 
-	return dedupeRefs([...refs.values()]);
+	return dedupeRefs(Array.from(refs.values()));
 }
 
 export function normalizeServerRefs(
 	refs: Array<{ hash?: string; oid?: string; ref?: string; name?: string }>,
-) {
+): Ref[] {
 	return dedupeRefs(
 		refs.flatMap((ref) => {
 			const normalized = mapServerRef(ref);

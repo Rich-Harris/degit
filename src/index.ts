@@ -13,6 +13,6 @@ export type {
 	ValidModes,
 } from './domain/types.js';
 
-export default function degit(src: string, opts: ConstructorOptions = {}) {
+export default function degit(src: string, opts: ConstructorOptions = {}): Degit {
 	return new Degit(src, opts);
 }

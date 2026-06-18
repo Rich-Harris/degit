@@ -22,79 +22,81 @@ type DirectiveContext = {
 	remove(dest: string, action: RemoveDirective): void;
 };
 
-function attachChildLoggers(child: ChildDegit) {
+function attachChildLoggers(child: ChildDegit): void {
 	child.on('info', (event) => {
-		console.log(colors.cyan(`> ${event.message.replace('options.', '--')}`));
+		process.stdout.write(`${colors.cyan(`> ${event.message.replace('options.', '--')}`)}\n`);
 	});
 
 	child.on('warn', (event) => {
-		console.warn(colors.magenta(`! ${event.message.replace('options.', '--')}`));
+		process.stderr.write(`${colors.magenta(`! ${event.message.replace('options.', '--')}`)}\n`);
 	});
 }
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
-async function cloneDirective(
+function cloneDirective(
 	context: DirectiveContext,
 	dir: string,
 	dest: string,
 	action: CloneDirective,
 	createChild: (src: string, opts: ConstructorOptions) => ChildDegit,
-) {
+): Promise<void> {
 	if (context.hasStashed === false) {
 		stashFiles(dir, dest);
 		context.hasStashed = true;
 	}
 
-	const child = createChild(action.src, {
-		cache: action.cache,
-		fetch: context.fetch,
-		force: true,
-		git: await context.getGitClient(),
-		verbose: action.verbose,
+	return context.getGitClient().then((git) => {
+		const child = createChild(action.src, {
+			cache: action.cache,
+			fetch: context.fetch,
+			force: true,
+			git,
+			verbose: action.verbose,
+		});
+
+		attachChildLoggers(child);
+
+		return child.clone(dest).catch((error) => {
+			process.stderr.write(`${colors.red(`! ${getErrorMessage(error)}`)}\n`);
+			process.exitCode = 1;
+		});
 	});
-
-	attachChildLoggers(child);
-
-	try {
-		await child.clone(dest);
-	} catch (error) {
-		console.error(colors.red(`! ${getErrorMessage(error)}`));
-		process.exit(1);
-	}
 }
 
-async function runDirective(
+function runDirective(
 	context: DirectiveContext,
 	directive: Directive,
 	dir: string,
 	dest: string,
 	createChild: (src: string, opts: ConstructorOptions) => ChildDegit,
-) {
+): Promise<void> {
 	if (directive.action === 'clone') {
-		await cloneDirective(context, dir, dest, directive, createChild);
-		return;
+		return cloneDirective(context, dir, dest, directive, createChild);
 	}
 
 	context.remove(dest, directive);
+	return Promise.resolve();
 }
 
-export async function applyDirectives(
+export function applyDirectives(
 	context: DirectiveContext,
 	directives: Directive[],
 	dir: string,
 	dest: string,
 	createChild: (src: string, opts: ConstructorOptions) => ChildDegit,
-) {
-	await directives.reduce(
-		(previous, directive) =>
-			previous.then(() => runDirective(context, directive, dir, dest, createChild)),
-		Promise.resolve(),
-	);
+): Promise<void> {
+	let chain = Promise.resolve();
 
-	if (context.hasStashed) {
-		unstashFiles(dir, dest);
+	for (const directive of directives) {
+		chain = chain.then(() => runDirective(context, directive, dir, dest, createChild));
 	}
+
+	return chain.then(() => {
+		if (context.hasStashed) {
+			unstashFiles(dir, dest);
+		}
+	});
 }

@@ -29,7 +29,7 @@ async function resolveArchiveHash(
 	context: TarContext,
 	cached: Record<string, string>,
 	dest: string,
-) {
+): Promise<string | undefined> {
 	const hash = context.cache
 		? context.getHashFromCache(context.repo, cached)
 		: await context.getHash(context.repo, cached);
@@ -52,7 +52,7 @@ async function resolveArchiveHash(
 	});
 }
 
-async function createArchiveSource(dir: string, repo: Repo, hash: string): Promise<ArchiveSource> {
+function createArchiveSource(dir: string, repo: Repo, hash: string): Promise<ArchiveSource> {
 	const provider = getProvider(repo.site);
 	if (!provider) {
 		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
@@ -60,120 +60,15 @@ async function createArchiveSource(dir: string, repo: Repo, hash: string): Promi
 		});
 	}
 
-	return {
+	return fs.mkdtemp(path.join(dir, 'extract-')).then((workDir) => ({
 		file: path.join(dir, `${hash}.tar.gz`),
 		subdir: repo.subdir ? `${repo.name}-${hash}${repo.subdir}` : null,
 		url: provider.archiveUrl(repo, hash),
-		workDir: await fs.mkdtemp(path.join(dir, 'extract-')),
-	};
+		workDir,
+	}));
 }
 
-async function ensureArchiveFile(context: TarContext, source: ArchiveSource) {
-	if (context.cache) {
-		return;
-	}
-
-	if (await fs.pathExists(source.file)) {
-		context.verboseInfo({
-			code: 'FILE_EXISTS',
-			message: `${source.file} already exists locally`,
-		});
-		return;
-	}
-
-	mkdirp(path.dirname(source.file));
-
-	if (context.proxy) {
-		context.verboseInfo({
-			code: 'PROXY',
-			message: `using proxy ${context.proxy}`,
-		});
-	}
-
-	context.verboseInfo({
-		code: 'DOWNLOADING',
-		message: `downloading ${source.url} to ${source.file}`,
-	});
-
-	try {
-		await context.fetch(source.url, source.file, context.proxy);
-	} catch (error) {
-		throw new DegitError(`could not download ${source.url}`, {
-			code: 'COULD_NOT_DOWNLOAD',
-			url: source.url,
-			original: error,
-		});
-	}
-}
-
-async function extractArchive(context: TarContext, source: ArchiveSource, dest: string) {
-	try {
-		context.verboseInfo({
-			code: 'EXTRACTING',
-			message: `extracting ${source.subdir ? `${context.repo.subdir} from ` : ''}${source.file} to ${source.workDir}`,
-		});
-
-		await untarWithRetry(context, source);
-		const hasPointers = await hasGitLfsPointers(source.workDir);
-		if (!hasPointers) {
-			mkdirp(dest);
-			await copyExtractedFiles(source.workDir, dest);
-		}
-
-		return hasPointers;
-	} catch (error) {
-		throw new DegitError(`could not download ${source.url}`, {
-			code: 'COULD_NOT_DOWNLOAD',
-			url: source.url,
-			original: error,
-		});
-	} finally {
-		await fs.remove(source.workDir);
-	}
-}
-
-async function untarWithRetry(context: TarContext, source: ArchiveSource) {
-	try {
-		await untar(source.file, source.workDir, source.subdir);
-	} catch (error) {
-		if ((error as { code?: string }).code !== 'TAR_BAD_ARCHIVE') {
-			throw error;
-		}
-
-		try {
-			await fs.remove(source.file);
-		} catch {
-			// Ignore cleanup failures and continue with a fresh download.
-		}
-
-		await context.fetch(source.url, source.file, context.proxy);
-		await untar(source.file, source.workDir, source.subdir);
-	}
-}
-
-export async function cloneWithTar(context: TarContext, dir: string, dest: string): Promise<void> {
-	const cached = readCachedRefs(dir);
-	const hash = await resolveArchiveHash(context, cached, dest);
-	if (!hash) {
-		return;
-	}
-
-	mkdirp(dir);
-	const source = await createArchiveSource(dir, context.repo, hash);
-	await ensureArchiveFile(context, source);
-	const shouldFallbackToGit = await extractArchive(context, source, dest);
-
-	if (shouldFallbackToGit) {
-		context.warn({
-			message: `git lfs pointer detected in tar snapshot; falling back to git clone`,
-		});
-		await context.cloneWithGit(dest);
-	}
-
-	await updateCache(dir, context.repo, hash, cached);
-}
-
-function untar(file: string, dest: string, subdir: string | null = null) {
+function untar(file: string, dest: string, subdir: string | null = null): Promise<void> {
 	return tar.extract(
 		{
 			C: dest,
@@ -184,43 +79,158 @@ function untar(file: string, dest: string, subdir: string | null = null) {
 	);
 }
 
-async function hasGitLfsPointers(dir: string): Promise<boolean> {
-	// Paths are discovered from extracted archive contents under a controlled temp dir.
-	// eslint-disable-next-line security/detect-non-literal-fs-filename
-	const entries = await fs.readdir(dir, { withFileTypes: true });
-	const checks = entries.map(async (entry) => {
-		const entryPath = path.join(dir, entry.name);
+function ensureArchiveFile(context: TarContext, source: ArchiveSource): Promise<void> {
+	if (context.cache) {
+		return Promise.resolve();
+	}
 
-		if (entry.isDirectory()) {
-			return hasGitLfsPointers(entryPath);
+	return fs.pathExists(source.file).then((exists) => {
+		if (exists) {
+			context.verboseInfo({
+				code: 'FILE_EXISTS',
+				message: `${source.file} already exists locally`,
+			});
+			return;
 		}
 
-		if (!entry.isFile()) {
-			return false;
+		mkdirp(path.dirname(source.file));
+
+		if (context.proxy) {
+			context.verboseInfo({
+				code: 'PROXY',
+				message: `using proxy ${context.proxy}`,
+			});
 		}
 
-		// Paths are discovered from extracted archive contents under a controlled temp dir.
-		// eslint-disable-next-line security/detect-non-literal-fs-filename
-		const contents = await fs.readFile(entryPath, 'utf8');
-		return (
-			/^version https:\/\/git-lfs\.github\.com\/spec\/v1$/m.test(contents) &&
-			/^oid sha256:[0-9a-f]{64}$/m.test(contents) &&
-			/^size \d+$/m.test(contents)
-		);
+		context.verboseInfo({
+			code: 'DOWNLOADING',
+			message: `downloading ${source.url} to ${source.file}`,
+		});
+
+		return Promise.resolve()
+			.then(() => context.fetch(source.url, source.file, context.proxy))
+			.catch((error) => {
+				throw new DegitError(`could not download ${source.url}`, {
+					code: 'COULD_NOT_DOWNLOAD',
+					url: source.url,
+					original: error,
+				});
+			});
 	});
-
-	return (await Promise.all(checks)).some(Boolean);
 }
 
-async function copyExtractedFiles(sourceDir: string, destDir: string) {
+function hasGitLfsPointers(dir: string): Promise<boolean> {
 	// Paths are discovered from extracted archive contents under a controlled temp dir.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
-	const entries = await fs.readdir(sourceDir, { withFileTypes: true });
-	await Promise.all(
-		entries.map(async (entry) => {
-			const sourcePath = path.join(sourceDir, entry.name);
-			const destinationPath = path.join(destDir, entry.name);
-			await fs.copy(sourcePath, destinationPath);
-		}),
+	return fs.readdir(dir, { withFileTypes: true }).then((entries) =>
+		Promise.all(
+			entries.map((entry) => {
+				const entryPath = path.join(dir, entry.name);
+
+				if (entry.isDirectory()) {
+					return hasGitLfsPointers(entryPath);
+				}
+
+				if (!entry.isFile()) {
+					return Promise.resolve(false);
+				}
+
+				// Paths are discovered from extracted archive contents under a controlled temp dir.
+				// eslint-disable-next-line security/detect-non-literal-fs-filename
+				return fs.readFile(entryPath, 'utf8').then((contents) => {
+					return (
+						/^version https:\/\/git-lfs\.github\.com\/spec\/v1$/m.test(contents) &&
+						/^oid sha256:[0-9a-f]{64}$/m.test(contents) &&
+						/^size \d+$/m.test(contents)
+					);
+				});
+			}),
+		).then((checks) => checks.some(Boolean)),
 	);
+}
+
+function copyExtractedFiles(sourceDir: string, destDir: string): Promise<void> {
+	// Paths are discovered from extracted archive contents under a controlled temp dir.
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
+	return fs.readdir(sourceDir, { withFileTypes: true }).then((entries) =>
+		Promise.all(
+			entries.map((entry) => {
+				const sourcePath = path.join(sourceDir, entry.name);
+				const destinationPath = path.join(destDir, entry.name);
+				return fs.copy(sourcePath, destinationPath);
+			}),
+		),
+	);
+}
+
+function untarWithRetry(context: TarContext, source: ArchiveSource): Promise<void> {
+	return untar(source.file, source.workDir, source.subdir).catch((error) => {
+		if ((error as { code?: string }).code !== 'TAR_BAD_ARCHIVE') {
+			throw error;
+		}
+
+		return fs
+			.remove(source.file)
+			.catch(() => {
+				// Ignore cleanup failures and continue with a fresh download.
+			})
+			.then(() => context.fetch(source.url, source.file, context.proxy))
+			.then(() => untar(source.file, source.workDir, source.subdir));
+	});
+}
+
+function extractArchive(
+	context: TarContext,
+	source: ArchiveSource,
+	dest: string,
+): Promise<boolean> {
+	context.verboseInfo({
+		code: 'EXTRACTING',
+		message: `extracting ${source.subdir ? `${context.repo.subdir} from ` : ''}${source.file} to ${source.workDir}`,
+	});
+
+	return untarWithRetry(context, source)
+		.then(() => hasGitLfsPointers(source.workDir))
+		.then((hasPointers) => {
+			if (!hasPointers) {
+				mkdirp(dest);
+				return copyExtractedFiles(source.workDir, dest).then(() => hasPointers);
+			}
+
+			return hasPointers;
+		})
+		.catch((error) => {
+			throw new DegitError(`could not download ${source.url}`, {
+				code: 'COULD_NOT_DOWNLOAD',
+				url: source.url,
+				original: error,
+			});
+		})
+		.finally(() => fs.remove(source.workDir));
+}
+
+export function cloneWithTar(context: TarContext, dir: string, dest: string): Promise<void> {
+	const cached = readCachedRefs(dir);
+	return resolveArchiveHash(context, cached, dest).then((hash) => {
+		if (!hash) {
+			return;
+		}
+
+		mkdirp(dir);
+		return createArchiveSource(dir, context.repo, hash)
+			.then((source) =>
+				ensureArchiveFile(context, source).then(() =>
+					extractArchive(context, source, dest),
+				),
+			)
+			.then((shouldFallbackToGit) => {
+				if (shouldFallbackToGit) {
+					context.warn({
+						message: `git lfs pointer detected in tar snapshot; falling back to git clone`,
+					});
+					return context.cloneWithGit(dest);
+				}
+			})
+			.then(() => updateCache(dir, context.repo, hash, cached));
+	});
 }

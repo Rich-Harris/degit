@@ -19,7 +19,7 @@ export type Repo = {
 
 const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
 
-export function getProvider(site: string): Provider | undefined {
+export function getProvider(site: string): Provider | null {
 	switch (site) {
 		case 'github':
 			return {
@@ -50,7 +50,7 @@ export function getProvider(site: string): Provider | undefined {
 				},
 			};
 		default:
-			return undefined;
+			return null;
 	}
 }
 
@@ -114,7 +114,10 @@ export function parse(src: string): Repo {
 		});
 	}
 
-	const [user, rawName, ...subdirParts] = remainder.split('/').filter(Boolean);
+	const parts = remainder.split('/').filter(Boolean);
+	const user = parts[0];
+	const rawName = parts[1];
+	const subdirParts = parts.slice(2);
 	if (!user || !rawName) {
 		throw new DegitError(`could not parse ${src}`, {
 			code: 'BAD_SRC',
@@ -122,11 +125,13 @@ export function parse(src: string): Repo {
 	}
 
 	const name = rawName.replace(/\.git$/, '');
-	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
+	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : null;
 
 	const domain = provider.domain;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `ssh://git@${domain}/${user}/${name}`;
 
-	return { mode: 'tar', name, ref: refValue, site, ssh, subdir, transport, url, user };
+	return subdir
+		? { mode: 'tar', name, ref: refValue, site, ssh, subdir, transport, url, user }
+		: { mode: 'tar', name, ref: refValue, site, ssh, transport, url, user };
 }
