@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+import { constants, cp, mkdtemp, readFile, readdir, rm, access } from 'node:fs/promises';
 import path from 'node:path';
 import * as tar from 'tar';
 import { getProvider, type Repo } from '../../domain/repo.js';
@@ -64,7 +64,7 @@ async function createArchiveSource(dir: string, repo: Repo, hash: string): Promi
 		file: path.join(dir, `${hash}.tar.gz`),
 		subdir: repo.subdir ? `${repo.name}-${hash}${repo.subdir}` : null,
 		url: provider.archiveUrl(repo, hash),
-		workDir: await fs.mkdtemp(path.join(dir, 'extract-')),
+		workDir: await mkdtemp(path.join(dir, 'extract-')),
 	};
 }
 
@@ -73,12 +73,15 @@ async function ensureArchiveFile(context: TarContext, source: ArchiveSource) {
 		return;
 	}
 
-	if (await fs.pathExists(source.file)) {
+	try {
+		await access(source.file, constants.F_OK);
 		context.verboseInfo({
 			code: 'FILE_EXISTS',
 			message: `${source.file} already exists locally`,
 		});
 		return;
+	} catch {
+		// Missing files and permission-denied paths are both treated as absent.
 	}
 
 	mkdirp(path.dirname(source.file));
@@ -128,7 +131,7 @@ async function extractArchive(context: TarContext, source: ArchiveSource, dest: 
 			original: error,
 		});
 	} finally {
-		await fs.remove(source.workDir);
+		await rm(source.workDir, { force: true, recursive: true });
 	}
 }
 
@@ -141,7 +144,7 @@ async function untarWithRetry(context: TarContext, source: ArchiveSource) {
 		}
 
 		try {
-			await fs.remove(source.file);
+			await rm(source.file, { force: true, recursive: true });
 		} catch {
 			// Ignore cleanup failures and continue with a fresh download.
 		}
@@ -187,7 +190,7 @@ function untar(file: string, dest: string, subdir: string | null = null) {
 async function hasGitLfsPointers(dir: string): Promise<boolean> {
 	// Paths are discovered from extracted archive contents under a controlled temp dir.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
-	const entries = await fs.readdir(dir, { withFileTypes: true });
+	const entries = await readdir(dir, { withFileTypes: true });
 	const checks = entries.map(async (entry) => {
 		const entryPath = path.join(dir, entry.name);
 
@@ -201,7 +204,7 @@ async function hasGitLfsPointers(dir: string): Promise<boolean> {
 
 		// Paths are discovered from extracted archive contents under a controlled temp dir.
 		// eslint-disable-next-line security/detect-non-literal-fs-filename
-		const contents = await fs.readFile(entryPath, 'utf8');
+		const contents = await readFile(entryPath, 'utf8');
 		return (
 			/^version https:\/\/git-lfs\.github\.com\/spec\/v1$/m.test(contents) &&
 			/^oid sha256:[0-9a-f]{64}$/m.test(contents) &&
@@ -215,12 +218,13 @@ async function hasGitLfsPointers(dir: string): Promise<boolean> {
 async function copyExtractedFiles(sourceDir: string, destDir: string) {
 	// Paths are discovered from extracted archive contents under a controlled temp dir.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
-	const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+	const entries = await readdir(sourceDir, { withFileTypes: true });
 	await Promise.all(
 		entries.map(async (entry) => {
 			const sourcePath = path.join(sourceDir, entry.name);
 			const destinationPath = path.join(destDir, entry.name);
-			await fs.copy(sourcePath, destinationPath);
+			// cp() overwrites existing files the same way the old copy behavior did for this path.
+			await cp(sourcePath, destinationPath, { recursive: true });
 		}),
 	);
 }
