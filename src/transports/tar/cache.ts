@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import fs from 'fs-extra';
+import { rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Repo } from '../../domain/repo.js';
 import { tryRequire } from '../../shared/utils.js';
@@ -35,7 +35,7 @@ export async function updateCache(
 	logs[repo.ref] = new Date().toISOString();
 	// Dynamic cache file paths are derived from repo/ref values within the cache root.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
-	await fs.writeFile(path.join(dir, 'access.json'), JSON.stringify(logs, null, '  '));
+	await writeFile(path.join(dir, 'access.json'), JSON.stringify(logs, null, '  '));
 
 	const currentHash = cache.get(repo.ref);
 	if (sameHash(currentHash, hash)) {
@@ -44,7 +44,7 @@ export async function updateCache(
 
 	if (currentHash && ![...cache.values()].some((value) => sameHash(value, hash))) {
 		try {
-			await fs.remove(path.join(dir, `${currentHash}.tar.gz`));
+			await rm(path.join(dir, `${currentHash}.tar.gz`), { force: true, recursive: true });
 		} catch {
 			// Ignore cache cleanup failures.
 		}
@@ -53,8 +53,5 @@ export async function updateCache(
 	cache.set(repo.ref, hash);
 	// Dynamic cache file paths are derived from repo/ref values within the cache root.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
-	await fs.writeFile(
-		path.join(dir, 'map.json'),
-		JSON.stringify(recordFromMap(cache), null, '  '),
-	);
+	await writeFile(path.join(dir, 'map.json'), JSON.stringify(recordFromMap(cache), null, '  '));
 }
