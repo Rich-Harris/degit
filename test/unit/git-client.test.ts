@@ -19,44 +19,6 @@ const execFileMock = vi.fn(
 	},
 );
 
-vi.mock('node:child_process', () => ({
-	execFile: execFileMock,
-	spawn: spawnMock,
-}));
-
-vi.mock('isomorphic-git', () => ({
-	getRemoteInfo2: getRemoteInfo2Mock,
-	listServerRefs: listServerRefsMock,
-}));
-
-vi.mock('isomorphic-git/http/node', () => ({
-	default: {},
-}));
-
-const { createGitClient } = await import('../../src/transports/git/client.js');
-
-const sshRepo = {
-	mode: 'tar',
-	name: 'degit-test-repo',
-	ref: 'HEAD',
-	site: 'github',
-	ssh: 'ssh://git@github.com/Rich-Harris/degit-test-repo',
-	transport: 'ssh',
-	url: 'https://github.com/Rich-Harris/degit-test-repo',
-	user: 'Rich-Harris',
-} as const;
-
-const httpsRepo = {
-	mode: 'tar',
-	name: 'gitlab-test-repo',
-	ref: 'HEAD',
-	site: 'gitlab',
-	ssh: 'ssh://git@gitlab.com/gitlab-org/gitlab-test-repo',
-	transport: 'https',
-	url: 'https://gitlab.com/gitlab-org/gitlab-test-repo',
-	user: 'gitlab-org',
-} as const;
-
 type SpawnProcess = {
 	stdout: PassThrough;
 	stderr: PassThrough;
@@ -92,47 +54,86 @@ function writeChunkedLines(child: SpawnProcess, lines: string[]) {
 	}
 }
 
-beforeEach(() => {
-	execFileMock.mockClear();
-	spawnMock.mockClear();
-	getRemoteInfo2Mock.mockReset();
-	listServerRefsMock.mockReset();
-	spawnMock.mockImplementation((command: string, args: string[]) => {
-		if (command === 'git' && args[0] === 'ls-remote') {
-			const child = createSpawnProcess();
-			queueMicrotask(() => {
-				child.emit(
-					'error',
+vi.mock('node:child_process', () => ({
+	execFile: execFileMock,
+	spawn: spawnMock,
+}));
+
+vi.mock('isomorphic-git', () => ({
+	getRemoteInfo2: getRemoteInfo2Mock,
+	listServerRefs: listServerRefsMock,
+}));
+
+vi.mock('isomorphic-git/http/node', () => ({
+	default: {},
+}));
+
+const { createGitClient } = await import('../../src/transports/git/client.js');
+
+/* eslint-disable max-lines-per-function */
+describe('git client', () => {
+	const sshRepo = {
+		mode: 'tar',
+		name: 'degit-test-repo',
+		ref: 'HEAD',
+		site: 'github',
+		ssh: 'ssh://git@github.com/Rich-Harris/degit-test-repo',
+		transport: 'ssh',
+		url: 'https://github.com/Rich-Harris/degit-test-repo',
+		user: 'Rich-Harris',
+	} as const;
+
+	const httpsRepo = {
+		mode: 'tar',
+		name: 'gitlab-test-repo',
+		ref: 'HEAD',
+		site: 'gitlab',
+		ssh: 'ssh://git@gitlab.com/gitlab-org/gitlab-test-repo',
+		transport: 'https',
+		url: 'https://gitlab.com/gitlab-org/gitlab-test-repo',
+		user: 'gitlab-org',
+	} as const;
+
+	beforeEach(() => {
+		execFileMock.mockClear();
+		spawnMock.mockClear();
+		getRemoteInfo2Mock.mockReset();
+		listServerRefsMock.mockReset();
+		spawnMock.mockImplementation((command: string, args: string[]) => {
+			if (command === 'git' && args[0] === 'ls-remote') {
+				const child = createSpawnProcess();
+				queueMicrotask(() => {
+					child.emit(
+						'error',
+						Object.assign(new Error(`spawn ${command} ENOENT`), {
+							code: 'ENOENT',
+							syscall: `spawn ${command}`,
+						}),
+					);
+				});
+
+				return child;
+			}
+
+			throw new Error(`Unexpected spawn call: ${command} ${args.join(' ')}`);
+		});
+		execFileMock.mockImplementation(
+			(command: string, args: string[], callback: (error?: unknown) => void) => {
+				if (command === 'git' && args[0] === 'clone') {
+					callback();
+					return;
+				}
+
+				callback(
 					Object.assign(new Error(`spawn ${command} ENOENT`), {
 						code: 'ENOENT',
 						syscall: `spawn ${command}`,
 					}),
 				);
-			});
-
-			return child;
-		}
-
-		throw new Error(`Unexpected spawn call: ${command} ${args.join(' ')}`);
+			},
+		);
 	});
-	execFileMock.mockImplementation(
-		(command: string, args: string[], callback: (error?: unknown) => void) => {
-			if (command === 'git' && args[0] === 'clone') {
-				callback();
-				return;
-			}
 
-			callback(
-				Object.assign(new Error(`spawn ${command} ENOENT`), {
-					code: 'ENOENT',
-					syscall: `spawn ${command}`,
-				}),
-			);
-		},
-	);
-});
-
-describe('git client fetchRefs over https', () => {
 	it('falls back to protocol v1 discovery when protocol v2 ref listing fails for https repos', async () => {
 		listServerRefsMock.mockRejectedValueOnce(
 			Object.assign(new Error('HTTP Error: 422 Unprocessable Entity'), {
@@ -158,9 +159,7 @@ describe('git client fetchRefs over https', () => {
 		assert.equal(getRemoteInfo2Mock.mock.calls.length, 1);
 		assert.equal(getRemoteInfo2Mock.mock.calls[0][0].protocolVersion, 1);
 	});
-});
 
-describe('git client fetchRefs over ssh', () => {
 	it('reads chunked ls-remote output when fetching refs over ssh', async () => {
 		spawnMock.mockImplementationOnce(() => {
 			const child = createSpawnProcess();
@@ -207,9 +206,7 @@ describe('git client fetchRefs over ssh', () => {
 				error.code === 'GIT_NOT_FOUND' && /git is not installed/.test(error.message),
 		);
 	});
-});
 
-describe('git client clone over ssh', () => {
 	it('reports a missing git binary when cloning over ssh', async () => {
 		execFileMock.mockImplementationOnce(
 			(command: string, _args: string[], callback: (error?: unknown) => void) => {
@@ -242,3 +239,4 @@ describe('git client clone over ssh', () => {
 		]);
 	});
 });
+/* eslint-enable max-lines-per-function */
