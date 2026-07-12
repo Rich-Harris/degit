@@ -4,8 +4,6 @@ import path from 'node:path';
 import { sync as rimraf } from 'rimraf';
 import { createIntegrationRunner } from './runner.js';
 
-const describeIntegration = describe;
-
 const runner = createIntegrationRunner();
 
 type IntegrationRepo = {
@@ -32,7 +30,7 @@ const privateIntegrationRepos: IntegrationRepo[] = [
 	},
 ];
 
-describeIntegration('private integration suite', () => {
+describe('private integration suite', () => {
 	for (const test of privateIntegrationRepos) {
 		it(`clones the pinned ${test.site} repository when the integration suite runs`, async () => {
 			const integrationTmp = path.join('.tmp', 'integration-suite-private', test.site);

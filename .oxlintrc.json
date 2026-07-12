@@ -1,6 +1,6 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"jsPlugins": ["eslint-plugin-security"],
+	"jsPlugins": ["eslint-plugin-security", "./scripts/oxlint-test-guidelines.js"],
 	"rules": {
 		"security/detect-bidi-characters": "error",
 		"security/detect-buffer-noassert": "error",
@@ -21,6 +21,9 @@
 		{
 			"files": ["test/**"],
 			"rules": {
+				"oxlint-test-guidelines/file-name": "error",
+				"oxlint-test-guidelines/one-describe-per-file": "error",
+				"oxlint-test-guidelines/title-when": "error",
 				"security/detect-bidi-characters": "off",
 				"security/detect-buffer-noassert": "off",
 				"security/detect-child-process": "off",

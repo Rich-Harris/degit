@@ -80,16 +80,16 @@ export const providerCases = [
 	}),
 ];
 
-function createArchiveRootFixture(rootName) {
-	fs.mkdirSync('.tmp/index-suite', { recursive: true });
-	const archiveDir = fs.mkdtempSync(path.join('.tmp/index-suite', 'archive-'));
+function createArchiveRootFixture(rootName, archiveBase = '.tmp/index-suite') {
+	fs.mkdirSync(archiveBase, { recursive: true });
+	const archiveDir = fs.mkdtempSync(path.join(archiveBase, 'archive-'));
 	const archiveRoot = path.join(archiveDir, rootName);
 
 	return { archiveDir, archiveRoot };
 }
 
-export async function createArchiveFixture(rootName) {
-	const { archiveDir, archiveRoot } = createArchiveRootFixture(rootName);
+export async function createArchiveFixture(rootName, archiveBase) {
+	const { archiveDir, archiveRoot } = createArchiveRootFixture(rootName, archiveBase);
 
 	fs.mkdirSync(path.join(archiveRoot, 'packages/app/lib'), { recursive: true });
 	fs.writeFileSync(path.join(archiveRoot, 'packages/app/index.js'), 'export default 1\n');
@@ -102,8 +102,8 @@ export async function createArchiveFixture(rootName) {
 	return archiveFile;
 }
 
-async function createArchiveWithFileFixture(rootName, relativePath, contents) {
-	const { archiveDir, archiveRoot } = createArchiveRootFixture(rootName);
+async function createArchiveWithFileFixture(rootName, relativePath, contents, archiveBase) {
+	const { archiveDir, archiveRoot } = createArchiveRootFixture(rootName, archiveBase);
 
 	fs.mkdirSync(path.dirname(path.join(archiveRoot, relativePath)), { recursive: true });
 	fs.writeFileSync(path.join(archiveRoot, relativePath), contents);
@@ -114,11 +114,12 @@ async function createArchiveWithFileFixture(rootName, relativePath, contents) {
 	return archiveFile;
 }
 
-export function createArchiveWithGitLfsPointerFixture(rootName) {
+export function createArchiveWithGitLfsPointerFixture(rootName, archiveBase) {
 	return createArchiveWithFileFixture(
 		rootName,
 		'packages/app/asset.bin',
 		'version https://git-lfs.github.com/spec/v1\noid sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\nsize 1234\n',
+		archiveBase,
 	);
 }
 

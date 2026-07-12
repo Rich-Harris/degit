@@ -3,13 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { sync as rimraf } from 'rimraf';
 import degit from '../../src/index.js';
-import { base } from '../../src/shared/utils.js';
 import { providerCases } from './index-support.js';
-import {
-	registerTarExtractionSuites,
-	registerTarModeFetchFailureSuite,
-} from './index-tar-suites.js';
-import { registerGitModeSuites } from './index-git-suites.js';
+
+const { suiteCache, suiteTmp } = vi.hoisted(() => ({
+	suiteCache: '.tmp/index-main-suite-cache',
+	suiteTmp: '.tmp/index-main-suite',
+}));
 
 vi.mock('../../src/shared/utils.js', async () => {
 	const actual = await vi.importActual<typeof import('../../src/shared/utils.js')>(
@@ -18,16 +17,21 @@ vi.mock('../../src/shared/utils.js', async () => {
 
 	return {
 		...actual,
-		base: path.join(process.cwd(), '.tmp', 'index-suite-cache'),
+		base: path.join(process.cwd(), suiteCache),
 	};
 });
 
-const indexTmp = '.tmp/index-suite';
+/* eslint-disable max-lines-per-function */
+describe('degit index', () => {
+	beforeEach(async () => {
+		await rimraf(suiteTmp);
+		await rimraf(suiteCache);
+	});
+	afterEach(async () => {
+		await rimraf(suiteTmp);
+		await rimraf(suiteCache);
+	});
 
-beforeEach(async () => await rimraf(indexTmp));
-afterEach(async () => await rimraf(indexTmp));
-
-describe('degit index built entrypoint', () => {
 	it('exports a usable JS library when importing the built entrypoint', async () => {
 		const builtEntryPoint = path.resolve(process.cwd(), 'dist/index.js');
 		const { default: builtDegit } = await import(new URL(`file://${builtEntryPoint}`).href);
@@ -37,9 +41,7 @@ describe('degit index built entrypoint', () => {
 		assert.equal(typeof instance.clone, 'function');
 		assert.equal(typeof instance.on, 'function');
 	});
-});
 
-describe('degit index parser', () => {
 	providerCases.forEach((test) => {
 		it(`parsed repo fields match expected URLs when src targets ${test.site}`, () => {
 			const { repo } = degit(test.publicSrc);
@@ -52,7 +54,7 @@ describe('degit index parser', () => {
 		});
 	});
 
-	it('parses explicit ssh sources as ssh transport', () => {
+	it('parses explicit ssh sources when the source uses ssh transport', () => {
 		const { repo } = degit('git@github.com:Rich-Harris/degit-test-repo');
 
 		assert.equal(repo.transport, 'ssh');
@@ -67,18 +69,12 @@ describe('degit index parser', () => {
 			(err: any) => err && err.code === 'UNSUPPORTED_HOST',
 		);
 	});
-});
 
-registerTarModeFetchFailureSuite(base);
-registerTarExtractionSuites(base);
-registerGitModeSuites(base);
-
-describe('degit index clone validation', () => {
 	it('rejects with DEST_NOT_EMPTY when destination has files and force is false', async () => {
-		fs.mkdirSync('.tmp/index-suite/ne', { recursive: true });
-		fs.writeFileSync('.tmp/index-suite/ne/x', '1');
+		fs.mkdirSync(path.join(suiteTmp, 'ne'), { recursive: true });
+		fs.writeFileSync(path.join(suiteTmp, 'ne/x'), '1');
 		await assert.rejects(
-			async () => await degit('Rich-Harris/degit-test-repo').clone('.tmp/index-suite/ne'),
+			async () => await degit('Rich-Harris/degit-test-repo').clone(path.join(suiteTmp, 'ne')),
 			(err: any) => err && err.code === 'DEST_NOT_EMPTY',
 		);
 	});
@@ -89,10 +85,8 @@ describe('degit index clone validation', () => {
 			/Valid modes are/,
 		);
 	});
-});
 
-describe('degit index remove', () => {
-	it('removes nested directories recursively from the destination', () => {
+	it('removes nested directories recursively when pruning the destination', () => {
 		const dest = fs.mkdtempSync(path.join(process.cwd(), 'remove-'));
 
 		try {
@@ -135,3 +129,4 @@ describe('degit index remove', () => {
 		}
 	});
 });
+/* eslint-enable max-lines-per-function */
