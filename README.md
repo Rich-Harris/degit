@@ -151,7 +151,7 @@ emitter.clone('path/to/dest').then(() => {
 
 ## Actions
 
-You can manipulate repositories after they have been cloned with _actions_, specified in a `degit.json` file that lives at the top level of the working directory. Currently, there are two actions — `clone` and `remove`. Additional actions may be added in future.
+You can manipulate repositories after they have been cloned with _actions_, specified in a `degit.json` file that lives at the top level of the working directory. Currently, there are three actions — `clone`, `search_replace`, and `remove`. Additional actions may be added in future.
 
 ### clone
 
@@ -166,6 +166,22 @@ You can manipulate repositories after they have been cloned with _actions_, spec
 ```
 
 This will clone `user/another-repo`, preserving the contents of the existing working directory. This allows you to, say, add a new README.md or starter file to a repo that you do not control. The cloned repo can contain its own `degit.json` actions.
+
+### search_replace
+
+```json
+// degit.json
+[
+	{
+		"action": "search_replace",
+		"files": ["package.json", "README.md"],
+		"pattern": "\\{\\{project_name\\}\\}",
+		"replacement": "PROJECT_NAME"
+	}
+]
+```
+
+This replaces every match of the regular expression in the listed files using the value of the named environment variable. `files` can be a single path or an array of paths, and each path is resolved relative to the destination. Paths outside the destination are skipped.
 
 ### remove
 

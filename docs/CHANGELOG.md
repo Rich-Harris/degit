@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.5.0
+
+- Add a `search_replace` action for `degit.json` (#364, thanks to @Tythos for the original PR #365).
+
 ## 3.4.7
 
 - Gate clone error details behind `--verbose`.

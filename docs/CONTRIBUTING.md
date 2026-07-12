@@ -175,6 +175,8 @@ A small proof-of-concept docs-sync workflow also runs on PRs that change `src/**
 
 Keep changes focused, squash the branch to a single commit before opening the pull request, add or update tests when behavior changes, and describe the motivation in the pull request so reviewers can follow your intent.
 
+As a rule of thumb, keep one `describe` block per test file. If a file starts hitting the max-lines rule, prefer a targeted suppression on that `describe` block instead of splitting it up just to satisfy the linter. Split into multiple `describe` blocks only when the behaviors are genuinely easier to read that way.
+
 If your pull request resolves an issue, mention it in the PR body with `Fixes #123` or `Closes #123` so GitHub closes the issue automatically when the PR is merged.
 
 Test names should describe behavior in the form `it('X when Y')`, so the action appears first and the triggering condition comes after `when`.

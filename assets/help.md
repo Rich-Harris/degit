@@ -58,4 +58,6 @@ Private repositories are handled automatically: degit uses the tarball path by d
 
 `--mode=git` is still accepted for compatibility. `--mode=tar` is the default path and does not need special handling.
 
+Actions can also be defined in a top-level `degit.json` file. Supported actions are `clone`, `search_replace`, and `remove`. `search_replace` only touches explicitly listed files, resolves them relative to the destination, and uses the named environment variable as the replacement value.
+
 See https://github.com/Rich-Harris/degit for more information

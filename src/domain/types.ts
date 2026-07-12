@@ -66,11 +66,18 @@ export type Directive =
 			verbose?: boolean;
 	  }
 	| {
+			action: 'search_replace';
+			files: string | string[];
+			pattern: string;
+			replacement: string;
+	  }
+	| {
 			action: 'remove';
 			files: string | string[];
 	  };
 
 export type CloneDirective = Extract<Directive, { action: 'clone' }>;
+export type SearchReplaceDirective = Extract<Directive, { action: 'search_replace' }>;
 export type RemoveDirective = Extract<Directive, { action: 'remove' }>;
 
 export type Options = ConstructorOptions;
