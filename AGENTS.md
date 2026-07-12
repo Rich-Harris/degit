@@ -39,6 +39,7 @@ See [package.json](package.json) for the build, dev, and audit scripts. Source o
 
 Tests live in `test/unit/**/*.test.ts` and `test/integration/**/*.test.ts` (see [vitest.config.ts](vitest.config.ts)). Use `bun run test` for the suite excluding `test/integration/private.test.ts`, and `bun run test:integration` for the integration network suite. Prefer updating or adding tests when changing behavior. Use `bun run format:ci` after edits that touch Markdown or JSON.
 Test names should follow the `it('X when Y')` pattern so behavior and trigger are both obvious.
+As a rule of thumb, keep one `describe` block per test file. If a file hits the max-lines rule, prefer a targeted suppression on that `describe` block instead of splitting it up just to satisfy the linter. Split into multiple `describe` blocks only when it actually improves readability.
 The private integration suite in `test/integration/private.test.ts` keeps built-in private SSH fixtures behind `SSH_PRIVATE_KEY`; verification should not assume private repos are available unless that secret is set.
 When verifying production-only bugs in the CLI, reproduce with the published `degit` package (for example `npx degit@latest ...`) instead of running the raw repository source directly.
 
