@@ -1,12 +1,16 @@
 # degit changelog
 
+## 3.6.0
+
+- Add `gitlab://host/user/repo` syntax for cloning from self-hosted GitLab instances (thanks to @dnldsht for the original PR #361).
+
 ## 3.5.1
 
-- Fix GitLab archive URL format and centralize provider templates ([#335](https://github.com/Rich-Harris/degit/pull/335), thanks to @satotake for the original PR).
+- Fix GitLab archive URL format and centralize provider templates (thanks to @satotake for the original PR #335).
 
 ## 3.5.0
 
-- Add a `search_replace` action for `degit.json` (#364, thanks to @Tythos for the original PR #365).
+- Add a `search_replace` action for `degit.json` (thanks to @Tythos for the original PR #365).
 
 ## 3.4.7
 
@@ -45,7 +49,7 @@
 
 ## 3.3.2
 
-- Retry corrupt tarball downloads ([#313](https://github.com/Rich-Harris/degit/issues/313)).
+- Retry corrupt tarball downloads (issue #313).
 
 ## 3.3.1
 
