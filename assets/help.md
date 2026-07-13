@@ -18,6 +18,9 @@ https://github.com/user/repo
 
 gitlab:user/repo
 https://gitlab.com/user/repo
+gitlab:git.example.com/user/repo
+
+Use `gitlab:host/user/repo` to clone from a self-hosted GitLab instance.
 
 ## BitBucket repos
 

@@ -105,7 +105,21 @@ function resolveSource(
 
 export function parse(src: string): Repo {
 	const [source, refValue = 'HEAD'] = src.split('#', 2);
-	const { remainder, site, transport } = resolveSource(source, src);
+	let { remainder, site, transport } = resolveSource(source, src);
+
+	let customDomain: string | undefined;
+	if (site === 'gitlab') {
+		const [firstSegment] = remainder.split('/', 1);
+		if (firstSegment && firstSegment.includes('.')) {
+			customDomain = firstSegment;
+			remainder = remainder.slice(customDomain.length + 1);
+			if (remainder.split('/').filter(Boolean).length < 2) {
+				throw new DegitError(`could not parse ${src}`, {
+					code: 'BAD_SRC',
+				});
+			}
+		}
+	}
 
 	if (!supported.has(site)) {
 		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
@@ -130,7 +144,7 @@ export function parse(src: string): Repo {
 	const name = rawName.replace(/\.git$/, '');
 	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
 
-	const domain = provider.domain;
+	const domain = customDomain ?? provider.domain;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `ssh://git@${domain}/${user}/${name}`;
 

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { sync as rimraf } from 'rimraf';
 import degit from '../../src/index.js';
+import { parse } from '../../src/domain/repo.js';
 import { providerCases } from './index-support.js';
 
 const { suiteCache, suiteTmp } = vi.hoisted(() => ({
@@ -52,6 +53,33 @@ describe('degit index', () => {
 			assert.equal(repo.ssh, test.ssh);
 			assert.equal(repo.transport, 'https');
 		});
+	});
+
+	it('parses gitlab prefix with custom domain when first segment contains dot', () => {
+		const repo = parse('gitlab:git.example.com/user/repo');
+
+		assert.equal(repo.url, 'https://git.example.com/user/repo');
+		assert.equal(repo.ssh, 'ssh://git@git.example.com/user/repo');
+		assert.equal(repo.site, 'gitlab');
+	});
+
+	it('parses gitlab prefix without custom domain when first segment lacks dot', () => {
+		const repo = parse('gitlab:user/repo');
+
+		assert.equal(repo.url, 'https://gitlab.com/user/repo');
+	});
+
+	it('does not treat first segment as custom domain when dot is in repo name', () => {
+		const repo = parse('gitlab:user/my.repo');
+
+		assert.equal(repo.url, 'https://gitlab.com/user/my.repo');
+	});
+
+	it('throws BAD_SRC when gitlab prefix with custom domain has no user or repo', () => {
+		assert.throws(
+			() => parse('gitlab:myhost.com'),
+			(err: any) => err && err.code === 'BAD_SRC',
+		);
 	});
 
 	it('parses explicit ssh sources when the source uses ssh transport', () => {

@@ -56,6 +56,20 @@ export const providerCases = [
 		}),
 	}),
 	createProviderCase({
+		domain: 'git.example.com',
+		publicSrc: 'gitlab:git.example.com/Rich-Harris/degit-test-repo',
+		redirectUrl: 'https://git.example.com/forbidden',
+		site: 'gitlab',
+		user: 'Rich-Harris',
+		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveUrl: (hash) =>
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
+			gitSrc: `gitlab:${domain}/${user}/${privateName}`,
+			lsRemote: `git ls-remote -- ${url}`,
+			ssh: `ssh://git@${domain}/${user}/${name}`,
+		}),
+	}),
+	createProviderCase({
 		domain: 'bitbucket.org',
 		publicSrc: 'bitbucket:Rich_Harris/degit-test-repo',
 		redirectUrl: 'https://bitbucket.org/forbidden',
