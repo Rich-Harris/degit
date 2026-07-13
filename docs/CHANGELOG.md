@@ -1,5 +1,9 @@
 # degit changelog
 
+## Unreleased
+
+- Fix HTTPS clones with explicit refs throwing a `ReferenceError`.
+
 ## 3.6.0
 
 - Add `gitlab://host/user/repo` syntax for cloning from self-hosted GitLab instances (thanks to @dnldsht for the original PR #361).

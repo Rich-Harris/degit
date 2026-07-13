@@ -11,6 +11,7 @@ import {
 	createSshError,
 	getGitClonePlan,
 	getGitUrl,
+	isCommitHash,
 	isMissingGitBinaryError,
 	isMissingSshKeyError,
 	normalizeGitRef,

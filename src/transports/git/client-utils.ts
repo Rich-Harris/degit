@@ -12,7 +12,7 @@ export function getGitUrl(repo: Repo, transport: Repo['transport'] = repo.transp
 	return transport === 'ssh' ? repo.ssh : repo.url;
 }
 
-function isCommitHash(ref: string) {
+export function isCommitHash(ref: string) {
 	return /^[0-9a-f]{7,40}$/i.test(ref);
 }
 
