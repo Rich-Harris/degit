@@ -14,15 +14,17 @@ export type Repo = {
 
 type ArchiveContext = Pick<Repo, 'url' | 'name'>;
 
+export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'git.sr.ht';
+
 type Provider = {
 	domain: string;
-	archiveUrl(repo: Repo, hash: string): string;
+	archiveUrl(repo: ArchiveContext, hash: string): string;
 };
 
 const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
 
 export const providerArchiveTemplates: Record<
-	string,
+	GitProvider,
 	(repo: ArchiveContext, hash: string) => string
 > = {
 	github: (repo, hash) => `${repo.url}/archive/${hash}.tar.gz`,

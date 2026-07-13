@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as tar from 'tar';
-import { providerArchiveTemplates } from '../../src/domain/repo.js';
+import { providerArchiveTemplates, type GitProvider } from '../../src/domain/repo.js';
 import degit from '../../src/index.js';
 import { createCopyFetch, createMockGit } from '../helpers.js';
 
@@ -35,10 +35,7 @@ export const providerCases = [
 		user: 'Rich-Harris',
 		build: ({ domain, name, privateName, site, url, user }) => ({
 			archiveUrl: (hash) =>
-				providerArchiveTemplates[site as keyof typeof providerArchiveTemplates](
-					{ url, name },
-					hash,
-				),
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `https://${domain}/${user}/${privateName}.git`,
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,
@@ -52,10 +49,7 @@ export const providerCases = [
 		user: 'Rich-Harris',
 		build: ({ domain, name, privateName, site, url, user }) => ({
 			archiveUrl: (hash) =>
-				providerArchiveTemplates[site as keyof typeof providerArchiveTemplates](
-					{ url, name },
-					hash,
-				),
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `gitlab:${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,
@@ -69,10 +63,7 @@ export const providerCases = [
 		user: 'Rich_Harris',
 		build: ({ domain, name, privateName, site, url, user }) => ({
 			archiveUrl: (hash) =>
-				providerArchiveTemplates[site as keyof typeof providerArchiveTemplates](
-					{ url, name },
-					hash,
-				),
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `bitbucket:${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,
@@ -86,10 +77,7 @@ export const providerCases = [
 		user: '~satotake',
 		build: ({ domain, name, privateName, site, url, user }) => ({
 			archiveUrl: (hash) =>
-				providerArchiveTemplates[site as keyof typeof providerArchiveTemplates](
-					{ url, name },
-					hash,
-				),
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `git.sr.ht/${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,
