@@ -60,10 +60,28 @@ export function getProvider(site: string): Provider | undefined {
 	}
 }
 
-function resolveSource(
-	source: string,
-	src: string,
-): { remainder: string; site: string; transport: 'https' | 'ssh' } {
+type ResolvedSource = {
+	remainder: string;
+	site: string;
+	transport: 'https' | 'ssh';
+	customDomain?: string;
+};
+
+function parseGitlabUrl(source: string, src: string): ResolvedSource {
+	const path = source.slice('gitlab://'.length);
+	const slashIndex = path.indexOf('/');
+	if (slashIndex === -1) {
+		throw new DegitError(`could not parse ${src}`, { code: 'BAD_SRC' });
+	}
+	return {
+		customDomain: path.slice(0, slashIndex),
+		remainder: path.slice(slashIndex + 1),
+		site: 'gitlab',
+		transport: 'https',
+	};
+}
+
+function resolveSource(source: string, src: string): ResolvedSource {
 	let site = 'github';
 	let transport: 'https' | 'ssh' = 'https';
 	let remainder = source;
@@ -80,17 +98,16 @@ function resolveSource(
 	} else if (source.startsWith('git@')) {
 		const match = /^git@([^:/]+)[:/](.+)$/.exec(source);
 		if (!match) {
-			throw new DegitError(`could not parse ${src}`, {
-				code: 'BAD_SRC',
-			});
+			throw new DegitError(`could not parse ${src}`, { code: 'BAD_SRC' });
 		}
-
 		site = match[1].replace(/\.(com|org)$/, '');
 		remainder = match[2];
 		transport = 'ssh';
 	} else if (source.startsWith('git.sr.ht/')) {
 		site = 'git.sr.ht';
 		remainder = source.slice('git.sr.ht/'.length);
+	} else if (source.startsWith('gitlab://')) {
+		return parseGitlabUrl(source, src);
 	} else {
 		const colonIndex = source.indexOf(':');
 		const slashIndex = source.indexOf('/');
@@ -105,7 +122,7 @@ function resolveSource(
 
 export function parse(src: string): Repo {
 	const [source, refValue = 'HEAD'] = src.split('#', 2);
-	const { remainder, site, transport } = resolveSource(source, src);
+	const { remainder, site, transport, customDomain } = resolveSource(source, src);
 
 	if (!supported.has(site)) {
 		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
@@ -130,7 +147,7 @@ export function parse(src: string): Repo {
 	const name = rawName.replace(/\.git$/, '');
 	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
 
-	const domain = provider.domain;
+	const domain = customDomain ?? provider.domain;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `ssh://git@${domain}/${user}/${name}`;
 
