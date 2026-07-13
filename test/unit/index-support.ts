@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as tar from 'tar';
+import { providerArchiveTemplates, type GitProvider } from '../../src/domain/repo.js';
 import degit from '../../src/index.js';
 import { createCopyFetch, createMockGit } from '../helpers.js';
 
@@ -14,7 +15,7 @@ function createProviderCase({ build, domain, publicSrc, redirectUrl, site, user 
 	const privateName = `${name}-private`;
 	const url = `https://${domain}/${user}/${name}`;
 	return {
-		...build({ domain, name, privateName, url, user }),
+		...build({ domain, name, privateName, site, url, user }),
 		name,
 		privateName,
 		publicSrc,
@@ -32,8 +33,9 @@ export const providerCases = [
 		redirectUrl: 'https://github.com/forbidden',
 		site: 'github',
 		user: 'Rich-Harris',
-		build: ({ domain, name, privateName, url, user }) => ({
-			archiveUrl: (hash) => `${url}/archive/${hash}.tar.gz`,
+		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveUrl: (hash) =>
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `https://${domain}/${user}/${privateName}.git`,
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,
@@ -45,8 +47,9 @@ export const providerCases = [
 		redirectUrl: 'https://gitlab.com/forbidden',
 		site: 'gitlab',
 		user: 'Rich-Harris',
-		build: ({ domain, name, privateName, url, user }) => ({
-			archiveUrl: (hash) => `${url}/repository/archive.tar.gz?ref=${hash}`,
+		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveUrl: (hash) =>
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `gitlab:${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,
@@ -58,8 +61,9 @@ export const providerCases = [
 		redirectUrl: 'https://bitbucket.org/forbidden',
 		site: 'bitbucket',
 		user: 'Rich_Harris',
-		build: ({ domain, name, privateName, url, user }) => ({
-			archiveUrl: (hash) => `${url}/get/${hash}.tar.gz`,
+		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveUrl: (hash) =>
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `bitbucket:${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,
@@ -71,8 +75,9 @@ export const providerCases = [
 		redirectUrl: 'https://git.sr.ht/forbidden',
 		site: 'git.sr.ht',
 		user: '~satotake',
-		build: ({ domain, name, privateName, url, user }) => ({
-			archiveUrl: (hash) => `${url}/archive/${hash}.tar.gz`,
+		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveUrl: (hash) =>
+				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `git.sr.ht/${user}/${privateName}`,
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,

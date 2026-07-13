@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.5.1
+
+- Fix GitLab archive URL format and centralize provider templates ([#335](https://github.com/Rich-Harris/degit/pull/335), thanks to @satotake for the original PR).
+
 ## 3.5.0
 
 - Add a `search_replace` action for `degit.json` (#364, thanks to @Tythos for the original PR #365).

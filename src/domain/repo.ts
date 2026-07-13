@@ -1,10 +1,5 @@
 import { DegitError } from '../shared/utils.js';
 
-type Provider = {
-	domain: string;
-	archiveUrl(repo: Repo, hash: string): string;
-};
-
 export type Repo = {
 	mode: 'tar' | 'git';
 	name: string;
@@ -17,37 +12,48 @@ export type Repo = {
 	user: string;
 };
 
+type ArchiveContext = Pick<Repo, 'url' | 'name'>;
+
+export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'git.sr.ht';
+
+type Provider = {
+	domain: string;
+	archiveUrl(repo: ArchiveContext, hash: string): string;
+};
+
 const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
+
+export const providerArchiveTemplates: Record<
+	GitProvider,
+	(repo: ArchiveContext, hash: string) => string
+> = {
+	github: (repo, hash) => `${repo.url}/archive/${hash}.tar.gz`,
+	gitlab: (repo, hash) => `${repo.url}/-/archive/${hash}/${repo.name}-${hash}.tar.gz`,
+	bitbucket: (repo, hash) => `${repo.url}/get/${hash}.tar.gz`,
+	'git.sr.ht': (repo, hash) => `${repo.url}/archive/${hash}.tar.gz`,
+};
 
 export function getProvider(site: string): Provider | undefined {
 	switch (site) {
 		case 'github':
 			return {
 				domain: 'github.com',
-				archiveUrl(repo, hash) {
-					return `${repo.url}/archive/${hash}.tar.gz`;
-				},
+				archiveUrl: providerArchiveTemplates.github,
 			};
 		case 'gitlab':
 			return {
 				domain: 'gitlab.com',
-				archiveUrl(repo, hash) {
-					return `${repo.url}/repository/archive.tar.gz?ref=${hash}`;
-				},
+				archiveUrl: providerArchiveTemplates.gitlab,
 			};
 		case 'bitbucket':
 			return {
 				domain: 'bitbucket.org',
-				archiveUrl(repo, hash) {
-					return `${repo.url}/get/${hash}.tar.gz`;
-				},
+				archiveUrl: providerArchiveTemplates.bitbucket,
 			};
 		case 'git.sr.ht':
 			return {
 				domain: 'git.sr.ht',
-				archiveUrl(repo, hash) {
-					return `${repo.url}/archive/${hash}.tar.gz`;
-				},
+				archiveUrl: providerArchiveTemplates['git.sr.ht'],
 			};
 		default:
 			return undefined;
