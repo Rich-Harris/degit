@@ -57,3 +57,23 @@ jobs:
               uses: github/codeql-action/analyze@v4
               with:
                   category: '/language:${{matrix.language}}'
+
+    pentest:
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  fetch-depth: 0
+
+            - name: Install Strix
+              run: curl -sSL https://strix.ai/install | bash
+
+            - name: Run Strix
+              env:
+                  STRIX_LLM: ${{ secrets.STRIX_LLM }}
+                  LLM_API_KEY: ${{ secrets.STRIX_LLM_API_KEY }}
+              run: strix -n -t ./ --scan-mode quick
