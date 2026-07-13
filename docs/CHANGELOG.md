@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.6.0
+
+- Add `gitlab://host/user/repo` syntax for cloning from self-hosted GitLab instances ([#456](https://github.com/Rich-Harris/degit/pull/456)).
+
 ## 3.5.1
 
 - Fix GitLab archive URL format and centralize provider templates ([#335](https://github.com/Rich-Harris/degit/pull/335), thanks to @satotake for the original PR).
