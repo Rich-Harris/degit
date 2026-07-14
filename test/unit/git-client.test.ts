@@ -2,7 +2,9 @@ import assert from 'node:assert';
 import { PassThrough } from 'node:stream';
 import { vi } from 'vitest';
 
-const { getRemoteInfo2Mock, listServerRefsMock } = vi.hoisted(() => ({
+const { cloneMock, checkoutMock, getRemoteInfo2Mock, listServerRefsMock } = vi.hoisted(() => ({
+	cloneMock: vi.fn(),
+	checkoutMock: vi.fn(),
 	getRemoteInfo2Mock: vi.fn(),
 	listServerRefsMock: vi.fn(),
 }));
@@ -60,6 +62,8 @@ vi.mock('node:child_process', () => ({
 }));
 
 vi.mock('isomorphic-git', () => ({
+	checkout: checkoutMock,
+	clone: cloneMock,
 	getRemoteInfo2: getRemoteInfo2Mock,
 	listServerRefs: listServerRefsMock,
 }));
@@ -95,6 +99,8 @@ describe('git client', () => {
 	} as const;
 
 	beforeEach(() => {
+		checkoutMock.mockReset();
+		cloneMock.mockReset();
 		execFileMock.mockClear();
 		spawnMock.mockClear();
 		getRemoteInfo2Mock.mockReset();
@@ -158,6 +164,41 @@ describe('git client', () => {
 		assert.equal(listServerRefsMock.mock.calls.length, 1);
 		assert.equal(getRemoteInfo2Mock.mock.calls.length, 1);
 		assert.equal(getRemoteInfo2Mock.mock.calls[0][0].protocolVersion, 1);
+	});
+
+	it('uses the planned branch when cloning over https', async () => {
+		await createGitClient().clone(httpsRepo, '.tmp/git-client-test', 'main');
+
+		assert.equal(cloneMock.mock.calls.length, 1);
+		assert.deepEqual(
+			{
+				depth: cloneMock.mock.calls[0][0].depth,
+				dir: cloneMock.mock.calls[0][0].dir,
+				ref: cloneMock.mock.calls[0][0].ref,
+				singleBranch: cloneMock.mock.calls[0][0].singleBranch,
+				url: cloneMock.mock.calls[0][0].url,
+			},
+			{
+				depth: 1,
+				dir: '.tmp/git-client-test',
+				ref: 'main',
+				singleBranch: true,
+				url: httpsRepo.url,
+			},
+		);
+		assert.equal(checkoutMock.mock.calls.length, 1);
+		assert.deepEqual(
+			{
+				dir: checkoutMock.mock.calls[0][0].dir,
+				force: checkoutMock.mock.calls[0][0].force,
+				ref: checkoutMock.mock.calls[0][0].ref,
+			},
+			{
+				dir: '.tmp/git-client-test',
+				force: true,
+				ref: 'main',
+			},
+		);
 	});
 
 	it('reads chunked ls-remote output when fetching refs over ssh', async () => {
