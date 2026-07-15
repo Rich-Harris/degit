@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 3.6.1
+
 - Load `degit.json` as JSON instead of an executable module.
 - Fix HTTPS clones with explicit refs throwing a `ReferenceError`.
 
