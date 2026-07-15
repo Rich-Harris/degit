@@ -1,24 +1,32 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import colors from 'yoctocolors';
-import { DegitError, degitConfigName, tryRequire } from '../shared/utils.js';
+import { DegitError, degitConfigName } from '../shared/utils.js';
 import type { Directive, EventInfo, RemoveDirective } from '../domain/types.js';
 
 type Emit = (info: EventInfo) => void;
 
+/* eslint-disable security/detect-non-literal-fs-filename */
 export function getDirectives(dest: string): Directive[] | false {
 	const directivesPath = path.resolve(dest, degitConfigName);
-	const directives =
-		(tryRequire(directivesPath, { clearCache: true }) as Directive[] | undefined) || false;
-	if (directives) {
-		// eslint-disable-next-line security/detect-non-literal-fs-filename
-		fs.unlinkSync(directivesPath);
-	}
 
-	return directives;
+	try {
+		if (!fs.lstatSync(directivesPath).isFile()) {
+			return false;
+		}
+
+		const directives = JSON.parse(fs.readFileSync(directivesPath, 'utf8'));
+		if (!Array.isArray(directives)) {
+			return false;
+		}
+
+		fs.unlinkSync(directivesPath);
+		return directives as Directive[];
+	} catch {
+		return false;
+	}
 }
 
-/* eslint-disable security/detect-non-literal-fs-filename */
 export function checkDirIsEmpty(
 	dir: string,
 	force: boolean | undefined,

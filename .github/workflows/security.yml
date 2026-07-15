@@ -2,13 +2,14 @@ name: Security
 
 on:
     pull_request:
+    push:
     schedule:
         - cron: '30 2 * * 0'
         - cron: '30 1 * * 6'
 
 jobs:
     audit:
-        if: github.event_name == 'pull_request' || github.event.schedule == '30 2 * * 0'
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event.schedule == '30 2 * * 0'
         runs-on: ubuntu-latest
 
         steps:
@@ -25,7 +26,7 @@ jobs:
             - run: bun run audit
 
     codeql:
-        if: (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'master') || github.event.schedule == '30 1 * * 6'
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'master') || github.event.schedule == '30 1 * * 6'
         name: Analyze (${{ matrix.language }})
         runs-on: ubuntu-latest
         permissions:
