@@ -33,6 +33,7 @@
 	"scripts": {
 		"lint": "oxlint --import-plugin --fix .",
 		"lint:ci": "oxlint --import-plugin --deny-warnings .",
+		"typecheck": "tsc --noEmit",
 		"audit": "bun audit",
 		"knip:ci": "knip",
 		"perf": "bun perf/bench.ts",

@@ -118,7 +118,7 @@ describe('degit bin', () => {
 		clearInteractiveFixtures();
 		vi.clearAllMocks();
 		mockDegit.mockReturnValue({
-			clone: vi.fn().mockResolvedValue(),
+			clone: vi.fn(() => Promise.resolve()),
 			on: vi.fn().mockReturnThis(),
 		} as never);
 	});
@@ -196,14 +196,14 @@ describe('degit bin', () => {
 					srcQuestion.choices.map((choice) => choice.value),
 					['github:user-b/repo-b#main', 'github:user-a/repo-a#main'],
 				);
-				return {
+				return Promise.resolve({
 					cache: false,
 					dest: '.tmp/bin-suite/from-interactive',
 					src: 'github:user-b/repo-b#main',
-				};
+				});
 			}
 
-			return {};
+			return Promise.resolve({});
 		});
 
 		await main(['node', 'bin']);
@@ -220,7 +220,7 @@ describe('degit bin', () => {
 
 	it('forwards explicit git mode when argv passes --mode=git', async () => {
 		mockDegit.mockReturnValue({
-			clone: vi.fn().mockResolvedValue(),
+			clone: vi.fn(() => Promise.resolve()),
 			on: vi.fn().mockReturnThis(),
 		} as never);
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

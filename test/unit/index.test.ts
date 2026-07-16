@@ -115,7 +115,7 @@ describe('degit index', () => {
 
 	it('throws when mode is not a supported value', () => {
 		assert.throws(
-			() => degit('Rich-Harris/degit-test-repo', { mode: 'svn' }),
+			() => degit('Rich-Harris/degit-test-repo', { mode: 'svn' as never }),
 			/Valid modes are/,
 		);
 	});
@@ -129,7 +129,7 @@ describe('degit index', () => {
 			fs.writeFileSync(path.join(dest, 'flat.txt'), 'flat\n');
 
 			const emitter = degit('Rich-Harris/degit-test-repo');
-			emitter.remove(dest, { files: ['nested', 'flat.txt'] });
+			emitter.remove(dest, { action: 'remove', files: ['nested', 'flat.txt'] });
 
 			assert.equal(fs.existsSync(path.join(dest, 'nested')), false);
 			assert.equal(fs.existsSync(path.join(dest, 'flat.txt')), false);
@@ -152,7 +152,7 @@ describe('degit index', () => {
 			const emitter = degit('Rich-Harris/degit-test-repo');
 			emitter.on('warn', (event) => warnings.push(event.message));
 
-			emitter.remove(dest, { files: ['../sibling'] });
+			emitter.remove(dest, { action: 'remove', files: ['../sibling'] });
 
 			assert.equal(fs.existsSync(path.join(sibling, 'secret.txt')), true);
 			assert.equal(warnings.length, 1);

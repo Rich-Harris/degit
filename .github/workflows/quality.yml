@@ -3,6 +3,7 @@ name: Quality
 on:
     pull_request:
     push:
+        branches: [master]
 
 jobs:
     quality:
@@ -28,3 +29,4 @@ jobs:
             - run: bun run format:ci
             - run: bun run duplicates:ci
             - run: bun run knip:ci
+            - run: bun run typecheck

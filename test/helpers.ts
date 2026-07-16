@@ -56,12 +56,12 @@ export function createMockFetch(steps) {
 	const calls = [];
 	let step = 0;
 
-	const fn = (url, file, proxy) => {
+	const fn = (url, file, proxy): Promise<void> => {
 		calls.push({ file, proxy, url });
 
 		const response = steps[step++];
 		if (!response) {
-			throw new Error('No mock fetch step configured');
+			return Promise.reject(new Error('No mock fetch step configured'));
 		}
 
 		if (response.status >= 300 && response.status < 400) {
@@ -69,13 +69,15 @@ export function createMockFetch(steps) {
 		}
 
 		if (response.status >= 400) {
-			throw (
+			return Promise.reject(
 				response.error || {
 					code: response.code || response.status,
 					message: response.message || 'mock fetch error',
-				}
+				},
 			);
 		}
+
+		return Promise.resolve();
 	};
 
 	return { calls, fn };
