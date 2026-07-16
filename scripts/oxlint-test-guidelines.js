@@ -23,7 +23,7 @@ function normalizeFilename(context) {
 }
 
 function hasWhen(titleNode, context) {
-	return /\bwhen\b/i.test(context.sourceCode.getText(titleNode));
+	return /\bwhen\b/iu.test(context.sourceCode.getText(titleNode));
 }
 
 const plugin = {

@@ -88,19 +88,19 @@ function resolveSource(source: string, src: string): ResolvedSource {
 
 	if (source.startsWith('https://') || source.startsWith('http://')) {
 		const parsed = new URL(source);
-		site = parsed.hostname.replace(/\.(com|org)$/, '');
-		remainder = parsed.pathname.replace(/^\//, '');
+		site = parsed.hostname.replace(/\.(com|org)$/u, '');
+		remainder = parsed.pathname.replace(/^\//u, '');
 	} else if (source.startsWith('ssh://')) {
 		const parsed = new URL(source);
-		site = parsed.hostname.replace(/\.(com|org)$/, '');
-		remainder = parsed.pathname.replace(/^\//, '');
+		site = parsed.hostname.replace(/\.(com|org)$/u, '');
+		remainder = parsed.pathname.replace(/^\//u, '');
 		transport = 'ssh';
 	} else if (source.startsWith('git@')) {
-		const match = /^git@([^:/]+)[:/](.+)$/.exec(source);
+		const match = /^git@([^:/]+)[:/](.+)$/u.exec(source);
 		if (!match) {
 			throw new DegitError(`could not parse ${src}`, { code: 'BAD_SRC' });
 		}
-		site = match[1].replace(/\.(com|org)$/, '');
+		site = match[1].replace(/\.(com|org)$/u, '');
 		remainder = match[2];
 		transport = 'ssh';
 	} else if (source.startsWith('git.sr.ht/')) {
@@ -144,7 +144,7 @@ export function parse(src: string): Repo {
 		});
 	}
 
-	const name = rawName.replace(/\.git$/, '');
+	const name = rawName.replace(/\.git$/u, '');
 	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
 
 	const domain = customDomain ?? provider.domain;

@@ -58,9 +58,9 @@ function parseCliArgs(argv: string[]) {
 function displayHelp() {
 	const help = fs
 		.readFileSync(path.join(dirname, '..', 'assets', 'help.md'), 'utf8')
-		.replaceAll(/^(\s*)#+ (.+)/gm, (_match, indent, title) => indent + colors.bold(title))
-		.replaceAll(/_([^_]+)_/g, (_match, value) => colors.underline(value))
-		.replaceAll(/`([^`]+)`/g, (_match, value) => colors.cyan(value));
+		.replaceAll(/^(\s*)#+ (.+)/gmu, (_match, indent, title) => indent + colors.bold(title))
+		.replaceAll(/_([^_]+)_/gu, (_match, value) => colors.underline(value))
+		.replaceAll(/`([^`]+)`/gu, (_match, value) => colors.cyan(value));
 
 	process.stdout.write(`\n${help}\n`);
 }

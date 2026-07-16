@@ -127,7 +127,7 @@ function searchReplaceFiles(
 		return;
 	}
 
-	const pattern = new RegExp(action.pattern, 'g');
+	const pattern = new RegExp(action.pattern, 'gu');
 	const replacedFiles = files.flatMap((file) =>
 		replaceFile(root, file, pattern, replacement, warn),
 	);
