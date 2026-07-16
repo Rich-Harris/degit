@@ -136,7 +136,7 @@ describe('degit index tar suites', () => {
 
 		await assert.rejects(
 			async () => await degit(test.publicSrc, { git: gitMock.fn }).clone(dest),
-			(err: any) => err && err.code === 'MISSING_REF',
+			(err: any) => err?.code === 'MISSING_REF',
 		);
 	});
 

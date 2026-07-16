@@ -5,7 +5,7 @@ import path from 'node:path';
 import { sync as rimraf } from 'rimraf';
 
 vi.mock('../../src/index.js', () => ({
-	default: vi.fn(),
+	default: vi.fn<(...args: any[]) => any>(),
 }));
 
 vi.mock('../../src/shared/utils.js', async () => {
@@ -20,7 +20,7 @@ vi.mock('../../src/shared/utils.js', async () => {
 });
 
 vi.mock('tiny-glob/sync.js', () => ({
-	default: vi.fn((pattern: string) => {
+	default: vi.fn<(pattern: string) => string[]>((pattern: string) => {
 		if (pattern === '**/access.json') {
 			return ['github/user-a/repo-a/access.json', 'github/user-b/repo-b/access.json'];
 		}
@@ -35,7 +35,7 @@ vi.mock('tiny-glob/sync.js', () => ({
 
 vi.mock('enquirer', () => ({
 	default: {
-		prompt: vi.fn(),
+		prompt: vi.fn<(...args: any[]) => Promise<any>>(),
 	},
 }));
 
@@ -66,11 +66,11 @@ describe('degit bin', () => {
 	function mockEventClone(eventName, message) {
 		const handlers = {};
 		mockDegit.mockReturnValue({
-			clone: vi.fn().mockImplementation(() => {
+			clone: vi.fn<() => Promise<void>>().mockImplementation(() => {
 				handlers[eventName]({ message });
 				return Promise.resolve();
 			}),
-			on: vi.fn(function on(ev, fn) {
+			on: vi.fn<(ev: string, fn: (...args: any[]) => any) => any>(function on(ev, fn) {
 				handlers[ev] = fn;
 				return this;
 			}),
@@ -87,8 +87,8 @@ describe('degit bin', () => {
 		) => void,
 	) {
 		mockDegit.mockReturnValue({
-			clone: vi.fn().mockReturnValue(Promise.reject(error)),
-			on: vi.fn().mockReturnThis(),
+			clone: vi.fn<() => Promise<never>>().mockReturnValue(Promise.reject(error)),
+			on: vi.fn<(...args: any[]) => any>().mockReturnThis(),
 		} as never);
 
 		const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
@@ -118,8 +118,8 @@ describe('degit bin', () => {
 		clearInteractiveFixtures();
 		vi.clearAllMocks();
 		mockDegit.mockReturnValue({
-			clone: vi.fn(() => Promise.resolve()),
-			on: vi.fn().mockReturnThis(),
+			clone: vi.fn<() => Promise<void>>(() => Promise.resolve()),
+			on: vi.fn<(...args: any[]) => any>().mockReturnThis(),
 		} as never);
 	});
 
@@ -136,7 +136,7 @@ describe('degit bin', () => {
 			},
 			encoding: 'utf8',
 		});
-		const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+		const output = [result.stdout, result.stderr].join('');
 		assert.ok(output.length > 0);
 		assert.ok(output.includes('degit'));
 	});
@@ -146,9 +146,7 @@ describe('degit bin', () => {
 		const orig = process.stdout.write.bind(process.stdout);
 		process.stdout.write = ((chunk, enc, cb) => {
 			chunks.push(String(chunk));
-			if (typeof cb === 'function') {
-				cb();
-			}
+			cb?.();
 			return true;
 		}) as typeof process.stdout.write;
 		try {
@@ -191,19 +189,16 @@ describe('degit bin', () => {
 			const srcQuestion = (
 				questions as Array<{ name?: string; choices?: Array<{ value: string }> }>
 			).find((question) => question.name === 'src');
-			if (srcQuestion) {
-				assert.deepEqual(
-					srcQuestion.choices.map((choice) => choice.value),
-					['github:user-b/repo-b#main', 'github:user-a/repo-a#main'],
-				);
-				return Promise.resolve({
-					cache: false,
-					dest: '.tmp/bin-suite/from-interactive',
-					src: 'github:user-b/repo-b#main',
-				});
-			}
-
-			return Promise.resolve({});
+			assert.ok(srcQuestion);
+			assert.deepEqual(
+				srcQuestion.choices.map((choice) => choice.value),
+				['github:user-b/repo-b#main', 'github:user-a/repo-a#main'],
+			);
+			return Promise.resolve({
+				cache: false,
+				dest: '.tmp/bin-suite/from-interactive',
+				src: 'github:user-b/repo-b#main',
+			});
 		});
 
 		await main(['node', 'bin']);
@@ -220,8 +215,8 @@ describe('degit bin', () => {
 
 	it('forwards explicit git mode when argv passes --mode=git', async () => {
 		mockDegit.mockReturnValue({
-			clone: vi.fn(() => Promise.resolve()),
-			on: vi.fn().mockReturnThis(),
+			clone: vi.fn<() => Promise<void>>(() => Promise.resolve()),
+			on: vi.fn<(...args: any[]) => any>().mockReturnThis(),
 		} as never);
 		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		try {
@@ -274,6 +269,7 @@ describe('degit bin', () => {
 			await waitForCondition(() =>
 				outSpy.mock.calls.some((c) => String(c[0]).includes('--verbose')),
 			);
+			expect(outSpy).toHaveBeenCalled();
 		} finally {
 			outSpy.mockRestore();
 		}
@@ -287,6 +283,7 @@ describe('degit bin', () => {
 			await waitForCondition(() =>
 				warnSpy.mock.calls.some((c) => String(c[0]).includes('--force')),
 			);
+			expect(warnSpy).toHaveBeenCalled();
 		} finally {
 			warnSpy.mockRestore();
 		}

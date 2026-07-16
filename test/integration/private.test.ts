@@ -34,11 +34,8 @@ describe('private integration suite', () => {
 	for (const test of privateIntegrationRepos) {
 		it(`clones the pinned ${test.site} repository when the integration suite runs`, async () => {
 			const integrationTmp = path.join('.tmp', 'integration-suite-private', test.site);
+			assert.ok(test.src, `integration repo ${test.site} is missing a source`);
 			const source = test.src;
-
-			if (!source) {
-				throw new Error(`integration repo ${test.site} is missing a source`);
-			}
 
 			await rimraf(integrationTmp);
 

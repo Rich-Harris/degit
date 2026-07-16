@@ -40,11 +40,8 @@ describe('public integration suite', () => {
 	for (const test of publicRepos) {
 		it(`clones the pinned ${test.site} repository when the integration suite runs`, async () => {
 			const integrationTmp = path.join('.tmp', 'integration-suite-public', test.site);
-			const source = test.src ?? test.gitUrl;
-
-			if (!source) {
-				throw new Error(`integration repo ${test.site} is missing a source`);
-			}
+			const source = [test.src, test.gitUrl].find(Boolean);
+			assert.ok(source, `integration repo ${test.site} is missing a source`);
 
 			await rimraf(integrationTmp);
 

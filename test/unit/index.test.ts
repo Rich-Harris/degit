@@ -84,7 +84,7 @@ describe('degit index', () => {
 	it('throws BAD_SRC when gitlab:// has no user or repo after host', () => {
 		assert.throws(
 			() => parse('gitlab://myhost.com'),
-			(err: any) => err && err.code === 'BAD_SRC',
+			(err: any) => err?.code === 'BAD_SRC',
 		);
 	});
 
@@ -100,7 +100,7 @@ describe('degit index', () => {
 			() => {
 				degit('codeberg:Rich-Harris/degit-test-repo');
 			},
-			(err: any) => err && err.code === 'UNSUPPORTED_HOST',
+			(err: any) => err?.code === 'UNSUPPORTED_HOST',
 		);
 	});
 
@@ -109,14 +109,14 @@ describe('degit index', () => {
 		fs.writeFileSync(path.join(suiteTmp, 'ne/x'), '1');
 		await assert.rejects(
 			async () => await degit('Rich-Harris/degit-test-repo').clone(path.join(suiteTmp, 'ne')),
-			(err: any) => err && err.code === 'DEST_NOT_EMPTY',
+			(err: any) => err?.code === 'DEST_NOT_EMPTY',
 		);
 	});
 
 	it('throws when mode is not a supported value', () => {
 		assert.throws(
 			() => degit('Rich-Harris/degit-test-repo', { mode: 'svn' as never }),
-			/Valid modes are/,
+			/Valid modes are/u,
 		);
 	});
 
@@ -156,8 +156,11 @@ describe('degit index', () => {
 
 			assert.equal(fs.existsSync(path.join(sibling, 'secret.txt')), true);
 			assert.equal(warnings.length, 1);
-			assert.match(warnings[0], /action wants to remove .*outside the destination, skipping/);
-			assert.match(warnings[0], /\.\.\/sibling/);
+			assert.match(
+				warnings[0],
+				/action wants to remove .*outside the destination, skipping/u,
+			);
+			assert.match(warnings[0], /\.\.\/sibling/u);
 		} finally {
 			fs.rmSync(workspace, { force: true, recursive: true });
 		}

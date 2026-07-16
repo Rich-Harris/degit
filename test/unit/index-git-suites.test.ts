@@ -106,6 +106,7 @@ describe('degit index git suites', () => {
 			const dest = `${suiteTmp}/test-repo`;
 			clearArchiveCache(suiteCache, test);
 			const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`, suiteTmp);
+			expect(fs.existsSync(archiveFile)).toBe(true);
 			await cloneAndExpectTarContent(
 				test,
 				archiveFile,
@@ -124,6 +125,7 @@ describe('degit index git suites', () => {
 				`degit-test-repo-${refsHash}`,
 				suiteTmp,
 			);
+			expect(fs.existsSync(archiveFile)).toBe(true);
 			await cloneAndExpectGitFallback(test, archiveFile, dest);
 		});
 	});

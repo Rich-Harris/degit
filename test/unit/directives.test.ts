@@ -12,16 +12,16 @@ function makeDispatcher() {
 	const infos: string[] = [];
 	const warnings: string[] = [];
 	const context = {
-		fetch: vi.fn(),
-		getGitClient: vi.fn(),
+		fetch: vi.fn<(...args: any[]) => any>(),
+		getGitClient: vi.fn<(...args: any[]) => any>(),
 		hasStashed: false,
-		info: vi.fn((info) => infos.push(info.message)),
-		remove: vi.fn(),
-		warn: vi.fn((info) => warnings.push(info.message)),
+		info: vi.fn<(...args: any[]) => any>((info) => infos.push(info.message)),
+		remove: vi.fn<(...args: any[]) => any>(),
+		warn: vi.fn<(...args: any[]) => any>((info) => warnings.push(info.message)),
 	};
-	const createChild = vi.fn(() => ({
-		clone: vi.fn(),
-		on: vi.fn().mockReturnThis(),
+	const createChild = vi.fn<(...args: any[]) => any>(() => ({
+		clone: vi.fn<(...args: any[]) => any>(),
+		on: vi.fn<(...args: any[]) => any>().mockReturnThis(),
 	}));
 
 	return { context, createChild, infos, warnings };
@@ -66,7 +66,7 @@ describe('search_replace', () => {
 				'hello degit\ndegit!\n',
 			);
 			assert.equal(infos.length, 1);
-			assert.match(infos[0], /replaced content in .*README\.md/);
+			assert.match(infos[0], /replaced content in .*README\.md/u);
 			assert.deepEqual(warnings, []);
 		} finally {
 			fs.rmSync(root, { force: true, recursive: true });
@@ -98,8 +98,8 @@ describe('search_replace', () => {
 			);
 
 			assert.equal(warnings.length, 1);
-			assert.match(warnings[0], /does not exist/);
-			assert.match(warnings[0], /missing\.txt/);
+			assert.match(warnings[0], /does not exist/u);
+			assert.match(warnings[0], /missing\.txt/u);
 		} finally {
 			fs.rmSync(root, { force: true, recursive: true });
 		}
@@ -134,8 +134,8 @@ describe('search_replace', () => {
 
 			assert.equal(fs.readFileSync(path.join(sibling, 'secret.txt'), 'utf8'), 'secret\n');
 			assert.equal(warnings.length, 1);
-			assert.match(warnings[0], /outside the destination, skipping/);
-			assert.match(warnings[0], /\.\.\/sibling\/secret\.txt/);
+			assert.match(warnings[0], /outside the destination, skipping/u);
+			assert.match(warnings[0], /\.\.\/sibling\/secret\.txt/u);
 		} finally {
 			fs.rmSync(root, { force: true, recursive: true });
 		}
