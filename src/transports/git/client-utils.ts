@@ -1,5 +1,6 @@
 import { DegitError } from '../../shared/utils.js';
 import type { Ref } from '../../domain/types.js';
+export type { Ref };
 import type { Repo } from '../../domain/repo.js';
 
 type GitPlan = {
