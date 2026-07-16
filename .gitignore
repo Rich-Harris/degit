@@ -16,3 +16,4 @@ bun-debug.log*
 bun.lockb
 
 .vscode/settings.json
+.devin
