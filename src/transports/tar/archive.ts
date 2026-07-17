@@ -206,9 +206,9 @@ async function hasGitLfsPointers(dir: string): Promise<boolean> {
 		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		const contents = await readFile(entryPath, 'utf8');
 		return (
-			/^version https:\/\/git-lfs\.github\.com\/spec\/v1$/m.test(contents) &&
-			/^oid sha256:[0-9a-f]{64}$/m.test(contents) &&
-			/^size \d+$/m.test(contents)
+			/^version https:\/\/git-lfs\.github\.com\/spec\/v1$/mu.test(contents) &&
+			/^oid sha256:[0-9a-f]{64}$/mu.test(contents) &&
+			/^size \d+$/mu.test(contents)
 		);
 	});
 

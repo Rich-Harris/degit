@@ -91,9 +91,7 @@ describe('shared utils', () => {
 	it('resumes redirect responses when following a redirected archive fetch', async () => {
 		const createWriteStreamSpy = vi.spyOn(fs, 'createWriteStream').mockReturnValue({
 			on(event: string, handler: () => void) {
-				if (event === 'finish') {
-					queueMicrotask(handler);
-				}
+				queueMicrotask(handler);
 
 				return this;
 			},
@@ -101,27 +99,34 @@ describe('shared utils', () => {
 
 		const response1 = {
 			headers: { location: 'https://example.com/archive.tar.gz' },
-			pipe: vi.fn(),
-			resume: vi.fn(),
+			pipe: vi.fn<(...args: any[]) => any>(),
+			resume: vi.fn<(...args: any[]) => any>(),
 			statusCode: 302,
 			statusMessage: 'Found',
 		};
 		const response2 = {
 			headers: {},
-			pipe: vi.fn((stream) => stream),
-			resume: vi.fn(),
+			pipe: vi.fn<(...args: any[]) => any>((stream) => stream),
+			resume: vi.fn<(...args: any[]) => any>(),
 			statusCode: 200,
 			statusMessage: 'OK',
 		};
 
-		const getSpy = vi.spyOn(https, 'get').mockImplementation(((options, callback) => {
-			callback((getSpy.mock.calls.length === 1 ? response1 : response2) as never);
-			return {
-				on() {
-					return this;
-				},
-			};
-		}) as never);
+		const request = () => ({
+			on() {
+				return this;
+			},
+		});
+		const getSpy = vi
+			.spyOn(https, 'get')
+			.mockImplementationOnce(((options, callback) => {
+				callback(response1 as never);
+				return request();
+			}) as never)
+			.mockImplementation(((options, callback) => {
+				callback(response2 as never);
+				return request();
+			}) as never);
 
 		try {
 			await fetch('https://example.com/archive.tar.gz', '/tmp/degit-fetch-test.tar.gz');

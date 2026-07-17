@@ -3,23 +3,23 @@ import { PassThrough } from 'node:stream';
 import { vi } from 'vitest';
 
 const { cloneMock, checkoutMock, getRemoteInfo2Mock, listServerRefsMock } = vi.hoisted(() => ({
-	cloneMock: vi.fn(),
-	checkoutMock: vi.fn(),
-	getRemoteInfo2Mock: vi.fn(),
-	listServerRefsMock: vi.fn(),
+	cloneMock: vi.fn<(...args: any[]) => any>(),
+	checkoutMock: vi.fn<(...args: any[]) => any>(),
+	getRemoteInfo2Mock: vi.fn<(...args: any[]) => any>(),
+	listServerRefsMock: vi.fn<(...args: any[]) => any>(),
 }));
 
-const spawnMock = vi.hoisted(() => vi.fn());
-const execFileMock = vi.fn(
-	(command: string, _args: string[], callback: (error?: unknown) => void) => {
-		callback(
-			Object.assign(new Error(`spawn ${command} ENOENT`), {
-				code: 'ENOENT',
-				syscall: `spawn ${command}`,
-			}),
-		);
-	},
-);
+const spawnMock = vi.hoisted(() => vi.fn<(...args: any[]) => any>());
+const execFileMock = vi.fn<
+	(command: string, args: string[], callback: (error?: unknown) => void) => void
+>((command: string, _args: string[], callback: (error?: unknown) => void) => {
+	callback(
+		Object.assign(new Error(`spawn ${command} ENOENT`), {
+			code: 'ENOENT',
+			syscall: `spawn ${command}`,
+		}),
+	);
+});
 
 type SpawnProcess = {
 	stdout: PassThrough;
@@ -241,11 +241,11 @@ describe('git client', () => {
 	});
 
 	it('reports a missing git binary when fetching refs over ssh', async () => {
-		await assert.rejects(
-			createGitClient().fetchRefs(sshRepo),
-			(error: any) =>
-				error.code === 'GIT_NOT_FOUND' && /git is not installed/.test(error.message),
-		);
+		await assert.rejects(createGitClient().fetchRefs(sshRepo), (error: any) => {
+			assert.equal(error.code, 'GIT_NOT_FOUND');
+			assert.match(error.message, /git is not installed/u);
+			return true;
+		});
 	});
 
 	it('reports a missing git binary when cloning over ssh', async () => {
@@ -262,8 +262,11 @@ describe('git client', () => {
 
 		await assert.rejects(
 			createGitClient().clone(sshRepo, '.tmp/git-client-test'),
-			(error: any) =>
-				error.code === 'GIT_NOT_FOUND' && /git is not installed/.test(error.message),
+			(error: any) => {
+				assert.equal(error.code, 'GIT_NOT_FOUND');
+				assert.match(error.message, /git is not installed/u);
+				return true;
+			},
 		);
 	});
 

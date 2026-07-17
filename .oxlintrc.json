@@ -1,6 +1,8 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
 	"jsPlugins": ["eslint-plugin-security", "./scripts/oxlint-test-guidelines.js"],
+	"plugins": ["import", "node", "promise", "vitest"],
+	"options": { "denyWarnings": true },
 	"rules": {
 		"security/detect-bidi-characters": "error",
 		"security/detect-buffer-noassert": "error",
