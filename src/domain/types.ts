@@ -51,6 +51,7 @@ export type EventInfo = {
 	url?: string;
 	original?: unknown;
 	ref?: string;
+	subdir?: string;
 };
 
 export type Ref = {

@@ -105,7 +105,7 @@ describe('degit index git suites', () => {
 		it(`does not fall back when a file merely quotes a pointer snippet for ${test.site}`, async () => {
 			const dest = `${suiteTmp}/test-repo`;
 			clearArchiveCache(suiteCache, test);
-			const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`, suiteTmp);
+			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
 			expect(fs.existsSync(archiveFile)).toBe(true);
 			await cloneAndExpectTarContent(
 				test,
@@ -122,7 +122,7 @@ describe('degit index git suites', () => {
 			const dest = `${suiteTmp}/test-repo`;
 			clearArchiveCache(suiteCache, test);
 			const archiveFile = await createArchiveWithGitLfsPointerFixture(
-				`degit-test-repo-${refsHash}`,
+				test.archiveRoot,
 				suiteTmp,
 			);
 			expect(fs.existsSync(archiveFile)).toBe(true);

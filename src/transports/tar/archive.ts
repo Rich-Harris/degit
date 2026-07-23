@@ -69,7 +69,7 @@ async function createArchiveSource(dir: string, repo: Repo, hash: string): Promi
 }
 
 async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) {
-	const { subdir } = context.repo;
+	const subdir = context.repo.subdir?.replace(/^\/+|\/+$/gu, '');
 	if (!subdir) {
 		return;
 	}
@@ -90,13 +90,17 @@ async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) 
 		});
 	}
 
+	// ponytail: loads all archive member paths into memory; archives for
+	// scaffolding are typically small, but switch to streaming if large
+	// archives cause memory pressure.
 	const topLevels = [...new Set(members.map((member) => member.split('/')[0]))];
 	for (const rootDir of topLevels) {
-		const candidate = `${rootDir}${subdir}`;
+		const candidate = `${rootDir}/${subdir}`;
 		const candidatePrefix = `${candidate}/`;
-		const isMatch = members.some(
-			(member) => member === candidate || member.startsWith(candidatePrefix),
-		);
+		const isMatch = members.some((member) => {
+			const normalized = member.replace(/\/$/u, '');
+			return normalized === candidate || normalized.startsWith(candidatePrefix);
+		});
 
 		if (isMatch) {
 			source.subdir = candidate;
@@ -104,9 +108,9 @@ async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) 
 		}
 	}
 
-	throw new DegitError(`could not find subdirectory ${subdir} in archive`, {
+	throw new DegitError(`could not find subdirectory /${subdir} in archive`, {
 		code: 'MISSING_SUBDIR',
-		subdir,
+		subdir: `/${subdir}`,
 	});
 }
 
