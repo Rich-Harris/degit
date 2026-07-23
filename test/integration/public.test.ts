@@ -31,6 +31,11 @@ const publicRepos: IntegrationRepo[] = [
 	},
 	{
 		expectedFile: 'README.md',
+		site: 'bitbucket-subdirectory',
+		src: 'bitbucket:cxcompany/public-examples/transaction-webhook-azure-functions#057c5ca1dc16e04d37ecd154b242bac4e8f4b359',
+	},
+	{
+		expectedFile: 'README.md',
 		gitUrl: 'https://git.sr.ht/~showyourcode/public',
 		site: 'git.sr.ht',
 	},

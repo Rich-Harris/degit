@@ -62,10 +62,52 @@ async function createArchiveSource(dir: string, repo: Repo, hash: string): Promi
 
 	return {
 		file: path.join(dir, `${hash}.tar.gz`),
-		subdir: repo.subdir ? `${repo.name}-${hash}${repo.subdir}` : null,
+		subdir: null,
 		url: provider.archiveUrl(repo, hash),
 		workDir: await mkdtemp(path.join(dir, 'extract-')),
 	};
+}
+
+async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) {
+	const { subdir } = context.repo;
+	if (!subdir) {
+		return;
+	}
+
+	const members: string[] = [];
+	try {
+		await tar.t({
+			file: source.file,
+			onReadEntry: (entry) => {
+				members.push(entry.path);
+			},
+		});
+	} catch (error) {
+		throw new DegitError(`could not inspect ${source.url}`, {
+			code: 'COULD_NOT_DOWNLOAD',
+			url: source.url,
+			original: error,
+		});
+	}
+
+	const topLevels = [...new Set(members.map((member) => member.split('/')[0]))];
+	for (const rootDir of topLevels) {
+		const candidate = `${rootDir}${subdir}`;
+		const candidatePrefix = `${candidate}/`;
+		const isMatch = members.some(
+			(member) => member === candidate || member.startsWith(candidatePrefix),
+		);
+
+		if (isMatch) {
+			source.subdir = candidate;
+			return;
+		}
+	}
+
+	throw new DegitError(`could not find subdirectory ${subdir} in archive`, {
+		code: 'MISSING_SUBDIR',
+		subdir,
+	});
 }
 
 async function ensureArchiveFile(context: TarContext, source: ArchiveSource) {
@@ -164,6 +206,10 @@ export async function cloneWithTar(context: TarContext, dir: string, dest: strin
 	mkdirp(dir);
 	const source = await createArchiveSource(dir, context.repo, hash);
 	await ensureArchiveFile(context, source);
+	if (context.repo.subdir) {
+		await resolveArchiveSubdir(context, source);
+	}
+
 	const shouldFallbackToGit = await extractArchive(context, source, dest);
 
 	if (shouldFallbackToGit) {
