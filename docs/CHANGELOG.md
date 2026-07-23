@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 3.6.2
+
+- Fix Bitbucket subdirectory clones that silently create an empty directory.
+
 ## 3.6.1
 
 - Load `degit.json` as JSON instead of an executable module.
