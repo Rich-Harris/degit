@@ -67,7 +67,7 @@
 		"oxfmt": "0.47.0",
 		"oxlint": "1.72.0",
 		"rimraf": "3.0.2",
-		"tar": "^7.5.16",
+		"tar": "7.5.19",
 		"tiny-glob": "0.2.8",
 		"tsdown": "0.21.10",
 		"typescript": "6.0.3",
@@ -76,6 +76,7 @@
 		"yoctocolors": "2.1.2"
 	},
 	"overrides": {
+		"brace-expansion": "^1.1.16",
 		"vite": "8.0.16"
 	},
 	"lint-staged": {
