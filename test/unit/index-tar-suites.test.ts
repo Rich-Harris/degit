@@ -108,9 +108,7 @@ describe('degit index tar suites', () => {
 	providerCases.forEach((test) => {
 		it(`uses the default branch hash when HEAD is missing for ${test.site}`, async () => {
 			clearArchiveCache(suiteCache, test);
-			const fetch = createCopyFetch(
-				await createArchiveFixture(`degit-test-repo-${refsHash}`, suiteTmp),
-			);
+			const fetch = createCopyFetch(await createArchiveFixture(test.archiveRoot, suiteTmp));
 			const gitMock = createMockGit({
 				[`fetchRefs ${test.url}`]: branchRefs,
 			});
@@ -144,7 +142,7 @@ describe('degit index tar suites', () => {
 		it(`extracts a nested subdirectory when cloning a nested path for ${test.site}`, async () => {
 			const dest = `${suiteTmp}/test-repo`;
 			clearArchiveCache(suiteCache, test);
-			const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`, suiteTmp);
+			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
 			const fetch = createCopyFetch(archiveFile);
 			const gitMock = createMockGit({
 				[`fetchRefs ${test.url}`]: gitRefs,
@@ -169,7 +167,7 @@ describe('degit index tar suites', () => {
 			const dest = `${suiteTmp}/test-repo`;
 			const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
 			clearArchiveCache(suiteCache, test);
-			const archiveFile = await createArchiveFixture(`degit-test-repo-${refsHash}`, suiteTmp);
+			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
 			fs.mkdirSync(archiveDir, { recursive: true });
 			fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
 			const fetch = createCopyFetch(archiveFile);
@@ -185,6 +183,27 @@ describe('degit index tar suites', () => {
 			expectPackageArchive(dest);
 			assert.equal(fetch.calls.length, 1);
 			assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+		});
+	});
+
+	providerCases.forEach((test) => {
+		it(`throws MISSING_SUBDIR when the requested subdirectory does not exist for ${test.site}`, async () => {
+			const dest = `${suiteTmp}/missing-subdir`;
+			clearArchiveCache(suiteCache, test);
+			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
+			const fetch = createCopyFetch(archiveFile);
+			const gitMock = createMockGit({
+				[`fetchRefs ${test.url}`]: gitRefs,
+			});
+
+			await assert.rejects(
+				async () =>
+					await degit(`${test.publicSrc}/does-not-exist`, {
+						git: gitMock.fn,
+						fetch: fetch.fn,
+					}).clone(dest),
+				(err: any) => err?.code === 'MISSING_SUBDIR',
+			);
 		});
 	});
 });

@@ -40,7 +40,8 @@ export type DegitErrorCode =
 	| 'BAD_SRC'
 	| 'UNSUPPORTED_HOST'
 	| 'BAD_REF'
-	| 'COULD_NOT_FETCH';
+	| 'COULD_NOT_FETCH'
+	| 'MISSING_SUBDIR';
 
 export type EventInfo = {
 	code?: InfoCode | DegitErrorCode;
@@ -50,6 +51,7 @@ export type EventInfo = {
 	url?: string;
 	original?: unknown;
 	ref?: string;
+	subdir?: string;
 };
 
 export type Ref = {

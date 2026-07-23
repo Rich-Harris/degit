@@ -34,6 +34,7 @@ export const providerCases = [
 		site: 'github',
 		user: 'Rich-Harris',
 		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveRoot: `${name}-${refsHash}`,
 			archiveUrl: (hash) =>
 				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `https://${domain}/${user}/${privateName}.git`,
@@ -48,6 +49,7 @@ export const providerCases = [
 		site: 'gitlab',
 		user: 'Rich-Harris',
 		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveRoot: `${name}-${refsHash}`,
 			archiveUrl: (hash) =>
 				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `gitlab:${user}/${privateName}`,
@@ -62,6 +64,7 @@ export const providerCases = [
 		site: 'gitlab',
 		user: 'Rich-Harris',
 		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveRoot: `${name}-${refsHash}`,
 			archiveUrl: (hash) =>
 				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `gitlab://${domain}/${user}/${privateName}`,
@@ -76,6 +79,7 @@ export const providerCases = [
 		site: 'bitbucket',
 		user: 'Rich_Harris',
 		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveRoot: `${user}-${name}-${refsHash.slice(0, 12)}`,
 			archiveUrl: (hash) =>
 				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `bitbucket:${user}/${privateName}`,
@@ -90,6 +94,7 @@ export const providerCases = [
 		site: 'git.sr.ht',
 		user: '~satotake',
 		build: ({ domain, name, privateName, site, url, user }) => ({
+			archiveRoot: `${name}-${refsHash}`,
 			archiveUrl: (hash) =>
 				providerArchiveTemplates[site as GitProvider]({ url, name }, hash),
 			gitSrc: `git.sr.ht/${user}/${privateName}`,
