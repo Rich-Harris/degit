@@ -4,7 +4,7 @@
 
 ## 3.6.2
 
-- Fix Bitbucket subdirectory clones that silently create an empty directory.
+- Fix Bitbucket subdirectory clones that silently create an empty directory ([#371](https://github.com/Rich-Harris/degit/issues/371)).
 
 ## 3.6.1
 
