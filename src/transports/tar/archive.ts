@@ -90,9 +90,6 @@ async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) 
 		});
 	}
 
-	// ponytail: loads all archive member paths into memory; archives for
-	// scaffolding are typically small, but switch to streaming if large
-	// archives cause memory pressure.
 	const topLevels = [...new Set(members.map((member) => member.split('/')[0]))];
 	for (const rootDir of topLevels) {
 		const candidate = `${rootDir}/${subdir}`;
