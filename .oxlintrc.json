@@ -1,6 +1,10 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"jsPlugins": ["eslint-plugin-security", "./scripts/oxlint-test-guidelines.js"],
+	"jsPlugins": [
+		"eslint-plugin-security",
+		"./scripts/oxlint-test-guidelines.js",
+		"./scripts/oxlint-repo-guidelines.js"
+	],
 	"plugins": ["import", "node", "promise", "vitest"],
 	"options": { "denyWarnings": true },
 	"rules": {
@@ -17,7 +21,8 @@
 		"security/detect-object-injection": "error",
 		"security/detect-possible-timing-attacks": "error",
 		"security/detect-pseudoRandomBytes": "error",
-		"security/detect-unsafe-regex": "error"
+		"security/detect-unsafe-regex": "error",
+		"oxlint-repo-guidelines/no-more-docs": "error"
 	},
 	"overrides": [
 		{
