@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import fs from 'node:fs';
 import assert from 'node:assert';
 import child_process from 'node:child_process';
@@ -104,6 +105,22 @@ describe('degit bin', () => {
 		}
 	}
 
+	async function captureMainStdout(args: string[]): Promise<string> {
+		const chunks: string[] = [];
+		const orig = process.stdout.write.bind(process.stdout);
+		process.stdout.write = ((chunk, enc, cb) => {
+			chunks.push(String(chunk));
+			cb?.();
+			return true;
+		}) as typeof process.stdout.write;
+		try {
+			await main(args);
+		} finally {
+			process.stdout.write = orig;
+		}
+		return chunks.join('');
+	}
+
 	const binTmp = '.tmp/bin-suite';
 	const repoRoot = process.cwd();
 	const rootBin = path.join(repoRoot, 'degit');
@@ -156,6 +173,34 @@ describe('degit bin', () => {
 		const out = chunks.join('');
 		assert.ok(out.length > 0);
 		assert.ok(out.includes('degit'));
+	});
+
+	const expectedVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'))
+		.version as string;
+
+	it('prints version to stdout when argv includes --version', async () => {
+		const out = await captureMainStdout(['node', 'bin', '--version']);
+		assert.equal(out, `${expectedVersion}\n`);
+	});
+
+	it('prints version to stdout when argv includes -V', async () => {
+		const out = await captureMainStdout(['node', 'bin', '-V']);
+		assert.equal(out, `${expectedVersion}\n`);
+	});
+
+	it('runs the built root bin when a version flag is passed', () => {
+		for (const flag of ['--version', '-V']) {
+			const result = child_process.spawnSync('node', [rootBin, flag], {
+				env: {
+					...process.env,
+					VITEST: '',
+				},
+				encoding: 'utf8',
+			});
+			assert.equal(result.status, 0);
+			assert.equal(result.stderr, '');
+			assert.equal(result.stdout, `${expectedVersion}\n`);
+		}
 	});
 
 	it('invokes degit clone with options when argv supplies src and destination', async () => {
