@@ -75,6 +75,52 @@ describe('degit index', () => {
 		assert.equal(repo.url, 'https://gitlab.com/user.name/repo');
 	});
 
+	it('parses a full GitHub tree URL into a ref and subdirectory when the URL contains a branch path', () => {
+		const repo = parse('https://github.com/TanStack/table/tree/main/examples/react/filters');
+
+		assert.equal(repo.user, 'TanStack');
+		assert.equal(repo.name, 'table');
+		assert.equal(repo.ref, 'main');
+		assert.equal(repo.subdir, '/examples/react/filters');
+		assert.equal(repo.url, 'https://github.com/TanStack/table');
+		assert.equal(repo.ssh, 'ssh://git@github.com/TanStack/table');
+	});
+
+	it('parses a full GitHub tree URL into only a ref when no subdirectory is given', () => {
+		const repo = parse('https://github.com/user/repo/tree/main');
+
+		assert.equal(repo.ref, 'main');
+		assert.equal(repo.subdir, undefined);
+	});
+
+	it('uses an explicit #ref over the branch in a full URL when both are provided', () => {
+		const repo = parse('https://github.com/user/repo/tree/main/subdir#dev');
+
+		assert.equal(repo.ref, 'dev');
+		assert.equal(repo.subdir, '/subdir');
+	});
+
+	it('parses a full GitLab tree URL into a ref and subdirectory when the URL uses the GitLab marker', () => {
+		const repo = parse('https://gitlab.com/user/repo/-/tree/dev/sub/dir');
+
+		assert.equal(repo.ref, 'dev');
+		assert.equal(repo.subdir, '/sub/dir');
+	});
+
+	it('parses a full Bitbucket src URL into a ref and subdirectory when the URL uses the src marker', () => {
+		const repo = parse('https://bitbucket.org/user/repo/src/main/sub');
+
+		assert.equal(repo.ref, 'main');
+		assert.equal(repo.subdir, '/sub');
+	});
+
+	it('treats shorthand paths literally when they contain tree-like segments', () => {
+		const repo = parse('github:user/repo/tree');
+
+		assert.equal(repo.ref, 'HEAD');
+		assert.equal(repo.subdir, '/tree');
+	});
+
 	it('parses gitlab: prefix to gitlab.com when dot is in repo name', () => {
 		const repo = parse('gitlab:user/my.repo');
 
