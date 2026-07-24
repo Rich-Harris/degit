@@ -15,7 +15,6 @@ export type ConstructorOptions = {
 	force?: boolean;
 	git?: GitClient;
 	mode?: 'tar' | 'git';
-	platform?: NodeJS.Platform;
 	verbose?: boolean;
 };
 

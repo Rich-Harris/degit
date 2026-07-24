@@ -10,10 +10,6 @@ const require = createRequire(import.meta.url);
 const tmpDirName = 'tmp';
 const degitConfigName = 'degit.json';
 
-type RequireOptions = {
-	clearCache?: boolean;
-};
-
 type ResolveBaseOptions = {
 	env?: NodeJS.ProcessEnv;
 	homedir?: string;
@@ -29,11 +25,8 @@ export class DegitError extends Error {
 	}
 }
 
-export function tryRequire(file: string, opts: RequireOptions = {}) {
+export function tryRequire(file: string) {
 	try {
-		if (opts && opts.clearCache === true) {
-			delete require.cache[require.resolve(file)];
-		}
 		// oxlint-disable-next-line security/detect-non-literal-require
 		return require(file);
 	} catch {

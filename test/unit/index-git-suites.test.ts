@@ -88,7 +88,6 @@ describe('degit index git suites', () => {
 		const emitter = degit(test.publicSrc, {
 			git: gitMock.fn,
 			mode: 'git',
-			platform: 'win32',
 		});
 
 		emitter.on('warn', (event) => warnings.push(event.message));

@@ -1,7 +1,6 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { sync as rimraf } from 'rimraf';
 import { createIntegrationRunner } from './runner.js';
 
 const runner = createIntegrationRunner();
@@ -48,7 +47,7 @@ describe('public integration suite', () => {
 			const source = [test.src, test.gitUrl].find(Boolean);
 			assert.ok(source, `integration repo ${test.site} is missing a source`);
 
-			await rimraf(integrationTmp);
+			fs.rmSync(integrationTmp, { force: true, recursive: true });
 
 			try {
 				await runner.clone(source, integrationTmp);
@@ -56,7 +55,7 @@ describe('public integration suite', () => {
 				assert.equal(fs.existsSync(path.join(integrationTmp, test.expectedFile)), true);
 				assert.equal(fs.readdirSync(integrationTmp).length > 0, true);
 			} finally {
-				await rimraf(integrationTmp);
+				fs.rmSync(integrationTmp, { force: true, recursive: true });
 			}
 		});
 	}

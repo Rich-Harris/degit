@@ -1,7 +1,6 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { sync as rimraf } from 'rimraf';
 import degit from '../../src/index.js';
 import { parse } from '../../src/domain/repo.js';
 import { providerCases } from './index-support.js';
@@ -24,13 +23,13 @@ vi.mock('../../src/shared/utils.js', async () => {
 
 /* eslint-disable max-lines-per-function */
 describe('degit index', () => {
-	beforeEach(async () => {
-		await rimraf(suiteTmp);
-		await rimraf(suiteCache);
+	beforeEach(() => {
+		fs.rmSync(suiteTmp, { force: true, recursive: true });
+		fs.rmSync(suiteCache, { force: true, recursive: true });
 	});
-	afterEach(async () => {
-		await rimraf(suiteTmp);
-		await rimraf(suiteCache);
+	afterEach(() => {
+		fs.rmSync(suiteTmp, { force: true, recursive: true });
+		fs.rmSync(suiteCache, { force: true, recursive: true });
 	});
 
 	it('exports a usable JS library when importing the built entrypoint', async () => {
