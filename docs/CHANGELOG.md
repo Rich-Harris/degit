@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Accept full subdirectory URLs containing branch path segments such as `/tree/main/...` ([#370](https://github.com/Rich-Harris/degit/issues/370)).
+
 ## 3.6.2
 
 - Fix Bitbucket subdirectory clones that silently create an empty directory ([#371](https://github.com/Rich-Harris/degit/issues/371)).
