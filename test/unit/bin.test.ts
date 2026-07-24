@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import assert from 'node:assert';
 import child_process from 'node:child_process';
 import path from 'node:path';
-import { sync as rimraf } from 'rimraf';
 
 vi.mock('../../src/index.js', () => ({
 	default: vi.fn<(...args: any[]) => any>(),
@@ -113,8 +112,8 @@ describe('degit bin', () => {
 	function clearInteractiveFixtures() {
 		fs.rmSync(interactiveBase, { force: true, recursive: true });
 	}
-	beforeEach(async () => {
-		await rimraf(binTmp);
+	beforeEach(() => {
+		fs.rmSync(binTmp, { force: true, recursive: true });
 		clearInteractiveFixtures();
 		vi.clearAllMocks();
 		mockDegit.mockReturnValue({
@@ -123,8 +122,8 @@ describe('degit bin', () => {
 		} as never);
 	});
 
-	afterEach(async () => {
-		await rimraf(binTmp);
+	afterEach(() => {
+		fs.rmSync(binTmp, { force: true, recursive: true });
 		clearInteractiveFixtures();
 	});
 

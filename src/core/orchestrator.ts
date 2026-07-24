@@ -30,7 +30,6 @@ export class Degit {
 	verbose?: boolean;
 	proxy?: string;
 	repo: Repo;
-	platform: NodeJS.Platform;
 	fetch: FetchFn;
 	git?: GitClient;
 	gitClientPromise?: Promise<GitClient>;
@@ -45,7 +44,6 @@ export class Degit {
 		this.proxy = process.env.https_proxy;
 		this.repo = parse(src);
 		this.mode = opts.mode ?? this.repo.mode;
-		this.platform = opts.platform ?? process.platform;
 		this.fetch = opts.fetch || fetch;
 		this.git = opts.git;
 		this.hasStashed = false;

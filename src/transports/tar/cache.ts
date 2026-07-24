@@ -12,14 +12,6 @@ function sameHash(left: string | undefined, right: string) {
 	return timingSafeEqual(Buffer.from(left), Buffer.from(right));
 }
 
-function mapFromRecord(record: Record<string, string>) {
-	return new Map(Object.entries(record));
-}
-
-function recordFromMap(map: Map<string, string>) {
-	return Object.fromEntries(map);
-}
-
 export function readCachedRefs(dir: string) {
 	return (tryRequire(path.join(dir, 'map.json')) || {}) as Record<string, string>;
 }
@@ -30,7 +22,7 @@ export async function updateCache(
 	hash: string,
 	cached: Record<string, string>,
 ) {
-	const cache = mapFromRecord(cached);
+	const cache = new Map(Object.entries(cached));
 	const logs = tryRequire(path.join(dir, 'access.json')) || {};
 	logs[repo.ref] = new Date().toISOString();
 	// Dynamic cache file paths are derived from repo/ref values within the cache root.
@@ -53,5 +45,8 @@ export async function updateCache(
 	cache.set(repo.ref, hash);
 	// Dynamic cache file paths are derived from repo/ref values within the cache root.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
-	await writeFile(path.join(dir, 'map.json'), JSON.stringify(recordFromMap(cache), null, '  '));
+	await writeFile(
+		path.join(dir, 'map.json'),
+		JSON.stringify(Object.fromEntries(cache), null, '  '),
+	);
 }
