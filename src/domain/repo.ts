@@ -65,6 +65,7 @@ type ResolvedSource = {
 	site: string;
 	transport: 'https' | 'ssh';
 	customDomain?: string;
+	isWebUrl: boolean;
 };
 
 function parseGitlabUrl(source: string, src: string): ResolvedSource {
@@ -78,23 +79,27 @@ function parseGitlabUrl(source: string, src: string): ResolvedSource {
 		remainder: path.slice(slashIndex + 1),
 		site: 'gitlab',
 		transport: 'https',
+		isWebUrl: true,
 	};
 }
 
 function resolveSource(source: string, src: string): ResolvedSource {
 	let site = 'github';
 	let transport: 'https' | 'ssh' = 'https';
+	let isWebUrl = false;
 	let remainder = source;
 
 	if (source.startsWith('https://') || source.startsWith('http://')) {
 		const parsed = new URL(source);
 		site = parsed.hostname.replace(/\.(com|org)$/u, '');
 		remainder = parsed.pathname.replace(/^\//u, '');
+		isWebUrl = true;
 	} else if (source.startsWith('ssh://')) {
 		const parsed = new URL(source);
 		site = parsed.hostname.replace(/\.(com|org)$/u, '');
 		remainder = parsed.pathname.replace(/^\//u, '');
 		transport = 'ssh';
+		isWebUrl = true;
 	} else if (source.startsWith('git@')) {
 		const match = /^git@([^:/]+)[:/](.+)$/u.exec(source);
 		if (!match) {
@@ -117,12 +122,47 @@ function resolveSource(source: string, src: string): ResolvedSource {
 		}
 	}
 
-	return { remainder, site, transport };
+	return { remainder, site, transport, isWebUrl };
+}
+
+function parseWebPath(
+	site: GitProvider,
+	segments: string[],
+): { ref: string; subdir: string[] } | undefined {
+	switch (site) {
+		case 'github': {
+			const i = segments.findIndex(
+				(s, idx) => (s === 'tree' || s === 'blob') && idx + 1 < segments.length,
+			);
+			if (i === -1) return undefined;
+			return { ref: segments[i + 1], subdir: segments.slice(i + 2) };
+		}
+		case 'gitlab': {
+			const i = segments.findIndex(
+				(s, idx) =>
+					s === '-' &&
+					(segments[idx + 1] === 'tree' || segments[idx + 1] === 'blob') &&
+					idx + 2 < segments.length,
+			);
+			if (i === -1) return undefined;
+			return { ref: segments[i + 2], subdir: segments.slice(i + 3) };
+		}
+		case 'bitbucket': {
+			const i = segments.findIndex((s, idx) => s === 'src' && idx + 1 < segments.length);
+			if (i === -1) return undefined;
+			return { ref: segments[i + 1], subdir: segments.slice(i + 2) };
+		}
+		case 'git.sr.ht': {
+			const i = segments.findIndex((s, idx) => s === 'tree' && idx + 1 < segments.length);
+			if (i === -1) return undefined;
+			return { ref: segments[i + 1], subdir: segments.slice(i + 2) };
+		}
+	}
 }
 
 export function parse(src: string): Repo {
 	const [source, refValue = 'HEAD'] = src.split('#', 2);
-	const { remainder, site, transport, customDomain } = resolveSource(source, src);
+	const { remainder, site, transport, customDomain, isWebUrl } = resolveSource(source, src);
 
 	if (!supported.has(site)) {
 		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
@@ -137,7 +177,7 @@ export function parse(src: string): Repo {
 		});
 	}
 
-	const [user, rawName, ...subdirParts] = remainder.split('/').filter(Boolean);
+	const [user, rawName, ...rest] = remainder.split('/').filter(Boolean);
 	if (!user || !rawName) {
 		throw new DegitError(`could not parse ${src}`, {
 			code: 'BAD_SRC',
@@ -145,11 +185,24 @@ export function parse(src: string): Repo {
 	}
 
 	const name = rawName.replace(/\.git$/u, '');
+
+	let ref = refValue;
+	let subdirParts = rest;
+	if (isWebUrl) {
+		const parsed = parseWebPath(site as GitProvider, rest);
+		if (parsed) {
+			if (refValue === 'HEAD') {
+				ref = parsed.ref;
+			}
+			subdirParts = parsed.subdir;
+		}
+	}
+
 	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
 
 	const domain = customDomain ?? provider.domain;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `ssh://git@${domain}/${user}/${name}`;
 
-	return { mode: 'tar', name, ref: refValue, site, ssh, subdir, transport, url, user };
+	return { mode: 'tar', name, ref, site, ssh, subdir, transport, url, user };
 }

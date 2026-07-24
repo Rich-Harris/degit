@@ -1,6 +1,8 @@
 # degit changelog
 
-## Unreleased
+## 3.6.3
+
+- Accept full subdirectory URLs containing branch path segments such as `/tree/main/...` ([#370](https://github.com/Rich-Harris/degit/issues/370)).
 
 ## 3.6.2
 

@@ -95,6 +95,12 @@ To clone a specific subdirectory instead of the entire repo, just add it to the 
 degit user/repo/subdirectory
 ```
 
+You can also paste a full GitHub URL to a subdirectory:
+
+```bash
+degit https://github.com/user/repo/tree/main/subdirectory
+```
+
 ### HTTPS proxying
 
 If you have an `https_proxy` environment variable, Degit will use it.
