@@ -1,6 +1,7 @@
 [install]
 minimumReleaseAge = 1209600
 exact = true
+minimumReleaseAgeExcludes = ["tar", "postcss"]
 
 [install.lockfile]
 saveTextLockfile = true
