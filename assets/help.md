@@ -53,6 +53,7 @@ unless the `--force` option is used.
 Options:
 
 `--help`, `-h` Show this message
+`--version`, `-V` Show the version
 `--cache`, `-c` Only use local cache
 `--force`, `-f` Allow non-empty destination directory
 `--verbose`, `-v` Extra logging

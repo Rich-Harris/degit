@@ -1,5 +1,9 @@
 # degit changelog
 
+## 3.6.4
+
+- Add `--version` / `-V` flag to print the package version.
+
 ## 3.6.3
 
 - Accept full subdirectory URLs containing branch path segments such as `/tree/main/...` ([#370](https://github.com/Rich-Harris/degit/issues/370)).

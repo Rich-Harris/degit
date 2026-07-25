@@ -23,6 +23,7 @@ type CliArgs = {
 	help?: boolean;
 	mode?: string;
 	verbose?: boolean;
+	version?: boolean;
 };
 
 type PromptResult = {
@@ -50,8 +51,9 @@ function parseCliArgs(argv: string[]) {
 			f: 'force',
 			m: 'mode',
 			v: 'verbose',
+			V: 'version',
 		},
-		boolean: ['force', 'cache', 'verbose'],
+		boolean: ['force', 'cache', 'verbose', 'version'],
 	}) as CliArgs;
 }
 
@@ -63,6 +65,21 @@ function displayHelp() {
 		.replaceAll(/`([^`]+)`/gu, (_match, value) => colors.cyan(value));
 
 	process.stdout.write(`\n${help}\n`);
+}
+
+function getVersion() {
+	for (const relativePath of ['../package.json', '../../package.json']) {
+		try {
+			const url = new URL(relativePath, import.meta.url);
+			const pkg = JSON.parse(fs.readFileSync(url, 'utf8')) as { version: string };
+
+			return pkg.version;
+		} catch {
+			// try next path
+		}
+	}
+
+	throw new Error('Could not find package.json');
 }
 
 function getInteractiveChoices(): Choice[] {
@@ -142,6 +159,11 @@ export async function main(argv: string[]) {
 
 	if (args.help) {
 		displayHelp();
+		return;
+	}
+
+	if (args.version) {
+		process.stdout.write(`${getVersion()}\n`);
 		return;
 	}
 
