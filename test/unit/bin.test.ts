@@ -42,6 +42,7 @@ vi.mock('enquirer', () => ({
 import { main, run } from '../../src/bin.js';
 import degit from '../../src/index.js';
 import { base } from '../../src/shared/utils.js';
+import { aliasesFile, saveAlias } from '../../src/aliases.js';
 import enquirer from 'enquirer';
 
 /* eslint-disable max-lines-per-function */
@@ -131,6 +132,7 @@ describe('degit bin', () => {
 	}
 	beforeEach(() => {
 		fs.rmSync(binTmp, { force: true, recursive: true });
+		fs.rmSync(aliasesFile, { force: true });
 		clearInteractiveFixtures();
 		vi.clearAllMocks();
 		mockDegit.mockReturnValue({
@@ -331,6 +333,95 @@ describe('degit bin', () => {
 		} finally {
 			warnSpy.mockRestore();
 		}
+	});
+
+	it('saves an alias when the alias subcommand is used', async () => {
+		const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+		try {
+			await main(['node', 'bin', 'alias', 'github:user/repo', 'myRepo']);
+			assert.ok(String(logSpy.mock.calls[0][0]).includes("added alias 'myRepo'"));
+			assert.deepStrictEqual(
+				JSON.parse(fs.readFileSync(path.join(base, 'aliases.json'), 'utf8')),
+				{
+					myRepo: 'github:user/repo',
+				},
+			);
+		} finally {
+			logSpy.mockRestore();
+		}
+	});
+
+	it('prints usage and exits when the alias subcommand is missing arguments', async () => {
+		const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
+		const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			await main(['node', 'bin', 'alias']);
+			assert.equal(exitSpy.mock.calls[0][0], 1);
+			assert.ok(String(errSpy.mock.calls[0][0]).includes('usage: degit alias'));
+		} finally {
+			exitSpy.mockRestore();
+			errSpy.mockRestore();
+		}
+	});
+
+	it('removes an alias when the unalias subcommand is used', async () => {
+		saveAlias('myRepo', 'github:user/repo');
+		const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+		try {
+			await main(['node', 'bin', 'unalias', 'myRepo']);
+			assert.ok(String(logSpy.mock.calls[0][0]).includes("removed alias 'myRepo'"));
+			assert.equal(fs.existsSync(path.join(base, 'aliases.json')), false);
+		} finally {
+			logSpy.mockRestore();
+		}
+	});
+
+	it('prints not found and exits when unalias targets a missing alias', async () => {
+		const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
+		const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			await main(['node', 'bin', 'unalias', 'missing']);
+			assert.equal(exitSpy.mock.calls[0][0], 1);
+			assert.ok(String(errSpy.mock.calls[0][0]).includes("alias 'missing' not found"));
+		} finally {
+			exitSpy.mockRestore();
+			errSpy.mockRestore();
+		}
+	});
+
+	it('lists saved aliases when the ls subcommand is used', async () => {
+		saveAlias('second', 'github:user/second');
+		saveAlias('first', 'github:user/first');
+		const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+		try {
+			await main(['node', 'bin', 'ls']);
+			assert.equal(logSpy.mock.calls.length, 2);
+			assert.equal(String(logSpy.mock.calls[0][0]), 'first -> github:user/first');
+			assert.equal(String(logSpy.mock.calls[1][0]), 'second -> github:user/second');
+		} finally {
+			logSpy.mockRestore();
+		}
+	});
+
+	it('prints no aliases when the ls subcommand is used and none exist', async () => {
+		const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+		try {
+			await main(['node', 'bin', 'ls']);
+			assert.equal(String(logSpy.mock.calls[0][0]), 'no aliases');
+		} finally {
+			logSpy.mockRestore();
+		}
+	});
+
+	it('resolves an alias to its repo when cloning', async () => {
+		saveAlias('myRepo', 'github:user/repo');
+		await main(['node', 'bin', 'myRepo', 'out']);
+		assert.equal(mockDegit.mock.calls[0][0], 'github:user/repo');
+	});
+
+	it('clones a repo named like a subcommand when given a site prefix', async () => {
+		await main(['node', 'bin', 'github:user/ls', 'out']);
+		assert.equal(mockDegit.mock.calls[0][0], 'github:user/ls');
 	});
 });
 /* eslint-enable max-lines-per-function */

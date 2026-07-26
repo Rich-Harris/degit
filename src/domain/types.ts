@@ -10,6 +10,7 @@ export const validModes = new Set(['tar', 'git']);
 export type FetchFn = (url: string, dest: string, proxy?: string) => Promise<void>;
 
 export type ConstructorOptions = {
+	aliases?: Record<string, string>;
 	cache?: boolean;
 	fetch?: FetchFn;
 	force?: boolean;
