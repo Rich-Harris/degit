@@ -4,6 +4,10 @@
 
 **Why**
 
+## Linked issues
+
+<!-- Optional: `Closes #<issue-number>` so the issue is closed automatically when this PR is merged. -->
+
 ## Changes
 
 ## Testing
