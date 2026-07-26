@@ -6,6 +6,13 @@ import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
 import degit from './index.js';
+import {
+	handleAliasSubcommand,
+	handleListSubcommand,
+	handleUnaliasSubcommand,
+	loadAliases,
+	resolveAlias,
+} from './aliases.js';
 import { base, tryRequire } from './shared/utils.js';
 
 const dirname = import.meta.dirname;
@@ -37,6 +44,7 @@ type ForceResult = {
 };
 
 type RunArgs = {
+	aliases?: Record<string, string>;
 	cache?: boolean;
 	force?: boolean;
 	mode?: string;
@@ -152,6 +160,22 @@ async function confirmOverwrite(): Promise<boolean> {
 	return force;
 }
 
+async function handleInteractiveClone() {
+	const options = await promptForSource();
+
+	const empty = !fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
+
+	if (!empty && !(await confirmOverwrite())) {
+		console.error(colors.magenta('! Directory not empty — aborting'));
+		return;
+	}
+
+	run(options.src, options.dest, {
+		cache: options.cache,
+		force: true,
+	});
+}
+
 export async function main(argv: string[]) {
 	const args = parseCliArgs(argv);
 
@@ -167,24 +191,28 @@ export async function main(argv: string[]) {
 		return;
 	}
 
-	if (!src) {
-		const options = await promptForSource();
-
-		const empty = !fs.existsSync(options.dest) || fs.readdirSync(options.dest).length === 0;
-
-		if (!empty && !(await confirmOverwrite())) {
-			console.error(colors.magenta('! Directory not empty — aborting'));
-			return;
-		}
-
-		run(options.src, options.dest, {
-			cache: options.cache,
-			force: true,
-		});
+	if (src === 'alias') {
+		handleAliasSubcommand(args._);
 		return;
 	}
 
-	run(src, dest, args);
+	if (src === 'unalias') {
+		handleUnaliasSubcommand(args._);
+		return;
+	}
+
+	if (src === 'ls') {
+		handleListSubcommand();
+		return;
+	}
+
+	if (!src) {
+		await handleInteractiveClone();
+		return;
+	}
+
+	const aliases = loadAliases();
+	run(resolveAlias(aliases, src) ?? src, dest, { ...args, aliases });
 }
 
 /* eslint-enable security/detect-non-literal-fs-filename */

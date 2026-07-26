@@ -1,6 +1,10 @@
 import path from 'node:path';
 import colors from 'yoctocolors';
 import { parse, type Repo } from '../domain/repo.js';
+
+function resolveAlias(aliases: Record<string, string>, name: string): string | undefined {
+	return Object.entries(aliases).find(([key]) => key === name)?.[1];
+}
 import { applyDirectives } from '../operations/directives.js';
 import { checkDirIsEmpty, getDirectives, removeFiles } from '../operations/filesystem.js';
 import { cloneWithTar as cloneWithTarMode } from '../transports/tar/archive.js';
@@ -24,6 +28,7 @@ function cloneSuccessMessage(user: string, name: string, ref: string, dest: stri
 }
 
 export class Degit {
+	aliases: Record<string, string>;
 	cache?: boolean;
 	force?: boolean;
 	mode: ValidModes;
@@ -38,11 +43,12 @@ export class Degit {
 	private warnListeners: InfoListener[];
 
 	constructor(src: string, opts: ConstructorOptions = {}) {
+		this.aliases = opts.aliases ?? {};
 		this.cache = opts.cache;
 		this.force = opts.force;
 		this.verbose = opts.verbose;
 		this.proxy = process.env.https_proxy;
-		this.repo = parse(src);
+		this.repo = parse(resolveAlias(this.aliases, src) ?? src);
 		this.mode = opts.mode ?? this.repo.mode;
 		this.fetch = opts.fetch || fetch;
 		this.git = opts.git;

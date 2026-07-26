@@ -19,6 +19,7 @@ type ChildDegit = {
 };
 
 type DirectiveContext = {
+	aliases?: Record<string, string>;
 	fetch: FetchFn;
 	getGitClient(): Promise<GitClient>;
 	hasStashed: boolean;
@@ -54,6 +55,7 @@ async function cloneDirective(
 	}
 
 	const child = createChild(action.src, {
+		aliases: context.aliases,
 		cache: action.cache,
 		fetch: context.fetch,
 		force: true,

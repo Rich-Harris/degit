@@ -1,5 +1,9 @@
 # degit changelog
 
+## Unreleased
+
+- Add repository aliases to the CLI ([#362](https://github.com/Rich-Harris/degit/issues/362)).
+
 ## 3.6.4
 
 - Add `--version` / `-V` flag to print the package version.
