@@ -35,6 +35,10 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for how to contribute. [docs/SE
 npm install -g degit
 ```
 
+## Agent skill
+
+This repository includes a reusable [degit skill](skills/degit/SKILL.md) for agents that support `SKILL.md` files. Add it using your agent's skill installation flow, then ask the agent to download a repository or template. The skill helps it choose a source, ref, and destination; handle private repositories and aliases; and avoid overwriting a non-empty destination without confirmation.
+
 ## Usage
 
 ### Basics
