@@ -103,4 +103,24 @@ function removeFile(root: string, file: string, warn: Emit) {
 	return [file];
 }
 
+export function copyRepoSubdir(srcDir: string, dest: string, subdir: string) {
+	const normalized = subdir.replace(/^\/+|\/+$/gu, '');
+	const source = path.join(srcDir, normalized);
+
+	if (!fs.existsSync(source)) {
+		throw new DegitError(`could not find subdirectory ${subdir} in cloned repository`, {
+			code: 'MISSING_SUBDIR',
+			subdir,
+		});
+	}
+
+	fs.mkdirSync(dest, { recursive: true });
+
+	for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+		const srcPath = path.join(source, entry.name);
+		const destPath = path.join(dest, entry.name);
+		fs.cpSync(srcPath, destPath, { recursive: true });
+	}
+}
+
 /* eslint-enable security/detect-non-literal-fs-filename */

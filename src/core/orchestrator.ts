@@ -1,3 +1,4 @@
+import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import colors from 'yoctocolors';
 import { parse, type Repo } from '../domain/repo.js';
@@ -6,7 +7,12 @@ function resolveAlias(aliases: Record<string, string>, name: string): string | u
 	return Object.entries(aliases).find(([key]) => key === name)?.[1];
 }
 import { applyDirectives } from '../operations/directives.js';
-import { checkDirIsEmpty, getDirectives, removeFiles } from '../operations/filesystem.js';
+import {
+	checkDirIsEmpty,
+	copyRepoSubdir,
+	getDirectives,
+	removeFiles,
+} from '../operations/filesystem.js';
 import { cloneWithTar as cloneWithTarMode } from '../transports/tar/archive.js';
 import {
 	validModes,
@@ -50,6 +56,7 @@ export class Degit {
 		this.proxy = process.env.https_proxy;
 		this.repo = parse(resolveAlias(this.aliases, src) ?? src);
 		this.mode = opts.mode ?? this.repo.mode;
+		this.repo = { ...this.repo, mode: this.mode };
 		this.fetch = opts.fetch || fetch;
 		this.git = opts.git;
 		this.hasStashed = false;
@@ -202,6 +209,21 @@ export class Degit {
 		await (await this.getGitClient()).clone(this.repo, dest, ref, this.repo.transport);
 	}
 
+	async cloneGitToDestination(dest: string, ref = this.repo.ref): Promise<void> {
+		if (this.repo.subdir) {
+			const tmp = await mkdtemp('degit-git-');
+			try {
+				await this.cloneWithGit(tmp, ref);
+				copyRepoSubdir(tmp, dest, this.repo.subdir);
+			} finally {
+				await rm(tmp, { force: true, recursive: true });
+			}
+			return;
+		}
+
+		await this.cloneWithGit(dest, ref);
+	}
+
 	shouldFallbackToGit(error: unknown): boolean {
 		if (!error || typeof error !== 'object') {
 			return false;
@@ -225,7 +247,7 @@ export class Degit {
 	private async cloneToDestination(dest: string) {
 		if (this.mode === 'git') {
 			const hash = await this.getHash(this.repo, {});
-			await this.cloneWithGit(dest, hash || this.repo.ref);
+			await this.cloneGitToDestination(dest, hash || this.repo.ref);
 			return;
 		}
 
@@ -239,7 +261,7 @@ export class Degit {
 			this.warn({
 				message: `tar snapshot download or extraction failed; falling back to git clone`,
 			});
-			await this.cloneWithGit(dest);
+			await this.cloneGitToDestination(dest);
 		}
 	}
 
