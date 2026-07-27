@@ -12,7 +12,8 @@ import {
 	clearArchiveCache,
 	gitRefs,
 } from './index-support.js';
-import { createMockGit } from '../helpers.js';
+import { createMockFetch, createMockGit } from '../helpers.js';
+import type { Repo } from '../../src/domain/repo.js';
 
 const { suiteCache, suiteTmp } = vi.hoisted(() => ({
 	suiteCache: '.tmp/index-git-suite-cache',
@@ -127,6 +128,111 @@ describe('degit index git suites', () => {
 			expect(fs.existsSync(archiveFile)).toBe(true);
 			await cloneAndExpectGitFallback(test, archiveFile, dest);
 		});
+	});
+
+	function createFileWritingGitMock(files: Record<string, string>) {
+		return {
+			fetchRefs(_repo: Repo) {
+				return Promise.resolve(gitRefs);
+			},
+			clone(_repo: Repo, cloneDest: string) {
+				for (const [file, content] of Object.entries(files)) {
+					const filePath = path.join(cloneDest, file);
+					fs.mkdirSync(path.dirname(filePath), { recursive: true });
+					fs.writeFileSync(filePath, content);
+				}
+				return Promise.resolve();
+			},
+		};
+	}
+
+	it('sets repo.mode to git in the instance when mode is git', () => {
+		const emitter = degit('Rich-Harris/degit-test-repo', { mode: 'git' });
+		assert.equal(emitter.repo.mode, 'git');
+	});
+
+	it('defaults repo.mode to tar when no mode is provided', () => {
+		const emitter = degit('Rich-Harris/degit-test-repo');
+		assert.equal(emitter.repo.mode, 'tar');
+	});
+
+	it('extracts only the subdirectory when mode is git with subdir', async () => {
+		const test = providerCases[0];
+		const dest = `${suiteTmp}/git-subdir`;
+		const gitMock = createFileWritingGitMock({
+			'packages/app/index.js': 'export default 1\n',
+			'README.md': 'hello',
+		});
+
+		await degit(`${test.publicSrc}/packages/app`, {
+			git: gitMock,
+			mode: 'git',
+		}).clone(dest);
+
+		assert.equal(fs.existsSync(path.join(dest, 'index.js')), true);
+		assert.equal(fs.readFileSync(path.join(dest, 'index.js'), 'utf8'), 'export default 1\n');
+		assert.equal(fs.existsSync(path.join(dest, 'README.md')), false);
+		assert.equal(fs.existsSync(path.join(dest, 'packages')), false);
+	});
+
+	it('throws MISSING_SUBDIR when the subdirectory does not exist in git mode', async () => {
+		const test = providerCases[0];
+		const dest = `${suiteTmp}/git-missing-subdir`;
+		const gitMock = createFileWritingGitMock({
+			'README.md': 'hello',
+		});
+
+		await assert.rejects(
+			degit(`${test.publicSrc}/packages/app`, {
+				git: gitMock,
+				mode: 'git',
+			}).clone(dest),
+			(err: unknown) => (err as { code?: string }).code === 'MISSING_SUBDIR',
+		);
+	});
+
+	it('clones the full repository in git mode when no subdirectory is requested', async () => {
+		const test = providerCases[0];
+		const dest = `${suiteTmp}/git-no-subdir`;
+		const gitMock = createFileWritingGitMock({
+			'packages/app/index.js': 'export default 1\n',
+			'README.md': 'hello',
+		});
+
+		await degit(test.publicSrc, {
+			git: gitMock,
+			mode: 'git',
+		}).clone(dest);
+
+		assert.equal(fs.existsSync(path.join(dest, 'README.md')), true);
+		assert.equal(fs.existsSync(path.join(dest, 'packages/app/index.js')), true);
+	});
+
+	it('extracts only the subdirectory when tar falls back to git', async () => {
+		const test = providerCases[0];
+		const dest = `${suiteTmp}/tar-fallback-subdir`;
+		clearArchiveCache(suiteCache, test);
+		const fetchMock = createMockFetch([
+			{
+				code: 'COULD_NOT_DOWNLOAD',
+				message: 'not found',
+				status: 404,
+			},
+		]);
+		const gitMock = createFileWritingGitMock({
+			'packages/app/index.js': 'export default 1\n',
+			'README.md': 'hello',
+		});
+
+		await degit(`${test.publicSrc}/packages/app`, {
+			cache: false,
+			fetch: fetchMock.fn,
+			git: gitMock,
+		}).clone(dest);
+
+		assert.equal(fs.existsSync(path.join(dest, 'index.js')), true);
+		assert.equal(fs.readFileSync(path.join(dest, 'index.js'), 'utf8'), 'export default 1\n');
+		assert.equal(fs.existsSync(path.join(dest, 'README.md')), false);
 	});
 });
 /* eslint-enable max-lines-per-function */

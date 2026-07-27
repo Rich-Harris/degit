@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add repository aliases to the CLI ([#362](https://github.com/Rich-Harris/degit/issues/362)).
+- Respect `repo.subdir` and report the correct `mode` when using `mode: 'git'` ([#349](https://github.com/Rich-Harris/degit/issues/349)).
 
 ## 3.6.4
 
