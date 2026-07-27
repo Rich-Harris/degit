@@ -1,0 +1,43 @@
+# degit
+
+> degit is a command-line tool for copying git repositories. It downloads a tarball snapshot of the latest commit (or a specified ref) instead of cloning the full git history, which makes it faster than `git clone --depth 1` for scaffolding projects from templates.
+
+Important notes:
+
+- degit supports GitHub, GitLab, Bitbucket, and Sourcehut; private repositories are handled automatically with SSH fallback.
+- Public HTTPS sources do not need a local `git` binary, but SSH/private sources still require one.
+- Post-download transformations can be declared in a top-level `degit.json` file using `clone`, `search_replace`, and `remove` actions.
+- Development of this repository requires Bun 1.3.14; end users can install the published package with npm.
+
+## User docs
+
+- [README.md](https://raw.githubusercontent.com/Rich-Harris/degit/master/README.md): Overview, installation, usage examples, ESM API, and actions reference.
+- [assets/help.md](https://raw.githubusercontent.com/Rich-Harris/degit/master/assets/help.md): CLI help text covering source formats, refs, options, aliases, and `degit.json` actions.
+- [docs/CHANGELOG.md](https://raw.githubusercontent.com/Rich-Harris/degit/master/docs/CHANGELOG.md): Version history and release notes.
+
+## Contributor docs
+
+- [docs/CONTRIBUTING.md](https://raw.githubusercontent.com/Rich-Harris/degit/master/docs/CONTRIBUTING.md): Bug reports, enhancement suggestions, style guides, and commit conventions.
+- [docs/SECURITY.md](https://raw.githubusercontent.com/Rich-Harris/degit/master/docs/SECURITY.md): Supported versions and how to report vulnerabilities privately.
+- [AGENTS.md](https://raw.githubusercontent.com/Rich-Harris/degit/master/AGENTS.md): Entry point for coding agents; summarizes setup, scripts, tests, and key files.
+
+## Agent skill
+
+- [skills/degit/SKILL.md](https://raw.githubusercontent.com/Rich-Harris/degit/master/skills/degit/SKILL.md): Reusable agent skill for scaffolding projects with `degit`.
+
+## Implementation
+
+- [src/bin.ts](https://raw.githubusercontent.com/Rich-Harris/degit/master/src/bin.ts): CLI entry point, argument parsing, and command dispatch.
+- [src/index.ts](https://raw.githubusercontent.com/Rich-Harris/degit/master/src/index.ts): Public API and main `degit` function.
+- [src/core/orchestrator.ts](https://raw.githubusercontent.com/Rich-Harris/degit/master/src/core/orchestrator.ts): Core download, cache, extraction, and fallback logic.
+- [src/shared/utils.ts](https://raw.githubusercontent.com/Rich-Harris/degit/master/src/shared/utils.ts): Shared utilities used across the project.
+
+## Tests
+
+- [test/unit](https://github.com/Rich-Harris/degit/tree/master/test/unit): Unit tests.
+- [test/integration](https://github.com/Rich-Harris/degit/tree/master/test/integration): Public and private integration tests; run with `bun run test` or `bun run test:integration`.
+
+## Optional
+
+- [docs/CODE_OF_CONDUCT.md](https://raw.githubusercontent.com/Rich-Harris/degit/master/docs/CODE_OF_CONDUCT.md): Community expectations and behavior standards.
+- [package.json](https://raw.githubusercontent.com/Rich-Harris/degit/master/package.json): Scripts, dependencies, engines, and package metadata.
