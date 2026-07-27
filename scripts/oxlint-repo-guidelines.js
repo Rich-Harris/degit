@@ -13,6 +13,7 @@ const allowedDocs = new Set([
 	'docs/CODE_OF_CONDUCT.md',
 	'docs/CONTRIBUTING.md',
 	'docs/SECURITY.md',
+	'skills/degit/SKILL.md',
 ]);
 const docsAnchorFile = path.resolve('src/index.ts');
 let docViolations;
