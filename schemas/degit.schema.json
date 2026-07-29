@@ -1,0 +1,75 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://raw.githubusercontent.com/Rich-Harris/degit/master/schemas/degit.schema.json",
+	"title": "degit.json",
+	"description": "Post-clone actions for degit, specified in a degit.json file at the top level of the working directory. See https://github.com/Rich-Harris/degit#actions.",
+	"type": "array",
+	"items": {
+		"oneOf": [
+			{ "$ref": "#/$defs/clone" },
+			{ "$ref": "#/$defs/searchReplace" },
+			{ "$ref": "#/$defs/remove" }
+		]
+	},
+	"$defs": {
+		"clone": {
+			"type": "object",
+			"title": "clone",
+			"description": "Clone another repository into the working directory, preserving its existing contents.",
+			"additionalProperties": false,
+			"required": ["action", "src"],
+			"properties": {
+				"action": { "const": "clone" },
+				"src": {
+					"type": "string",
+					"description": "The repository to clone, in the same format accepted by the degit CLI (e.g. user/repo)."
+				},
+				"cache": {
+					"type": "boolean",
+					"description": "Use a cached version of the repository if available."
+				},
+				"verbose": {
+					"type": "boolean",
+					"description": "Show extra information about the clone."
+				}
+			}
+		},
+		"searchReplace": {
+			"type": "object",
+			"title": "search_replace",
+			"description": "Replace every match of a regular expression in the listed files.",
+			"additionalProperties": false,
+			"required": ["action", "files", "pattern", "replacement"],
+			"properties": {
+				"action": { "const": "search_replace" },
+				"files": { "$ref": "#/$defs/files" },
+				"pattern": {
+					"type": "string",
+					"description": "A regular expression (as a string) to match within each file."
+				},
+				"replacement": {
+					"type": "string",
+					"description": "The name of an environment variable whose value replaces each match."
+				}
+			}
+		},
+		"remove": {
+			"type": "object",
+			"title": "remove",
+			"description": "Remove one or more files from the working directory.",
+			"additionalProperties": false,
+			"required": ["action", "files"],
+			"properties": {
+				"action": { "const": "remove" },
+				"files": { "$ref": "#/$defs/files" }
+			}
+		},
+		"files": {
+			"description": "A single path or an array of paths, resolved relative to the destination. Paths outside the destination are skipped.",
+			"oneOf": [
+				{ "type": "string" },
+				{ "type": "array", "items": { "type": "string" }, "minItems": 1 }
+			]
+		}
+	}
+}
