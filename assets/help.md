@@ -54,9 +54,11 @@ Options:
 
 `--help`, `-h` Show this message
 `--version`, `-V` Show the version
-`--cache`, `-c` Only use local cache
+`--cache`, `-c` Only use local cache (no network)
 `--force`, `-f` Allow non-empty destination directory
 `--verbose`, `-v` Extra logging
+
+Without `--cache`, degit tries the network first and falls back to the local cache if the network is unreachable.
 
 Alias commands:
 

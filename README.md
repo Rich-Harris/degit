@@ -109,6 +109,10 @@ degit https://github.com/user/repo/tree/main/subdirectory
 
 If you have an `https_proxy` environment variable, Degit will use it.
 
+### Cache behavior
+
+degit caches downloaded tar snapshots so you don't need to fetch them again. By default, it tries to resolve the latest ref from the network and falls back to the cached version if the network is unreachable. Use `--cache` (`-c`) to skip the network request entirely and only use a locally cached copy.
+
 ### Private repositories
 
 Private repositories are handled automatically. degit uses the tarball path by default for HTTPS sources and falls back to SSH cloning when it cannot fetch or extract a snapshot.
