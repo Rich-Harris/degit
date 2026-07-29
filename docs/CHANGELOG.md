@@ -2,8 +2,6 @@
 
 ## Unreleased
 
-## 3.6.6
-
 - Clarify `--cache` flag and default offline fallback behavior in help text and README ([#314](https://github.com/Rich-Harris/degit/issues/314)).
 
 ## 3.6.5
