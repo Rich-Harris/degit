@@ -2,9 +2,12 @@
 
 ## Unreleased
 
+## 3.6.5
+
 - Fix interactive mode crash when the cache directory does not exist ([#345](https://github.com/Rich-Harris/degit/issues/345)).
 - Add repository aliases to the CLI ([#362](https://github.com/Rich-Harris/degit/issues/362)).
 - Respect `repo.subdir` and report the correct `mode` when using `mode: 'git'` ([#349](https://github.com/Rich-Harris/degit/issues/349)).
+- Throw an error instead of creating an empty destination when the requested subdirectory does not exist in git mode ([#331](https://github.com/Rich-Harris/degit/issues/331)).
 
 ## 3.6.4
 
