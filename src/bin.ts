@@ -91,6 +91,8 @@ function getVersion() {
 }
 
 function getInteractiveChoices(): Choice[] {
+	if (!fs.existsSync(base)) return [];
+
 	const accessLookup = new Map<string, number>();
 
 	glob('**/access.json', { cwd: base }).forEach((file) => {

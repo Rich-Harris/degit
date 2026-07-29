@@ -214,6 +214,25 @@ describe('degit bin', () => {
 		assert.equal(instance.clone.mock.calls[0][0], 'out');
 	});
 
+	it('presents empty choices when the cache directory does not exist', async () => {
+		fs.rmSync(base, { force: true, recursive: true });
+
+		mockPrompt.mockImplementation((questions) => {
+			const srcQuestion = (
+				questions as Array<{ name?: string; choices?: Array<{ value: string }> }>
+			).find((question) => question.name === 'src');
+			assert.ok(srcQuestion);
+			assert.deepEqual(srcQuestion.choices, []);
+			return Promise.resolve({
+				cache: false,
+				dest: '.tmp/bin-suite/from-interactive',
+				src: '',
+			});
+		});
+
+		await main(['node', 'bin']);
+	});
+
 	it('ranks interactive repo choices by most recent access when argv omits src', async () => {
 		const recentRepo = path.join(base, 'github', 'user-b', 'repo-b');
 		const olderRepo = path.join(base, 'github', 'user-a', 'repo-a');
