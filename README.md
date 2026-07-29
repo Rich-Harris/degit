@@ -165,6 +165,8 @@ emitter.clone('path/to/dest').then(() => {
 
 You can manipulate repositories after they have been cloned with _actions_, specified in a `degit.json` file that lives at the top level of the working directory. Currently, there are three actions — `clone`, `search_replace`, and `remove`. Additional actions may be added in future.
 
+A [JSON Schema](schemas/degit.schema.json) is available for editor autocompletion and validation; map `degit.json` to it in your editor's JSON schema settings (e.g. VS Code's `json.schemas`).
+
 ### clone
 
 ```json

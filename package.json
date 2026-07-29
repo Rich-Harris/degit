@@ -25,7 +25,8 @@
 		"dist",
 		"docs/CHANGELOG.md",
 		"LICENSE.md",
-		"README.md"
+		"README.md",
+		"schemas"
 	],
 	"type": "module",
 	"main": "dist/index.js",
