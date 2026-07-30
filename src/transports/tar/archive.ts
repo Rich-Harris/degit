@@ -69,7 +69,7 @@ async function createArchiveSource(dir: string, repo: Repo, hash: string): Promi
 }
 
 async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) {
-	const subdir = context.repo.subdir?.replace(/^\/+|\/+$/gu, '');
+	const subdir = context.repo.subdir?.split('/').filter(Boolean).join('/');
 	if (!subdir) {
 		return;
 	}

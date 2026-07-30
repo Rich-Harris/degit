@@ -104,7 +104,7 @@ function removeFile(root: string, file: string, warn: Emit) {
 }
 
 export function copyRepoSubdir(srcDir: string, dest: string, subdir: string) {
-	const normalized = subdir.replace(/^\/+|\/+$/gu, '');
+	const normalized = subdir.split('/').filter(Boolean).join('/');
 	const source = path.join(srcDir, normalized);
 
 	if (!fs.existsSync(source)) {
