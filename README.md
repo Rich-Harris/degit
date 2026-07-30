@@ -105,6 +105,16 @@ You can also paste a full GitHub URL to a subdirectory:
 degit https://github.com/user/repo/tree/main/subdirectory
 ```
 
+### GitLab nested groups
+
+GitLab repositories inside nested groups are supported at runtime:
+
+```bash
+degit gitlab:gitlab-org/frontend/utils#v0.3.4
+```
+
+degit first tries the two-segment `user/repo` interpretation, so `user/repo/subdir` still means "clone `user/repo` and extract `subdir`". If that combination does not exist, it falls back to treating the path as a nested GitLab group.
+
 ### HTTPS proxying
 
 If you have an `https_proxy` environment variable, Degit will use it.
