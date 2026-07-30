@@ -59,4 +59,20 @@ describe('public integration suite', () => {
 			}
 		});
 	}
+
+	it('clones a GitLab nested group when the integration suite runs', async () => {
+		const integrationTmp = path.join('.tmp', 'integration-suite-public', 'gitlab-nested');
+		const source = 'gitlab:gitlab-org/frontend/utils#v0.3.4';
+
+		fs.rmSync(integrationTmp, { force: true, recursive: true });
+
+		try {
+			await runner.clone(source, integrationTmp);
+
+			assert.equal(fs.existsSync(path.join(integrationTmp, 'README.md')), true);
+			assert.equal(fs.readdirSync(integrationTmp).length > 0, true);
+		} finally {
+			fs.rmSync(integrationTmp, { force: true, recursive: true });
+		}
+	});
 });
