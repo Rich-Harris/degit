@@ -161,6 +161,7 @@ function parseWebPath(
 }
 
 export function parse(src: string): Repo {
+	src = decodeURIComponent(src);
 	const [source, refValue = 'HEAD'] = src.split('#', 2);
 	const { remainder, site, transport, customDomain, isWebUrl } = resolveSource(source, src);
 
