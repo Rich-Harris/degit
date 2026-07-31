@@ -79,6 +79,12 @@ describe('degit index', () => {
 		assert.equal(repo.url, 'https://github.com/TanStack/table');
 		assert.equal(repo.ssh, 'ssh://git@github.com/TanStack/table');
 	});
+	it('decodes a URL-encoded subdirectory segment into @types when the URL contains %40types', () => {
+		const repo = parse('https://github.com/user/repo/tree/main/%40types');
+
+		assert.equal(repo.ref, 'main');
+		assert.equal(repo.subdir, '/@types');
+	});
 	it('parses a full GitHub tree URL into only a ref when no subdirectory is given', () => {
 		const repo = parse('https://github.com/user/repo/tree/main');
 
