@@ -163,7 +163,10 @@ function parseWebPath(
 export function parse(src: string): Repo {
 	const decodedSrc = decodeURIComponent(src);
 	const [source, refValue = 'HEAD'] = decodedSrc.split('#', 2);
-	const { remainder, site, transport, customDomain, isWebUrl } = resolveSource(source, decodedSrc);
+	const { remainder, site, transport, customDomain, isWebUrl } = resolveSource(
+		source,
+		decodedSrc,
+	);
 
 	if (!supported.has(site)) {
 		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
