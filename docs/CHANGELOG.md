@@ -5,6 +5,7 @@
 - Support GitLab nested groups by probing candidate `user/repo` paths at runtime ([#76](https://github.com/Rich-Harris/degit/issues/76)).
 - Clarify `--cache` flag and default offline fallback behavior in help text and README ([#314](https://github.com/Rich-Harris/degit/issues/314)).
 - Add a JSON Schema for `degit.json` at `schemas/degit.schema.json`.
+- Decode URL-encoded subdirectory segments in full repository URLs ([#477](https://github.com/Rich-Harris/degit/issues/477)).
 
 ## 3.6.5
 
