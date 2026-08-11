@@ -87,11 +87,10 @@ async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) 
 				onReadEntry: (entry) => {
 					members.push(entry.path);
 				},
-				onwarn: (code, message, data) => {
-					if (code === 'TAR_BAD_ARCHIVE' || code === 'TAR_ABORT') {
+				onwarn: (code, message) => {
+					if (code === 'TAR_BAD_ARCHIVE') {
 						fatalWarning = new Error(message);
-						(fatalWarning as { code?: string }).code =
-							(data as { code?: string }).code ?? code;
+						(fatalWarning as { code?: string }).code = code;
 					}
 				},
 			});
