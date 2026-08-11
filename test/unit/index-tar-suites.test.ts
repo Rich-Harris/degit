@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -32,6 +33,195 @@ function expectPackageArchive(dest: string) {
 		'packages/ignored.txt': 'ignored\n',
 	});
 }
+
+function truncatedGzip(archiveFile: string) {
+	const archiveBuffer = fs.readFileSync(archiveFile);
+	return archiveBuffer.subarray(0, Math.floor(archiveBuffer.length / 2));
+}
+
+const subdirExpected = {
+	'index.js': 'export default 1\n',
+	lib: '',
+	'lib/nested.txt': 'nested\n',
+};
+
+function assertOneArchiveFetch(
+	test: (typeof providerCases)[0],
+	fetch: { calls: { url: string }[] },
+) {
+	assert.equal(fetch.calls.length, 1);
+	assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+}
+
+function assertGitFallback(
+	test: (typeof providerCases)[0],
+	dest: string,
+	gitMock: { calls: string[] },
+) {
+	assert.deepEqual(gitMock.calls, [`fetchRefs ${test.url}`, `clone ${test.url} ${dest} HEAD`]);
+}
+
+function assertSubdirRedownload(
+	dest: string,
+	test: (typeof providerCases)[0],
+	fetch: { calls: { url: string }[] },
+) {
+	compareDirToExpected(dest, subdirExpected);
+	assertOneArchiveFetch(test, fetch);
+}
+
+function assertTopLevelRedownload(
+	dest: string,
+	test: (typeof providerCases)[0],
+	fetch: { calls: { url: string }[] },
+) {
+	expectPackageArchive(dest);
+	assertOneArchiveFetch(test, fetch);
+}
+
+interface CacheRedownloadCase {
+	name: string;
+	providerFilter: (test: (typeof providerCases)[0]) => boolean;
+	src?: (test: (typeof providerCases)[0]) => string;
+	cacheContent: string | ((archiveFile: string) => Buffer);
+	fetchSource?: 'archive' | 'corrupt' | ((archiveFile: string, suiteTmpDir: string) => string);
+	gitStubs?: (test: (typeof providerCases)[0], dest: string) => Record<string, unknown>;
+	cache?: boolean;
+	assert: (
+		test: (typeof providerCases)[0],
+		dest: string,
+		fetch: { calls: { url: string }[] },
+		gitMock: { calls: string[] },
+	) => void;
+}
+
+// eslint-disable-next-line max-lines-per-function
+function runCacheRedownloadTests(cases: CacheRedownloadCase[]) {
+	for (const testCase of cases) {
+		for (const test of providerCases.filter(testCase.providerFilter)) {
+			// eslint-disable-next-line max-lines-per-function
+			it(`${testCase.name} when running on ${test.site}`, async () => {
+				/* eslint-disable vitest/no-conditional-in-test */
+				const dest = `${suiteTmp}/test-repo`;
+				const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
+				clearArchiveCache(suiteCache, test);
+				fs.mkdirSync(suiteTmp, { recursive: true });
+				fs.mkdirSync(archiveDir, { recursive: true });
+				const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
+				const rawContent =
+					typeof testCase.cacheContent === 'function'
+						? testCase.cacheContent(archiveFile)
+						: testCase.cacheContent;
+				fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), rawContent);
+				let fetchSource: string;
+				if (testCase.fetchSource === 'corrupt') {
+					const corruptArchive = path.join(suiteTmp, 'corrupt-archive.tar.gz');
+					fs.writeFileSync(corruptArchive, rawContent);
+					fetchSource = corruptArchive;
+				} else if (typeof testCase.fetchSource === 'function') {
+					fetchSource = testCase.fetchSource(archiveFile, suiteTmp);
+				} else {
+					fetchSource = archiveFile;
+				}
+				if (testCase.cache) {
+					fs.writeFileSync(
+						path.join(archiveDir, 'map.json'),
+						JSON.stringify({ HEAD: refsHash }),
+					);
+				}
+				const gitStubs = testCase.gitStubs?.(test, dest) ?? {
+					[`fetchRefs ${test.url}`]: gitRefs,
+				};
+				const fetch = createCopyFetch(fetchSource);
+				const gitMock = createMockGit(gitStubs);
+				const src = testCase.src?.(test) ?? test.publicSrc;
+				const clonePromise = degit(src, {
+					cache: testCase.cache,
+					fetch: fetch.fn,
+					git: gitMock.fn,
+				}).clone(dest);
+				if (testCase.cache) {
+					await assert.rejects(
+						async () => await clonePromise,
+						(err: any) => err?.code === 'COULD_NOT_DOWNLOAD',
+					);
+				} else {
+					await clonePromise;
+				}
+				testCase.assert(test, dest, fetch, gitMock);
+				/* eslint-enable vitest/no-conditional-in-test */
+			});
+		}
+	}
+}
+
+const cacheRedownloadCases: CacheRedownloadCase[] = [
+	{
+		name: 'falls back to git clone when a repeated extraction failure occurs',
+		providerFilter: (test) => test.site === 'github',
+		cacheContent: 'not a tarball',
+		fetchSource: 'corrupt',
+		gitStubs: (test, dest) => ({
+			[`fetchRefs ${test.url}`]: gitRefs,
+			[`clone ${test.url} ${dest} HEAD`]: '',
+		}),
+		assert: (test, dest, fetch, gitMock) => {
+			assertOneArchiveFetch(test, fetch);
+			assertGitFallback(test, dest, gitMock);
+		},
+	},
+	{
+		name: 'falls back to git clone when a truncated archive cannot be redownloaded',
+		providerFilter: (test) => test.site === 'github',
+		cacheContent: truncatedGzip,
+		fetchSource: 'corrupt',
+		gitStubs: (test, dest) => ({
+			[`fetchRefs ${test.url}`]: gitRefs,
+			[`clone ${test.url} ${dest} HEAD`]: '',
+		}),
+		assert: (test, dest, fetch, gitMock) => {
+			assertOneArchiveFetch(test, fetch);
+			assertGitFallback(test, dest, gitMock);
+		},
+	},
+	{
+		name: 'does not fall back to git clone when cache is true and the cached archive is corrupt',
+		providerFilter: (test) => test.site === 'github',
+		cache: true,
+		cacheContent: 'not a tarball',
+		gitStubs: () => ({}),
+		assert: (_test, _dest, fetch, gitMock) => {
+			assert.equal(fetch.calls.length, 0);
+			assert.deepEqual(gitMock.calls, []);
+		},
+	},
+	{
+		name: 'redownloads the tarball for a subdirectory when the cached archive is a truncated gzip',
+		providerFilter: () => true,
+		src: (test) => `${test.publicSrc}/packages/app`,
+		cacheContent: truncatedGzip,
+		assert: (test, dest, fetch) => assertSubdirRedownload(dest, test, fetch),
+	},
+	{
+		name: 'redownloads the tarball for a subdirectory when the cached archive is not a tarball',
+		providerFilter: (test) => test.site === 'github',
+		src: (test) => `${test.publicSrc}/packages/app`,
+		cacheContent: 'not a tarball',
+		assert: (test, dest, fetch) => assertSubdirRedownload(dest, test, fetch),
+	},
+	{
+		name: 'redownloads the tarball when the cached archive is corrupted',
+		providerFilter: () => true,
+		cacheContent: 'not a tarball',
+		assert: (test, dest, fetch) => assertTopLevelRedownload(dest, test, fetch),
+	},
+	{
+		name: 'redownloads the tarball when the cached archive is a truncated gzip',
+		providerFilter: () => true,
+		cacheContent: truncatedGzip,
+		assert: (test, dest, fetch) => assertTopLevelRedownload(dest, test, fetch),
+	},
+];
 
 vi.mock('../../src/shared/utils.js', async () => {
 	const actual = await vi.importActual<typeof import('../../src/shared/utils.js')>(
@@ -76,34 +266,7 @@ describe('degit index tar suites', () => {
 		});
 	});
 
-	it('falls back to git clone when a repeated extraction failure occurs for github', async () => {
-		const test = providerCases[0];
-		const dest = `${suiteTmp}/test-repo`;
-		const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
-		const corruptArchive = path.join(suiteTmp, 'corrupt-archive.tar.gz');
-		clearArchiveCache(suiteCache, test);
-		fs.mkdirSync(suiteTmp, { recursive: true });
-		fs.mkdirSync(archiveDir, { recursive: true });
-		fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
-		fs.writeFileSync(corruptArchive, 'not a tarball');
-		const fetch = createCopyFetch(corruptArchive);
-		const gitMock = createMockGit({
-			[`fetchRefs ${test.url}`]: gitRefs,
-			[`clone ${test.url} ${dest} HEAD`]: '',
-		});
-
-		await degit(test.publicSrc, {
-			git: gitMock.fn,
-			fetch: fetch.fn,
-		}).clone(dest);
-
-		assert.equal(fetch.calls.length, 1);
-		assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
-		assert.deepEqual(gitMock.calls, [
-			`fetchRefs ${test.url}`,
-			`clone ${test.url} ${dest} HEAD`,
-		]);
-	});
+	runCacheRedownloadTests(cacheRedownloadCases);
 
 	providerCases.forEach((test) => {
 		it(`uses the default branch hash when HEAD is missing for ${test.site}`, async () => {
@@ -158,30 +321,6 @@ describe('degit index tar suites', () => {
 				lib: '',
 				'lib/nested.txt': 'nested\n',
 			});
-			assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
-		});
-	});
-
-	providerCases.forEach((test) => {
-		it(`redownloads the tarball when the cached archive is corrupted for ${test.site}`, async () => {
-			const dest = `${suiteTmp}/test-repo`;
-			const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
-			clearArchiveCache(suiteCache, test);
-			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
-			fs.mkdirSync(archiveDir, { recursive: true });
-			fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
-			const fetch = createCopyFetch(archiveFile);
-			const gitMock = createMockGit({
-				[`fetchRefs ${test.url}`]: gitRefs,
-			});
-
-			await degit(test.publicSrc, {
-				git: gitMock.fn,
-				fetch: fetch.fn,
-			}).clone(dest);
-
-			expectPackageArchive(dest);
-			assert.equal(fetch.calls.length, 1);
 			assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
 		});
 	});

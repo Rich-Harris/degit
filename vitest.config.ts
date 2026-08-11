@@ -1,5 +1,10 @@
 import { defineConfig } from 'vitest/config';
 
+const excludePrivateIntegration =
+	!process.env.SSH_PRIVATE_KEY || process.env.SSH_PRIVATE_KEY === ''
+		? ['test/integration/private.test.ts']
+		: undefined;
+
 export default defineConfig({
 	test: {
 		coverage: {
@@ -17,6 +22,7 @@ export default defineConfig({
 			},
 		},
 		environment: 'node',
+		exclude: excludePrivateIntegration,
 		globals: true,
 		include: ['test/**/*.test.ts'],
 		testTimeout: 30000,

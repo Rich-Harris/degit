@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Redownload cached tar archives when extraction fails with any tar/zlib error, not only `TAR_BAD_ARCHIVE` ([#41](https://github.com/Rich-Harris/degit/issues/41)).
+
 ## 3.6.6
 
 - Support GitLab nested groups by probing candidate `user/repo` paths at runtime ([#76](https://github.com/Rich-Harris/degit/issues/76)).

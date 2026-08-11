@@ -6,6 +6,8 @@ import { readCachedRefs, updateCache } from './cache.js';
 import { DegitError, mkdirp } from '../../shared/utils.js';
 import type { EventInfo, FetchFn } from '../../domain/types.js';
 
+/* eslint-disable max-lines */
+
 type TarContext = {
 	cache?: boolean;
 	cloneWithGit(dest: string, ref?: string): Promise<void>;
@@ -68,6 +70,7 @@ async function createArchiveSource(dir: string, repo: Repo, hash: string): Promi
 	};
 }
 
+// eslint-disable-next-line max-lines-per-function
 async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) {
 	const subdir = context.repo.subdir?.split('/').filter(Boolean).join('/');
 	if (!subdir) {
@@ -76,11 +79,25 @@ async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) 
 
 	const members: string[] = [];
 	try {
-		await tar.t({
-			file: source.file,
-			onReadEntry: (entry) => {
-				members.push(entry.path);
-			},
+		await withArchiveRetry(context, source, async () => {
+			members.length = 0;
+			let fatalWarning: Error | undefined;
+			await tar.t({
+				file: source.file,
+				onReadEntry: (entry) => {
+					members.push(entry.path);
+				},
+				onwarn: (code, message) => {
+					if (code === 'TAR_BAD_ARCHIVE') {
+						fatalWarning = new Error(message);
+						(fatalWarning as { code?: string }).code = code;
+					}
+				},
+			});
+			if (fatalWarning) {
+				// eslint-disable-next-line no-throw-literal
+				throw fatalWarning;
+			}
 		});
 	} catch (error) {
 		throw new DegitError(`could not inspect ${source.url}`, {
@@ -159,7 +176,9 @@ async function extractArchive(context: TarContext, source: ArchiveSource, dest: 
 			message: `extracting ${source.subdir ? `${context.repo.subdir} from ` : ''}${source.file} to ${source.workDir}`,
 		});
 
-		await untarWithRetry(context, source);
+		await withArchiveRetry(context, source, () =>
+			untar(source.file, source.workDir, source.subdir),
+		);
 		const hasPointers = await hasGitLfsPointers(source.workDir);
 		if (!hasPointers) {
 			mkdirp(dest);
@@ -178,11 +197,25 @@ async function extractArchive(context: TarContext, source: ArchiveSource, dest: 
 	}
 }
 
-async function untarWithRetry(context: TarContext, source: ArchiveSource) {
+async function withArchiveRetry(
+	context: TarContext,
+	source: ArchiveSource,
+	operation: () => Promise<void>,
+): Promise<void> {
 	try {
-		await untar(source.file, source.workDir, source.subdir);
+		await operation();
 	} catch (error) {
-		if ((error as { code?: string }).code !== 'TAR_BAD_ARCHIVE') {
+		const code = (error as { code?: string }).code;
+		const isRetryableArchiveError =
+			typeof code === 'string' &&
+			/^(TAR_BAD_ARCHIVE|TAR_ABORT|ZLIB_ERROR|Z_(BUF|DATA|STREAM|MEM|VERSION)_ERROR)$/u.test(
+				code,
+			);
+		if (!isRetryableArchiveError) {
+			throw error;
+		}
+
+		if (context.cache) {
 			throw error;
 		}
 
@@ -193,7 +226,7 @@ async function untarWithRetry(context: TarContext, source: ArchiveSource) {
 		}
 
 		await context.fetch(source.url, source.file, context.proxy);
-		await untar(source.file, source.workDir, source.subdir);
+		await operation();
 	}
 }
 
