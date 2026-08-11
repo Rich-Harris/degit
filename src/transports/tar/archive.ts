@@ -6,6 +6,8 @@ import { readCachedRefs, updateCache } from './cache.js';
 import { DegitError, mkdirp } from '../../shared/utils.js';
 import type { EventInfo, FetchFn } from '../../domain/types.js';
 
+/* eslint-disable max-lines */
+
 type TarContext = {
 	cache?: boolean;
 	cloneWithGit(dest: string, ref?: string): Promise<void>;
@@ -68,6 +70,21 @@ async function createArchiveSource(dir: string, repo: Repo, hash: string): Promi
 	};
 }
 
+function createFatalTarError(
+	code: string,
+	message: string,
+	data: { code?: string },
+): Error | undefined {
+	if (code === 'TAR_BAD_ARCHIVE' || code === 'TAR_ABORT') {
+		const maybeMessage = message as unknown;
+		const error = maybeMessage instanceof Error ? maybeMessage : new Error(String(message));
+		(error as { code?: string }).code = data.code ?? code;
+		return error;
+	}
+	return undefined;
+}
+
+// eslint-disable-next-line max-lines-per-function
 async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) {
 	const subdir = context.repo.subdir?.split('/').filter(Boolean).join('/');
 	if (!subdir) {
@@ -78,13 +95,20 @@ async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) 
 	try {
 		await withArchiveRetry(context, source, async () => {
 			members.length = 0;
+			let fatalWarning: Error | undefined;
 			await tar.t({
 				file: source.file,
 				onReadEntry: (entry) => {
 					members.push(entry.path);
 				},
-				strict: true,
+				onwarn: (code, message, data) => {
+					fatalWarning = createFatalTarError(code, message, data) ?? fatalWarning;
+				},
 			});
+			if (fatalWarning) {
+				// eslint-disable-next-line no-throw-literal
+				throw fatalWarning;
+			}
 		});
 	} catch (error) {
 		throw new DegitError(`could not inspect ${source.url}`, {
@@ -193,10 +217,13 @@ async function withArchiveRetry(
 		await operation();
 	} catch (error) {
 		const code = (error as { code?: string }).code;
-		if (
-			typeof code !== 'string' ||
-			!(code.startsWith('TAR_') || code.startsWith('Z_') || code === 'ZLIB_ERROR')
-		) {
+		const isRetryableArchiveError =
+			typeof code === 'string' && /^(TAR_BAD_ARCHIVE|TAR_ABORT|ZLIB_ERROR|Z_)/u.test(code);
+		if (!isRetryableArchiveError) {
+			throw error;
+		}
+
+		if (context.cache) {
 			throw error;
 		}
 
