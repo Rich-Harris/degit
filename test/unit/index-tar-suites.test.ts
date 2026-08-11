@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -105,6 +106,38 @@ describe('degit index tar suites', () => {
 		]);
 	});
 
+	it('falls back to git clone when a truncated archive cannot be redownloaded for github', async () => {
+		const test = providerCases[0];
+		const dest = `${suiteTmp}/test-repo`;
+		const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
+		const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
+		const archiveBuffer = fs.readFileSync(archiveFile);
+		const truncated = archiveBuffer.subarray(0, Math.floor(archiveBuffer.length / 2));
+		const corruptArchive = path.join(suiteTmp, 'corrupt-truncated.tar.gz');
+		clearArchiveCache(suiteCache, test);
+		fs.mkdirSync(suiteTmp, { recursive: true });
+		fs.mkdirSync(archiveDir, { recursive: true });
+		fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), truncated);
+		fs.writeFileSync(corruptArchive, truncated);
+		const fetch = createCopyFetch(corruptArchive);
+		const gitMock = createMockGit({
+			[`fetchRefs ${test.url}`]: gitRefs,
+			[`clone ${test.url} ${dest} HEAD`]: '',
+		});
+
+		await degit(test.publicSrc, {
+			git: gitMock.fn,
+			fetch: fetch.fn,
+		}).clone(dest);
+
+		assert.equal(fetch.calls.length, 1);
+		assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+		assert.deepEqual(gitMock.calls, [
+			`fetchRefs ${test.url}`,
+			`clone ${test.url} ${dest} HEAD`,
+		]);
+	});
+
 	providerCases.forEach((test) => {
 		it(`uses the default branch hash when HEAD is missing for ${test.site}`, async () => {
 			clearArchiveCache(suiteCache, test);
@@ -163,6 +196,63 @@ describe('degit index tar suites', () => {
 	});
 
 	providerCases.forEach((test) => {
+		it(`redownloads the tarball for a subdirectory when the cached archive is a truncated gzip for ${test.site}`, async () => {
+			const dest = `${suiteTmp}/test-repo`;
+			const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
+			clearArchiveCache(suiteCache, test);
+			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
+			const archiveBuffer = fs.readFileSync(archiveFile);
+			const truncated = archiveBuffer.subarray(0, Math.floor(archiveBuffer.length / 2));
+			fs.mkdirSync(archiveDir, { recursive: true });
+			fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), truncated);
+			const fetch = createCopyFetch(archiveFile);
+			const gitMock = createMockGit({
+				[`fetchRefs ${test.url}`]: gitRefs,
+			});
+
+			await degit(`${test.publicSrc}/packages/app`, {
+				git: gitMock.fn,
+				fetch: fetch.fn,
+			}).clone(dest);
+
+			compareDirToExpected(dest, {
+				'index.js': 'export default 1\n',
+				lib: '',
+				'lib/nested.txt': 'nested\n',
+			});
+			assert.equal(fetch.calls.length, 1);
+			assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+		});
+	});
+
+	it('redownloads the tarball for a subdirectory when the cached archive is not a tarball for github', async () => {
+		const test = providerCases[0];
+		const dest = `${suiteTmp}/test-repo`;
+		const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
+		clearArchiveCache(suiteCache, test);
+		const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
+		fs.mkdirSync(archiveDir, { recursive: true });
+		fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
+		const fetch = createCopyFetch(archiveFile);
+		const gitMock = createMockGit({
+			[`fetchRefs ${test.url}`]: gitRefs,
+		});
+
+		await degit(`${test.publicSrc}/packages/app`, {
+			git: gitMock.fn,
+			fetch: fetch.fn,
+		}).clone(dest);
+
+		compareDirToExpected(dest, {
+			'index.js': 'export default 1\n',
+			lib: '',
+			'lib/nested.txt': 'nested\n',
+		});
+		assert.equal(fetch.calls.length, 1);
+		assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+	});
+
+	providerCases.forEach((test) => {
 		it(`redownloads the tarball when the cached archive is corrupted for ${test.site}`, async () => {
 			const dest = `${suiteTmp}/test-repo`;
 			const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
@@ -170,6 +260,32 @@ describe('degit index tar suites', () => {
 			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
 			fs.mkdirSync(archiveDir, { recursive: true });
 			fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
+			const fetch = createCopyFetch(archiveFile);
+			const gitMock = createMockGit({
+				[`fetchRefs ${test.url}`]: gitRefs,
+			});
+
+			await degit(test.publicSrc, {
+				git: gitMock.fn,
+				fetch: fetch.fn,
+			}).clone(dest);
+
+			expectPackageArchive(dest);
+			assert.equal(fetch.calls.length, 1);
+			assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
+		});
+	});
+
+	providerCases.forEach((test) => {
+		it(`redownloads the tarball when the cached archive is a truncated gzip for ${test.site}`, async () => {
+			const dest = `${suiteTmp}/test-repo`;
+			const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
+			clearArchiveCache(suiteCache, test);
+			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
+			const archiveBuffer = fs.readFileSync(archiveFile);
+			const truncated = archiveBuffer.subarray(0, Math.floor(archiveBuffer.length / 2));
+			fs.mkdirSync(archiveDir, { recursive: true });
+			fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), truncated);
 			const fetch = createCopyFetch(archiveFile);
 			const gitMock = createMockGit({
 				[`fetchRefs ${test.url}`]: gitRefs,

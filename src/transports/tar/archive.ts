@@ -76,11 +76,15 @@ async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) 
 
 	const members: string[] = [];
 	try {
-		await tar.t({
-			file: source.file,
-			onReadEntry: (entry) => {
-				members.push(entry.path);
-			},
+		await withArchiveRetry(context, source, async () => {
+			members.length = 0;
+			await tar.t({
+				file: source.file,
+				onReadEntry: (entry) => {
+					members.push(entry.path);
+				},
+				strict: true,
+			});
 		});
 	} catch (error) {
 		throw new DegitError(`could not inspect ${source.url}`, {
@@ -159,7 +163,9 @@ async function extractArchive(context: TarContext, source: ArchiveSource, dest: 
 			message: `extracting ${source.subdir ? `${context.repo.subdir} from ` : ''}${source.file} to ${source.workDir}`,
 		});
 
-		await untarWithRetry(context, source);
+		await withArchiveRetry(context, source, () =>
+			untar(source.file, source.workDir, source.subdir),
+		);
 		const hasPointers = await hasGitLfsPointers(source.workDir);
 		if (!hasPointers) {
 			mkdirp(dest);
@@ -178,11 +184,19 @@ async function extractArchive(context: TarContext, source: ArchiveSource, dest: 
 	}
 }
 
-async function untarWithRetry(context: TarContext, source: ArchiveSource) {
+async function withArchiveRetry(
+	context: TarContext,
+	source: ArchiveSource,
+	operation: () => Promise<void>,
+): Promise<void> {
 	try {
-		await untar(source.file, source.workDir, source.subdir);
+		await operation();
 	} catch (error) {
-		if ((error as { code?: string }).code !== 'TAR_BAD_ARCHIVE') {
+		const code = (error as { code?: string }).code;
+		if (
+			typeof code !== 'string' ||
+			!(code.startsWith('TAR_') || code.startsWith('Z_') || code === 'ZLIB_ERROR')
+		) {
 			throw error;
 		}
 
@@ -193,7 +207,7 @@ async function untarWithRetry(context: TarContext, source: ArchiveSource) {
 		}
 
 		await context.fetch(source.url, source.file, context.proxy);
-		await untar(source.file, source.workDir, source.subdir);
+		await operation();
 	}
 }
 

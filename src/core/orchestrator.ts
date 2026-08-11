@@ -203,7 +203,7 @@ export class Degit {
 			return false;
 		}
 		const code = (error as { code?: string }).code;
-		return code === 'COULD_NOT_DOWNLOAD' || code === 'TAR_BAD_ARCHIVE';
+		return code === 'COULD_NOT_DOWNLOAD';
 	}
 	private emitEvent(eventName: 'info' | 'warn', info: EventInfo) {
 		const listeners = eventName === 'info' ? this.infoListeners : this.warnListeners;
