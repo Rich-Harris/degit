@@ -138,6 +138,34 @@ describe('degit index tar suites', () => {
 		]);
 	});
 
+	it('does not fall back to git clone when cache is true and the cached archive is corrupt for github', async () => {
+		const test = providerCases[0];
+		const dest = `${suiteTmp}/test-repo`;
+		const archiveDir = path.join(suiteCache, test.site, test.user, test.name);
+		clearArchiveCache(suiteCache, test);
+		fs.mkdirSync(suiteTmp, { recursive: true });
+		fs.mkdirSync(archiveDir, { recursive: true });
+		fs.writeFileSync(path.join(archiveDir, 'map.json'), JSON.stringify({ HEAD: refsHash }));
+		fs.writeFileSync(path.join(archiveDir, `${refsHash}.tar.gz`), 'not a tarball');
+		const fetch = createCopyFetch(await createArchiveFixture(test.archiveRoot, suiteTmp));
+		const gitMock = createMockGit({
+			[`clone ${test.url} ${dest} HEAD`]: '',
+		});
+
+		await assert.rejects(
+			async () =>
+				await degit(test.publicSrc, {
+					cache: true,
+					fetch: fetch.fn,
+					git: gitMock.fn,
+				}).clone(dest),
+			(err: any) => err?.code === 'COULD_NOT_DOWNLOAD',
+		);
+
+		assert.equal(fetch.calls.length, 0);
+		assert.deepEqual(gitMock.calls, []);
+	});
+
 	providerCases.forEach((test) => {
 		it(`uses the default branch hash when HEAD is missing for ${test.site}`, async () => {
 			clearArchiveCache(suiteCache, test);

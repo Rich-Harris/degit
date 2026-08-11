@@ -70,20 +70,6 @@ async function createArchiveSource(dir: string, repo: Repo, hash: string): Promi
 	};
 }
 
-function createFatalTarError(
-	code: string,
-	message: string,
-	data: { code?: string },
-): Error | undefined {
-	if (code === 'TAR_BAD_ARCHIVE' || code === 'TAR_ABORT') {
-		const maybeMessage = message as unknown;
-		const error = maybeMessage instanceof Error ? maybeMessage : new Error(String(message));
-		(error as { code?: string }).code = data.code ?? code;
-		return error;
-	}
-	return undefined;
-}
-
 // eslint-disable-next-line max-lines-per-function
 async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) {
 	const subdir = context.repo.subdir?.split('/').filter(Boolean).join('/');
@@ -102,7 +88,11 @@ async function resolveArchiveSubdir(context: TarContext, source: ArchiveSource) 
 					members.push(entry.path);
 				},
 				onwarn: (code, message, data) => {
-					fatalWarning = createFatalTarError(code, message, data) ?? fatalWarning;
+					if (code === 'TAR_BAD_ARCHIVE' || code === 'TAR_ABORT') {
+						fatalWarning = new Error(message);
+						(fatalWarning as { code?: string }).code =
+							(data as { code?: string }).code ?? code;
+					}
 				},
 			});
 			if (fatalWarning) {
@@ -218,7 +208,10 @@ async function withArchiveRetry(
 	} catch (error) {
 		const code = (error as { code?: string }).code;
 		const isRetryableArchiveError =
-			typeof code === 'string' && /^(TAR_BAD_ARCHIVE|TAR_ABORT|ZLIB_ERROR|Z_)/u.test(code);
+			typeof code === 'string' &&
+			/^(TAR_BAD_ARCHIVE|TAR_ABORT|ZLIB_ERROR|Z_(BUF|DATA|STREAM|MEM|VERSION)_ERROR)$/u.test(
+				code,
+			);
 		if (!isRetryableArchiveError) {
 			throw error;
 		}
