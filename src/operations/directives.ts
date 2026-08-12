@@ -54,10 +54,17 @@ async function cloneDirective(
 		context.hasStashed = true;
 	}
 
+	const files = action.files
+		? Array.isArray(action.files)
+			? action.files
+			: [action.files]
+		: undefined;
+
 	const child = createChild(action.src, {
 		aliases: context.aliases,
 		cache: action.cache,
 		fetch: context.fetch,
+		files,
 		force: true,
 		git: await context.getGitClient(),
 		verbose: action.verbose,

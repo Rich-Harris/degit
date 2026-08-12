@@ -26,6 +26,7 @@ type Choice = {
 type CliArgs = {
 	_: string[];
 	cache?: boolean;
+	files?: string | string[] | boolean;
 	force?: boolean;
 	help?: boolean;
 	mode?: string;
@@ -46,6 +47,7 @@ type ForceResult = {
 type RunArgs = {
 	aliases?: Record<string, string>;
 	cache?: boolean;
+	files?: string[];
 	force?: boolean;
 	mode?: string;
 	verbose?: boolean;
@@ -57,11 +59,13 @@ function parseCliArgs(argv: string[]) {
 		alias: {
 			c: 'cache',
 			f: 'force',
+			F: 'files',
 			m: 'mode',
 			v: 'verbose',
 			V: 'version',
 		},
 		boolean: ['force', 'cache', 'verbose', 'version'],
+		string: ['files', 'mode'],
 	}) as CliArgs;
 }
 
@@ -178,6 +182,19 @@ async function handleInteractiveClone() {
 	});
 }
 
+function normalizeFiles(files: string | string[] | boolean | undefined): string[] | undefined {
+	if (typeof files !== 'string' && !Array.isArray(files)) {
+		return undefined;
+	}
+
+	const list = Array.isArray(files) ? files : [files];
+	const result = list
+		.flatMap((file) => file.split(','))
+		.map((file) => file.trim())
+		.filter(Boolean);
+	return result.length > 0 ? result : undefined;
+}
+
 export async function main(argv: string[]) {
 	const args = parseCliArgs(argv);
 
@@ -214,7 +231,8 @@ export async function main(argv: string[]) {
 	}
 
 	const aliases = loadAliases();
-	run(resolveAlias(aliases, src) ?? src, dest, { ...args, aliases });
+	const files = normalizeFiles(args.files);
+	run(resolveAlias(aliases, src) ?? src, dest, { ...args, aliases, files });
 }
 
 /* eslint-enable security/detect-non-literal-fs-filename */

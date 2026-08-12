@@ -106,6 +106,10 @@ describe('degit bin', () => {
 		}
 	}
 
+	async function runMainWithFiles(argv: string[]) {
+		await main(['node', 'bin', 'a/b', 'dest', ...argv]);
+	}
+
 	async function captureMainStdout(args: string[]): Promise<string> {
 		const chunks: string[] = [];
 		const orig = process.stdout.write.bind(process.stdout);
@@ -293,6 +297,36 @@ describe('degit bin', () => {
 		} finally {
 			warnSpy.mockRestore();
 		}
+	});
+
+	it('forwards --files as a string array when argv passes a comma-separated list', async () => {
+		await runMainWithFiles(['--files', 'README.md,src/index.ts']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.deepEqual(mockDegit.mock.calls[0][1].files, ['README.md', 'src/index.ts']);
+	});
+
+	it('forwards -F as a string array when the short flag is used with commas', async () => {
+		await runMainWithFiles(['-F', 'README.md,src/index.ts']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.deepEqual(mockDegit.mock.calls[0][1].files, ['README.md', 'src/index.ts']);
+	});
+
+	it('forwards repeated -F flags as a single string array when argv repeats the flag', async () => {
+		await runMainWithFiles(['-F', 'README.md', '-F', 'src/index.ts']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.deepEqual(mockDegit.mock.calls[0][1].files, ['README.md', 'src/index.ts']);
+	});
+
+	it('trims and drops empty entries when argv has extra commas and whitespace', async () => {
+		await runMainWithFiles(['--files', ' README.md,, src/index.ts ']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.deepEqual(mockDegit.mock.calls[0][1].files, ['README.md', 'src/index.ts']);
+	});
+
+	it('ignores a bare --files flag when no value is provided', async () => {
+		await runMainWithFiles(['--files']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.equal(mockDegit.mock.calls[0][1].files, undefined);
 	});
 
 	it('exits with status 1 when the clone promise rejects', async () => {

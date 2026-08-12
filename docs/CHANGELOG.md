@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Redownload cached tar archives when extraction fails with any tar/zlib error, not only `TAR_BAD_ARCHIVE` ([#41](https://github.com/Rich-Harris/degit/issues/41)).
+- Added `files` option to clone only specific files or directories ([#129](https://github.com/Rich-Harris/degit/issues/129)).
 
 ## 3.6.6
 

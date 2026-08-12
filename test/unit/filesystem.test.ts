@@ -1,16 +1,24 @@
+/* eslint-disable max-lines */
 import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'vitest';
-import { getDirectives } from '../../src/operations/filesystem.js';
+import { getDirectives, keepFiles } from '../../src/operations/filesystem.js';
+import type { EventInfo } from '../../src/domain/types.js';
 
 function makeTempWorkspace() {
 	return fs.mkdtempSync(path.join(os.tmpdir(), 'degit-filesystem-'));
 }
 
+function runKeepFiles(root: string, files: string[] | undefined) {
+	const warnings: EventInfo[] = [];
+	keepFiles(root, files, (info) => warnings.push(info));
+	return warnings;
+}
+
 /* eslint-disable max-lines-per-function */
-describe('getDirectives', () => {
+describe('filesystem', () => {
 	it('loads and removes directives when degit.json is a regular JSON file', () => {
 		const root = makeTempWorkspace();
 		const directives = [{ action: 'remove', files: 'LICENSE' }];
@@ -94,6 +102,193 @@ describe('getDirectives', () => {
 
 			assert.equal(getDirectives(root), false);
 			assert.equal(fs.readFileSync(directivesPath, 'utf8'), '{}');
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('keeps listed files when files contains file paths', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+			fs.writeFileSync(path.join(root, 'package.json'), '{}');
+
+			const warnings = runKeepFiles(root, ['README.md']);
+
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), true);
+			assert.equal(fs.existsSync(path.join(root, 'package.json')), false);
+			assert.deepEqual(warnings, []);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('keeps a listed directory and its descendants when files contains a directory path', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+			fs.writeFileSync(path.join(root, 'src', 'index.ts'), 'index');
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+
+			const warnings = runKeepFiles(root, ['src']);
+
+			assert.equal(fs.existsSync(path.join(root, 'src', 'index.ts')), true);
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), false);
+			assert.deepEqual(warnings, []);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('warns and skips a path that escapes the destination when files contains a path outside the destination', () => {
+		const workspace = makeTempWorkspace();
+		const root = path.join(workspace, 'dest');
+
+		try {
+			fs.mkdirSync(root, { recursive: true });
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+
+			const warnings = runKeepFiles(root, ['../outside']);
+
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), true);
+			assert.equal(warnings.length, 2);
+			assert.equal(warnings[0].code, 'FILE_OUTSIDE_DEST');
+			assert.match(warnings[0].message, /\.\.\/outside/u);
+			assert.equal(warnings[1].code, 'NO_FILES_MATCHED');
+		} finally {
+			fs.rmSync(workspace, { force: true, recursive: true });
+		}
+	});
+
+	it('warns and skips a missing file when files contains a path that does not exist', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+
+			const warnings = runKeepFiles(root, ['missing.txt']);
+
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), true);
+			assert.equal(warnings.length, 2);
+			assert.equal(warnings[0].code, 'FILE_DOES_NOT_EXIST');
+			assert.match(warnings[0].message, /missing\.txt/u);
+			assert.equal(warnings[1].code, 'NO_FILES_MATCHED');
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('preserves nested files inside a kept directory when a directory is listed', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.mkdirSync(path.join(root, 'src', 'nested'), { recursive: true });
+			fs.writeFileSync(path.join(root, 'src', 'nested', 'file.ts'), 'nested');
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+
+			const warnings = runKeepFiles(root, ['src']);
+
+			assert.equal(fs.existsSync(path.join(root, 'src', 'nested', 'file.ts')), true);
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), false);
+			assert.deepEqual(warnings, []);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('preserves parent directories of kept files while deleting sibling files when a file inside the directory is kept', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+			fs.writeFileSync(path.join(root, 'src', 'keep.ts'), 'keep');
+			fs.writeFileSync(path.join(root, 'src', 'drop.ts'), 'drop');
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+
+			const warnings = runKeepFiles(root, ['src/keep.ts']);
+
+			assert.equal(fs.existsSync(path.join(root, 'src', 'keep.ts')), true);
+			assert.equal(fs.existsSync(path.join(root, 'src', 'drop.ts')), false);
+			assert.equal(fs.existsSync(path.join(root, 'src')), true);
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), false);
+			assert.deepEqual(warnings, []);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('preserves a regular top-level degit.json when files is provided', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+			fs.writeFileSync(path.join(root, 'package.json'), '{}');
+			fs.writeFileSync(path.join(root, 'degit.json'), 'not valid');
+
+			const warnings = runKeepFiles(root, ['README.md']);
+
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), true);
+			assert.equal(fs.existsSync(path.join(root, 'degit.json')), true);
+			assert.equal(fs.existsSync(path.join(root, 'package.json')), false);
+			assert.deepEqual(warnings, []);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('keeps the whole destination and warns when no requested files resolve', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+			fs.writeFileSync(path.join(root, 'package.json'), '{}');
+
+			const warnings = runKeepFiles(root, ['missing.txt']);
+
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), true);
+			assert.equal(fs.existsSync(path.join(root, 'package.json')), true);
+			assert.equal(warnings.length, 2);
+			assert.equal(warnings[0].code, 'FILE_DOES_NOT_EXIST');
+			assert.equal(warnings[1].code, 'NO_FILES_MATCHED');
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('keeps listed symlinks without following them when files contains symlinks', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+			fs.writeFileSync(path.join(root, 'src', 'file.ts'), 'file');
+			fs.writeFileSync(path.join(root, 'keep.txt'), 'keep');
+			fs.symlinkSync('src', path.join(root, 'dir-link'));
+			fs.symlinkSync('keep.txt', path.join(root, 'file-link'));
+
+			const warnings = runKeepFiles(root, ['dir-link', 'file-link']);
+
+			assert.equal(fs.lstatSync(path.join(root, 'dir-link')).isSymbolicLink(), true);
+			assert.equal(fs.lstatSync(path.join(root, 'file-link')).isSymbolicLink(), true);
+			assert.equal(fs.existsSync(path.join(root, 'src')), false);
+			assert.equal(fs.existsSync(path.join(root, 'keep.txt')), false);
+			assert.deepEqual(warnings, []);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('leaves the destination unchanged when files is undefined', () => {
+		const root = makeTempWorkspace();
+
+		try {
+			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
+
+			const warnings = runKeepFiles(root, undefined);
+
+			assert.equal(fs.existsSync(path.join(root, 'README.md')), true);
+			assert.deepEqual(warnings, []);
 		} finally {
 			fs.rmSync(root, { force: true, recursive: true });
 		}

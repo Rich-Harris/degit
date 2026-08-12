@@ -31,8 +31,8 @@ afterEach(() => {
 	delete process.env.PROJECT_NAME;
 });
 
-/* eslint-disable max-lines-per-function */
-describe('search_replace', () => {
+/* eslint-disable max-lines, max-lines-per-function */
+describe('directives', () => {
 	it('replaces every match in targeted files when the env var exists', async () => {
 		const root = makeTempWorkspace('search-replace-');
 		const dest = path.join(root, 'dest');
@@ -179,5 +179,43 @@ describe('search_replace', () => {
 			fs.rmSync(root, { force: true, recursive: true });
 		}
 	});
+
+	async function runCloneDirective(files: string | string[]): Promise<string[] | undefined> {
+		const root = makeTempWorkspace('clone-');
+		const dest = path.join(root, 'dest');
+		const { context, createChild } = makeDispatcher();
+
+		try {
+			fs.mkdirSync(dest, { recursive: true });
+
+			await applyDirectives(
+				context as never,
+				[
+					{
+						action: 'clone',
+						src: 'user/another-repo',
+						files,
+					},
+				],
+				root,
+				dest,
+				createChild,
+			);
+
+			return createChild.mock.calls[0][1].files;
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	}
+
+	it('passes files to the child clone when the clone directive lists files', async () => {
+		const files = await runCloneDirective(['README.md', 'src/index.ts']);
+		assert.deepEqual(files, ['README.md', 'src/index.ts']);
+	});
+
+	it('passes a single files value as an array when the clone directive uses a string', async () => {
+		const files = await runCloneDirective('README.md');
+		assert.deepEqual(files, ['README.md']);
+	});
 });
-/* eslint-enable max-lines-per-function */
+/* eslint-enable max-lines, max-lines-per-function */

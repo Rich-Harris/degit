@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import colors from 'yoctocolors';
@@ -11,6 +12,7 @@ import {
 	checkDirIsEmpty,
 	copyRepoSubdir,
 	getDirectives,
+	keepFiles,
 	removeFiles,
 } from '../operations/filesystem.js';
 import { cloneWithTar as cloneWithTarMode } from '../transports/tar/archive.js';
@@ -33,6 +35,7 @@ function cloneSuccessMessage(user: string, name: string, ref: string, dest: stri
 export class Degit {
 	aliases: Record<string, string>;
 	cache?: boolean;
+	files?: string[];
 	force?: boolean;
 	mode: ValidModes;
 	verbose?: boolean;
@@ -49,6 +52,7 @@ export class Degit {
 	constructor(src: string, opts: ConstructorOptions = {}) {
 		this.aliases = opts.aliases ?? {};
 		this.cache = opts.cache;
+		this.files = opts.files;
 		this.force = opts.force;
 		this.verbose = opts.verbose;
 		this.proxy = process.env.https_proxy;
@@ -94,6 +98,7 @@ export class Degit {
 	async clone(dest: string): Promise<void> {
 		checkDirIsEmpty(dest, this.force, this.info.bind(this), this.verboseInfo.bind(this));
 		await this.cloneToDestination(dest);
+		keepFiles(dest, this.files, this.warn.bind(this));
 		this.info({
 			code: 'SUCCESS',
 			dest,
