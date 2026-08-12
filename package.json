@@ -13,6 +13,9 @@
 	},
 	"license": "MIT",
 	"author": "Rich Harris",
+	"maintainers": [
+		"YogliB <me@yogev.dev>"
+	],
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/Rich-Harris/degit.git"
