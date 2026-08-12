@@ -1,4 +1,4 @@
-# degit — straightforward project scaffolding
+# degit — straightforward project scaffolding
 
 [![Known Vulnerabilities](https://snyk.io/test/npm/degit/badge.svg)](https://snyk.io/test/npm/degit)
 [![install size](https://badgen.net/packagephobia/install/degit)](https://packagephobia.now.sh/result?p=degit)
@@ -6,28 +6,13 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v3.0%20adopted-ff69b4.svg)](docs/CODE_OF_CONDUCT.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-**degit** makes copies of git repositories. When you run `degit some-user/some-repo`, it will find the latest commit on https://github.com/some-user/some-repo and download the associated tar file to the platform-appropriate cache directory if it doesn't already exist locally. On Linux/BSD this follows `XDG_CACHE_HOME` when set and otherwise uses `~/.cache/degit`; on macOS it uses `~/Library/Caches/degit`; on Windows it uses `%LOCALAPPDATA%\degit`. (This is much quicker than using `git clone`, because you're not downloading the entire git history.)
-degit resolves refs through an internal git backend, downloads tar snapshots by default, and falls back to SSH cloning when tarball fetches or extraction fail. Public HTTPS sources do not need a local `git` binary on your `PATH`, but SSH/private repositories still do.
+**degit** makes copies of git repositories. When you run `degit some-user/some-repo`, it finds the latest commit on https://github.com/some-user/some-repo and downloads the associated tar file to the platform-appropriate cache directory if it doesn't already exist locally. (This is much quicker than using `git clone`, because you're not downloading the entire git history.)
+
+`degit` resolves refs through an internal git backend, downloads tar snapshots by default, and falls back to SSH cloning when tarball fetches or extraction fail. Public HTTPS sources do not need a local `git` binary on your `PATH`, but SSH/private repositories still do.
 
 ## Requirements
 
 - Node.js **20** or later (see `engines` in `package.json`)
-- [Bun](https://bun.sh) **1.3.14** when developing this repository (see `packageManager` in `package.json`)
-
-End users can still install the published package with npm (`npm install -g degit`). For a dev clone of this repo, use Bun so the lockfile and `bunfig.toml` apply; `minimumReleaseAge` is set to 14 days so installs skip very fresh publishes.
-
-```bash
-git clone https://github.com/Rich-Harris/degit.git
-cd degit
-bun install
-bun run build
-```
-
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for how to contribute. [docs/SECURITY.md](docs/SECURITY.md) explains how to report vulnerabilities. [AGENTS.md](AGENTS.md) summarizes setup and commands for tooling and coding agents. When verifying production CLI bugs, reproduce with the published package (for example `npx degit@latest ...`) rather than running the raw repository source directly. When you change development workflow, CI, or contributor-facing instructions, update **README.md**, **docs/CONTRIBUTING.md**, and **AGENTS.md** together so they stay consistent.
-
-`bun run test` runs the unit tests in `test/unit/**/*.test.ts` and the public integration tests in `test/integration/public.test.ts`, excluding `test/integration/private.test.ts`. Use `bun run test:integration` for the integration suite.
-
-`bun run perf:ci` runs the fixture-backed performance gate that CI uses to catch clone regressions.9
 
 ## Installation
 
@@ -35,215 +20,66 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for how to contribute. [docs/SE
 npm install -g degit
 ```
 
-## Agent skill
+## Quick start
 
-This repository includes a reusable [degit skill](skills/degit/SKILL.md) for agents that support `SKILL.md` files. Add it using your agent's skill installation flow, then ask the agent to download a repository or template. The skill helps it choose a source, ref, and destination; handle private repositories and aliases; and avoid overwriting a non-empty destination without confirmation.
-
-## Usage
-
-### Basics
-
-The simplest use of degit is to download the default branch of a repo from GitHub to the current working directory:
+Download the default branch of a GitHub repo to the current directory:
 
 ```bash
 degit user/repo
-
-# these commands are equivalent
-degit github:user/repo
-degit git@github.com:user/repo
-degit https://github.com/user/repo
 ```
 
-Or you can download from GitLab and BitBucket:
-
-```bash
-# download from GitLab
-degit gitlab:user/repo
-degit git@gitlab.com:user/repo
-degit https://gitlab.com/user/repo
-
-# download from BitBucket
-degit bitbucket:user/repo
-degit git@bitbucket.org:user/repo
-degit https://bitbucket.org/user/repo
-
-# download from Sourcehut
-degit git.sr.ht/user/repo
-degit git@git.sr.ht:user/repo
-degit https://git.sr.ht/user/repo
-```
-
-### Specify a tag, branch or commit
-
-When you omit a ref, degit uses the repository's default branch.
-
-```bash
-degit user/repo#dev       # branch
-degit user/repo#v1.2.3    # release tag
-degit user/repo#1234abcd  # commit hash
-```
-
-### Create a new folder for the project
-
-If the second argument is omitted, the repo will be cloned to the current directory.
+Download to a new folder:
 
 ```bash
 degit user/repo my-new-project
 ```
 
-### Specify a subdirectory
-
-To clone a specific subdirectory instead of the entire repo, just add it to the argument:
-
-```bash
-degit user/repo/subdirectory
-```
-
-You can also paste a full GitHub URL to a subdirectory:
-
-```bash
-degit https://github.com/user/repo/tree/main/subdirectory
-```
-
-### Clone specific files
-
-To clone only specific files or directories, use `--files` or `-F`. Separate paths with commas or repeat the flag:
+Download only specific files:
 
 ```bash
 degit user/repo my-project --files README.md,src/index.ts
-degit user/repo my-project -F README.md -F src/index.ts
 ```
 
-You can also use the `files` option with the ESM API:
-
-```js
-const emitter = degit('user/repo', {
-	files: ['README.md', 'src/index.ts'],
-});
-```
-
-Paths are resolved relative to the destination. Missing or out-of-bounds paths are skipped with a warning; if no requested paths resolve, the whole destination is kept.
-
-### GitLab nested groups
-
-GitLab repositories inside nested groups are supported at runtime:
+Use a specific tag, branch, or commit:
 
 ```bash
-degit gitlab:gitlab-org/frontend/utils#v0.3.4
+degit user/repo#v1.0.0
 ```
 
-degit first tries the two-segment `user/repo` interpretation, so `user/repo/subdir` still means "clone `user/repo` and extract `subdir`". If that combination does not exist, it falls back to treating the path as a nested GitLab group.
+For the full CLI reference, ESM API, and `degit.json` actions, see [docs/USAGE.md](docs/USAGE.md).
 
-### HTTPS proxying
+## Why not just `git clone --depth 1`?
 
-If you have an `https_proxy` environment variable, Degit will use it.
+- No leftover `.git` folder from the template.
+- Caches tar archives for offline reuse.
+- Less to type (`degit user/repo` versus `git clone --depth 1 ...`).
+- Composable post-clone actions via `degit.json`.
+- Built-in support for subdirectories, file filtering, and aliases.
 
-### Cache behavior
+## Agent skill
 
-degit caches downloaded tar snapshots so you don't need to fetch them again. By default, it tries to resolve the latest ref from the network and falls back to the cached version if the network is unreachable. Use `--cache` (`-c`) to skip the network request entirely and only use a locally cached copy.
-
-### Private repositories
-
-Private repositories are handled automatically. degit uses the tarball path by default for HTTPS sources and falls back to SSH cloning when it cannot fetch or extract a snapshot.
-
-SSH/private repositories still require `git` on your `PATH`.
-
-If you still pass `--mode=git`, degit keeps working and prints a notice that the flag is no longer needed. `--mode=tar` is the default path.
-
-### See all options
+Install the reusable `degit` skill for agents that support `SKILL.md` files:
 
 ```bash
-degit --help
+# project-level install
+npx skills add Rich-Harris/degit --skill degit
+
+# global install
+npx skills add Rich-Harris/degit --skill degit -g
 ```
 
-Pull requests are very welcome!
+Then ask the agent to download a repository or template. The skill helps it choose a source, ref, and destination; handle private repositories and aliases; and avoid overwriting a non-empty destination without confirmation.
 
-## Wait, isn't this just `git clone --depth 1`?
+See [skills/degit/SKILL.md](skills/degit/SKILL.md) for the full skill instructions.
 
-A few salient differences:
+## Documentation
 
-- If you `git clone`, you get a `.git` folder that pertains to the project template, rather than your project. You can easily forget to re-init the repository, and end up confusing yourself
-- Caching and offline support (if you already have a `.tar.gz` file for a specific commit, you don't need to fetch it again).
-- Less to type (`degit user/repo` instead of `git clone --depth 1 ssh://git@github.com/user/repo`)
-- Composability via [actions](#actions)
-- Future capabilities — [interactive mode](https://github.com/Rich-Harris/degit/issues/4), [friendly onboarding and postinstall scripts](https://github.com/Rich-Harris/degit/issues/6)
-
-## ESM API
-
-You can also use degit inside a Node script:
-
-```js
-import degit from 'degit';
-
-const emitter = degit('user/repo', {
-	cache: true,
-	force: true,
-	verbose: true,
-});
-
-emitter.on('info', (info) => {
-	console.log(info.message);
-});
-
-emitter.clone('path/to/dest').then(() => {
-	console.log('done');
-});
-```
-
-## Actions
-
-You can manipulate repositories after they have been cloned with _actions_, specified in a `degit.json` file that lives at the top level of the working directory. Currently, there are three actions — `clone`, `search_replace`, and `remove`. Additional actions may be added in future.
-
-A [JSON Schema](schemas/degit.schema.json) is available for editor autocompletion and validation; map `degit.json` to it in your editor's JSON schema settings (e.g. VS Code's `json.schemas`).
-
-### clone
-
-```json
-// degit.json
-[
-	{
-		"action": "clone",
-		"src": "user/another-repo"
-	},
-	{
-		"action": "clone",
-		"src": "user/another-repo",
-		"files": ["README.md", "src/index.ts"]
-	}
-]
-```
-
-This will clone `user/another-repo`, preserving the contents of the existing working directory. This allows you to, say, add a new README.md or starter file to a repo that you do not control. The cloned repo can contain its own `degit.json` actions.
-
-### search_replace
-
-```json
-// degit.json
-[
-	{
-		"action": "search_replace",
-		"files": ["package.json", "README.md"],
-		"pattern": "\\{\\{project_name\\}\\}",
-		"replacement": "PROJECT_NAME"
-	}
-]
-```
-
-This replaces every match of the regular expression in the listed files using the value of the named environment variable. `files` can be a single path or an array of paths, and each path is resolved relative to the destination. Paths outside the destination are skipped.
-
-### remove
-
-```json
-// degit.json
-[
-	{
-		"action": "remove",
-		"files": ["LICENSE"]
-	}
-]
-```
-
-Remove a file at the specified path.
+- [docs/USAGE.md](docs/USAGE.md) — full CLI reference, ESM API, and `degit.json` actions
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — contributing, development setup, and CI checks
+- [docs/SECURITY.md](docs/SECURITY.md) — security policy and reporting process
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — repository architecture and data flow
+- [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) — community expectations
+- [docs/CHANGELOG.md](docs/CHANGELOG.md) — release notes
 
 ## See also
 

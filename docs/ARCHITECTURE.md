@@ -47,6 +47,7 @@ The repository is intentionally small. The source of truth for behavior lives in
 ├── docs/
 │   ├── ARCHITECTURE.md    # Repository overview and structure
 │   ├── CHANGELOG.md       # Release notes
+│   ├── USAGE.md           # User-facing CLI and API guide
 │   ├── CODE_OF_CONDUCT.md # Community expectations
 │   ├── CONTRIBUTING.md    # Contributor workflow and validation commands
 │   ├── SECURITY.md        # Security policy and reporting process

@@ -24,6 +24,7 @@
 		"assets/help.md",
 		"dist",
 		"docs/CHANGELOG.md",
+		"docs/USAGE.md",
 		"LICENSE.md",
 		"README.md",
 		"schemas"

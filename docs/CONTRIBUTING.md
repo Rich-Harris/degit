@@ -183,7 +183,7 @@ Test names should describe behavior in the form `it('X when Y')`, so the action 
 
 ### Improving The Documentation
 
-Documentation lives in the repository root (`README.md`, `AGENTS.md`, `LICENSE.md`) and in `docs/` (`ARCHITECTURE.md`, `CHANGELOG.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`), plus `assets/help.md` for the published CLI help text. Typos, clarifications, and examples that match current behavior are welcome as pull requests.
+Documentation lives in the repository root (`README.md`, `AGENTS.md`, `LICENSE.md`) and in `docs/` (`ARCHITECTURE.md`, `CHANGELOG.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, `USAGE.md`), plus `assets/help.md` for the published CLI help text. Typos, clarifications, and examples that match current behavior are welcome as pull requests.
 
 `AGENTS.md` is the agent-oriented index and command reference; it must stay aligned with the human docs and with reality (`package.json`, `.github/workflows`, `vitest.config.ts`, and so on). When your change updates how the repo is developed, tested, released, or explained to contributors, update **every** affected doc in the same pull request so nothing drifts.
 
