@@ -105,6 +105,25 @@ You can also paste a full GitHub URL to a subdirectory:
 degit https://github.com/user/repo/tree/main/subdirectory
 ```
 
+### Clone specific files
+
+To clone only specific files or directories, use `--files` or `-F`. Separate paths with commas or repeat the flag:
+
+```bash
+degit user/repo my-project --files README.md,src/index.ts
+degit user/repo my-project -F README.md -F src/index.ts
+```
+
+You can also use the `files` option with the ESM API:
+
+```js
+const emitter = degit('user/repo', {
+	files: ['README.md', 'src/index.ts'],
+});
+```
+
+Paths are resolved relative to the destination. Missing or out-of-bounds paths are skipped with a warning; if no requested paths resolve, the whole destination is kept.
+
 ### GitLab nested groups
 
 GitLab repositories inside nested groups are supported at runtime:
@@ -185,6 +204,11 @@ A [JSON Schema](schemas/degit.schema.json) is available for editor autocompletio
 	{
 		"action": "clone",
 		"src": "user/another-repo"
+	},
+	{
+		"action": "clone",
+		"src": "user/another-repo",
+		"files": ["README.md", "src/index.ts"]
 	}
 ]
 ```

@@ -1,8 +1,10 @@
+/* eslint-disable max-lines */
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import degit from '../../src/index.js';
 import { generateGitlabRepoCandidates, parse } from '../../src/domain/repo.js';
+import { Degit } from '../../src/core/orchestrator.js';
 import { providerCases } from './index-support.js';
 
 const { suiteCache, suiteTmp } = vi.hoisted(() => ({
@@ -293,6 +295,64 @@ describe('degit index', () => {
 
 		assert.equal(candidates.length, 1);
 		assert.equal(candidates[0], repo);
+	});
+
+	async function withCloneFiles(
+		files: string[],
+		setup: (target: string) => void,
+		assertions: (dest: string) => void,
+	) {
+		fs.mkdirSync(suiteTmp, { recursive: true });
+		const dest = fs.mkdtempSync(path.join(suiteTmp, 'files-'));
+		const stub = vi
+			.spyOn(Degit.prototype as any, 'cloneToDestination')
+			.mockImplementation((target: string) => {
+				setup(target);
+				return Promise.resolve();
+			});
+
+		try {
+			await degit('Rich-Harris/degit-test-repo', { force: true, files }).clone(dest);
+			assertions(dest);
+		} finally {
+			stub.mockRestore();
+			fs.rmSync(suiteTmp, { force: true, recursive: true });
+		}
+	}
+
+	it('keeps only the requested files and degit.json when the clone finishes', async () => {
+		await withCloneFiles(
+			['README.md'],
+			(target) => {
+				fs.writeFileSync(path.join(target, 'README.md'), 'readme');
+				fs.writeFileSync(path.join(target, 'package.json'), '{}');
+				fs.writeFileSync(path.join(target, 'degit.json'), 'not an array');
+			},
+			(dest) => {
+				assert.equal(fs.existsSync(path.join(dest, 'README.md')), true);
+				assert.equal(fs.existsSync(path.join(dest, 'package.json')), false);
+				assert.equal(fs.existsSync(path.join(dest, 'degit.json')), true);
+			},
+		);
+	});
+
+	it('applies remove directives to kept files when files includes the removed path', async () => {
+		await withCloneFiles(
+			['README.md', 'package.json'],
+			(target) => {
+				fs.writeFileSync(path.join(target, 'README.md'), 'readme');
+				fs.writeFileSync(path.join(target, 'package.json'), '{}');
+				fs.writeFileSync(
+					path.join(target, 'degit.json'),
+					JSON.stringify([{ action: 'remove', files: 'package.json' }]),
+				);
+			},
+			(dest) => {
+				assert.equal(fs.existsSync(path.join(dest, 'README.md')), true);
+				assert.equal(fs.existsSync(path.join(dest, 'package.json')), false);
+				assert.equal(fs.existsSync(path.join(dest, 'degit.json')), false);
+			},
+		);
 	});
 });
 /* eslint-enable max-lines-per-function */

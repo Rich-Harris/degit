@@ -28,6 +28,10 @@
 					"type": "boolean",
 					"description": "Use a cached version of the repository if available."
 				},
+				"files": {
+					"$ref": "#/$defs/files",
+					"description": "Only keep these files or directories from the cloned repository."
+				},
 				"verbose": {
 					"type": "boolean",
 					"description": "Show extra information about the clone."

@@ -13,6 +13,7 @@ export type ConstructorOptions = {
 	aliases?: Record<string, string>;
 	cache?: boolean;
 	fetch?: FetchFn;
+	files?: string[];
 	force?: boolean;
 	git?: GitClient;
 	mode?: 'tar' | 'git';
@@ -23,6 +24,7 @@ export type InfoCode =
 	| 'SUCCESS'
 	| 'FILE_DOES_NOT_EXIST'
 	| 'FILE_OUTSIDE_DEST'
+	| 'NO_FILES_MATCHED'
 	| 'REMOVED'
 	| 'DEST_NOT_EMPTY'
 	| 'DEST_IS_EMPTY'
@@ -64,6 +66,7 @@ export type Directive =
 	| {
 			action: 'clone';
 			cache?: boolean;
+			files?: string | string[];
 			src: string;
 			verbose?: boolean;
 	  }
