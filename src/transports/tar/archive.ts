@@ -1,7 +1,7 @@
 import { constants, cp, mkdtemp, readFile, readdir, rm, access } from 'node:fs/promises';
 import path from 'node:path';
 import * as tar from 'tar';
-import { getProvider, type Repo } from '../../domain/repo.js';
+import { providerArchiveTemplates, type Repo } from '../../domain/repo.js';
 import { readCachedRefs, updateCache } from './cache.js';
 import { DegitError, mkdirp } from '../../shared/utils.js';
 import type { EventInfo, FetchFn } from '../../domain/types.js';
@@ -55,17 +55,10 @@ async function resolveArchiveHash(
 }
 
 async function createArchiveSource(dir: string, repo: Repo, hash: string): Promise<ArchiveSource> {
-	const provider = getProvider(repo.site);
-	if (!provider) {
-		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
-			code: 'UNSUPPORTED_HOST',
-		});
-	}
-
 	return {
 		file: path.join(dir, `${hash}.tar.gz`),
 		subdir: null,
-		url: provider.archiveUrl(repo, hash),
+		url: providerArchiveTemplates[repo.site](repo, hash),
 		workDir: await mkdtemp(path.join(dir, 'extract-')),
 	};
 }
@@ -176,8 +169,19 @@ async function extractArchive(context: TarContext, source: ArchiveSource, dest: 
 			message: `extracting ${source.subdir ? `${context.repo.subdir} from ` : ''}${source.file} to ${source.workDir}`,
 		});
 
+		const [strip, files] = source.subdir
+			? [source.subdir.split('/').length, [source.subdir]]
+			: [1, []];
+
 		await withArchiveRetry(context, source, () =>
-			untar(source.file, source.workDir, source.subdir),
+			tar.extract(
+				{
+					C: source.workDir,
+					file: source.file,
+					strip,
+				},
+				files,
+			),
 		);
 		const hasPointers = await hasGitLfsPointers(source.workDir);
 		if (!hasPointers) {
@@ -254,17 +258,6 @@ export async function cloneWithTar(context: TarContext, dir: string, dest: strin
 	}
 
 	await updateCache(dir, context.repo, hash, cached);
-}
-
-function untar(file: string, dest: string, subdir: string | null = null) {
-	return tar.extract(
-		{
-			C: dest,
-			file,
-			strip: subdir ? subdir.split('/').length : 1,
-		},
-		subdir ? [subdir] : [],
-	);
 }
 
 async function hasGitLfsPointers(dir: string): Promise<boolean> {

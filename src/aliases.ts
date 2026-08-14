@@ -1,17 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import colors from 'yoctocolors';
-import { base, mkdirp } from './shared/utils.js';
+import { base, mkdirp, tryReadJson } from './shared/utils.js';
 
 export const aliasesFile = path.join(base, 'aliases.json');
 
 /* eslint-disable security/detect-non-literal-fs-filename */
 export function loadAliases(): Record<string, string> {
-	try {
-		return JSON.parse(fs.readFileSync(aliasesFile, 'utf8')) as Record<string, string>;
-	} catch {
-		return {};
-	}
+	return (tryReadJson(aliasesFile) as Record<string, string>) ?? {};
 }
 
 function writeAliases(aliases: Record<string, string>) {
@@ -21,7 +17,8 @@ function writeAliases(aliases: Record<string, string>) {
 /* eslint-enable security/detect-non-literal-fs-filename */
 
 export function resolveAlias(aliases: Record<string, string>, name: string): string | undefined {
-	return Object.entries(aliases).find(([key]) => key === name)?.[1];
+	// oxlint-disable-next-line security/detect-object-injection
+	return Object.hasOwn(aliases, name) ? aliases[name] : undefined;
 }
 
 export function saveAlias(name: string, repo: string) {
@@ -37,12 +34,13 @@ export function removeAlias(name: string): boolean {
 		return false;
 	}
 
-	const updated = Object.fromEntries(Object.entries(aliases).filter(([key]) => key !== name));
+	// oxlint-disable-next-line security/detect-object-injection
+	delete aliases[name];
 
-	if (Object.keys(updated).length === 0) {
+	if (Object.keys(aliases).length === 0) {
 		fs.rmSync(aliasesFile, { force: true });
 	} else {
-		writeAliases(updated);
+		writeAliases(aliases);
 	}
 
 	return true;

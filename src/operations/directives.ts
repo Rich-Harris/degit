@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import colors from 'yoctocolors';
-import { stashFiles, unstashFiles } from '../shared/utils.js';
+import { safeResolve, stashFiles, unstashFiles } from '../shared/utils.js';
 import type { GitClient } from '../domain/types.js';
 import type {
 	CloneDirective,
@@ -107,11 +107,10 @@ export async function applyDirectives(
 	dest: string,
 	createChild: (src: string, opts: ConstructorOptions) => ChildDegit,
 ) {
-	await directives.reduce(
-		(previous, directive) =>
-			previous.then(() => runDirective(context, directive, dir, dest, createChild)),
-		Promise.resolve(),
-	);
+	for (const directive of directives) {
+		// oxlint-disable-next-line eslint/no-await-in-loop
+		await runDirective(context, directive, dir, dest, createChild);
+	}
 
 	if (context.hasStashed) {
 		unstashFiles(dir, dest);
@@ -155,10 +154,8 @@ function replaceFile(
 	replacement: string,
 	warn: (info: EventInfo) => void,
 ) {
-	const filePath = path.resolve(root, file);
-	const relativePath = path.relative(root, filePath);
-
-	if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+	const filePath = safeResolve(root, file);
+	if (!filePath) {
 		warn({
 			message: `action wants to search_replace ${colors.bold(file)} but it is outside the destination, skipping`,
 		});

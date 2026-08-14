@@ -174,54 +174,47 @@ async function cloneWithIsomorphicGit(
 	fs.rmSync(path.join(dest, '.git'), { force: true, recursive: true });
 }
 
-export function createGitClient(): GitClient {
-	return {
-		async fetchRefs(repo) {
-			try {
-				return repo.transport === 'ssh'
-					? await fetchRefsWithGitCli(repo)
-					: await fetchRefsWithIsomorphicGit(repo);
-			} catch (error) {
-				if (repo.transport === 'ssh' && isMissingGitBinaryError(error)) {
-					throw createMissingGitError(repo, error);
-				}
+function wrapGitError(
+	repo: Repo,
+	error: unknown,
+	transport: 'https' | 'ssh',
+	action: 'fetch' | 'clone',
+): never {
+	if (transport === 'ssh' && isMissingGitBinaryError(error)) {
+		throw createMissingGitError(repo, error);
+	}
 
-				if (repo.transport === 'ssh' && isMissingSshKeyError(error)) {
-					throw createSshError(repo, error);
-				}
+	if (transport === 'ssh' && isMissingSshKeyError(error)) {
+		throw createSshError(repo, error);
+	}
 
-				throw new DegitError(`could not fetch remote ${repo.url}`, {
-					code: 'COULD_NOT_FETCH',
-					original: error,
-					url: repo.url,
-				});
-			}
-		},
-
-		async clone(repo, dest, ref, transport = repo.transport) {
-			try {
-				if (transport === 'ssh') {
-					await cloneWithGitCli(repo, dest, ref, transport);
-				} else {
-					await cloneWithIsomorphicGit(repo, dest, ref, transport);
-				}
-			} catch (error) {
-				if (transport === 'ssh' && isMissingGitBinaryError(error)) {
-					throw createMissingGitError(repo, error);
-				}
-
-				if (transport === 'ssh' && isMissingSshKeyError(error)) {
-					throw createSshError(repo, error);
-				}
-
-				throw new DegitError(`could not clone ${repo.url}`, {
-					code: 'COULD_NOT_FETCH',
-					original: error,
-					url: repo.url,
-				});
-			}
-		},
-	};
+	throw new DegitError(`could not ${action} ${repo.url}`, {
+		code: 'COULD_NOT_FETCH',
+		original: error,
+		url: repo.url,
+	});
 }
 
-export const defaultGitClient = createGitClient();
+export const defaultGitClient: GitClient = {
+	async fetchRefs(repo) {
+		try {
+			return repo.transport === 'ssh'
+				? await fetchRefsWithGitCli(repo)
+				: await fetchRefsWithIsomorphicGit(repo);
+		} catch (error) {
+			wrapGitError(repo, error, repo.transport, 'fetch');
+		}
+	},
+
+	async clone(repo, dest, ref, transport = repo.transport) {
+		try {
+			if (transport === 'ssh') {
+				await cloneWithGitCli(repo, dest, ref, transport);
+			} else {
+				await cloneWithIsomorphicGit(repo, dest, ref, transport);
+			}
+		} catch (error) {
+			wrapGitError(repo, error, transport, 'clone');
+		}
+	},
+};

@@ -1,12 +1,11 @@
 /* eslint-disable max-lines */
+/* oxlint-disable import/max-dependencies */
+import { EventEmitter } from 'node:events';
 import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import colors from 'yoctocolors';
+import { resolveAlias } from '../aliases.js';
 import { generateGitlabRepoCandidates, parse, type Repo } from '../domain/repo.js';
-
-function resolveAlias(aliases: Record<string, string>, name: string): string | undefined {
-	return Object.entries(aliases).find(([key]) => key === name)?.[1];
-}
 import { applyDirectives } from '../operations/directives.js';
 import {
 	checkDirIsEmpty,
@@ -22,17 +21,16 @@ import {
 	type Directive,
 	type EventInfo,
 	type FetchFn,
+	type GitClient,
 	type RemoveDirective,
 	type ValidModes,
 } from '../domain/types.js';
-import type { GitClient } from '../domain/types.js';
 import { base, DegitError, fetch } from '../shared/utils.js';
-type InfoListener = (info: EventInfo) => void;
 function cloneSuccessMessage(user: string, name: string, ref: string, dest: string) {
 	const destination = dest === '.' ? '' : ` to ${dest}`;
 	return `cloned ${colors.bold(`${user}/${name}`)}#${colors.bold(ref)}${destination}`;
 }
-export class Degit {
+export class Degit extends EventEmitter {
 	aliases: Record<string, string>;
 	cache?: boolean;
 	files?: string[];
@@ -46,10 +44,9 @@ export class Degit {
 	gitClientPromise?: Promise<GitClient>;
 	hasStashed: boolean;
 	private src: string;
-	private infoListeners: InfoListener[];
-	private warnListeners: InfoListener[];
 
 	constructor(src: string, opts: ConstructorOptions = {}) {
+		super();
 		this.aliases = opts.aliases ?? {};
 		this.cache = opts.cache;
 		this.files = opts.files;
@@ -63,20 +60,10 @@ export class Degit {
 		this.fetch = opts.fetch || fetch;
 		this.git = opts.git;
 		this.hasStashed = false;
-		this.infoListeners = [];
-		this.warnListeners = [];
 
 		if (opts.mode && !validModes.has(opts.mode)) {
 			throw new Error(`Valid modes are ${[...validModes].join(', ')}`);
 		}
-	}
-	on(eventName: 'info' | 'warn', listener: InfoListener) {
-		if (eventName === 'info') {
-			this.infoListeners.push(listener);
-		} else {
-			this.warnListeners.push(listener);
-		}
-		return this;
 	}
 	getGitClient(): Promise<GitClient> {
 		if (this.git) {
@@ -111,10 +98,10 @@ export class Degit {
 		removeFiles(dest, action, this.info.bind(this), this.warn.bind(this));
 	}
 	info(info: EventInfo) {
-		this.emitEvent('info', info);
+		this.emit('info', info);
 	}
 	warn(info: EventInfo) {
-		this.emitEvent('warn', info);
+		this.emit('warn', info);
 	}
 	verboseInfo(info: EventInfo) {
 		if (this.verbose) {
@@ -210,12 +197,6 @@ export class Degit {
 		const code = (error as { code?: string }).code;
 		return code === 'COULD_NOT_DOWNLOAD' && !this.cache;
 	}
-	private emitEvent(eventName: 'info' | 'warn', info: EventInfo) {
-		const listeners = eventName === 'info' ? this.infoListeners : this.warnListeners;
-		for (const listener of listeners) {
-			listener(info);
-		}
-	}
 	private getRepoDir() {
 		return path.join(base, this.repo.site, this.repo.user, this.repo.name);
 	}
@@ -302,4 +283,8 @@ export class Degit {
 			(src, opts) => new Degit(src, opts),
 		);
 	}
+}
+
+export interface Degit {
+	on(eventName: 'info' | 'warn', listener: (info: EventInfo) => void): this;
 }
