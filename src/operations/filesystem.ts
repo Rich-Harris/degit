@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import colors from 'yoctocolors';
-import { DegitError, degitConfigName } from '../shared/utils.js';
+import { DegitError, degitConfigName, safeResolve, tryReadJson } from '../shared/utils.js';
 import type { Directive, EventInfo, RemoveDirective } from '../domain/types.js';
 
 type Emit = (info: EventInfo) => void;
@@ -15,7 +15,7 @@ export function getDirectives(dest: string): Directive[] | false {
 			return false;
 		}
 
-		const directives = JSON.parse(fs.readFileSync(directivesPath, 'utf8'));
+		const directives = tryReadJson(directivesPath);
 		if (!Array.isArray(directives)) {
 			return false;
 		}
@@ -75,10 +75,8 @@ export function removeFiles(dest: string, action: RemoveDirective, info: Emit, w
 }
 
 function removeFile(root: string, file: string, warn: Emit) {
-	const filePath = path.resolve(root, file);
-	const relativePath = path.relative(root, filePath);
-
-	if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+	const filePath = safeResolve(root, file);
+	if (!filePath) {
 		warn({
 			code: 'FILE_OUTSIDE_DEST',
 			message: `action wants to remove ${colors.bold(file)} but it is outside the destination, skipping`,
@@ -94,13 +92,9 @@ function removeFile(root: string, file: string, warn: Emit) {
 		return [];
 	}
 
-	if (fs.lstatSync(filePath).isDirectory()) {
-		fs.rmSync(filePath, { force: true, recursive: true });
-		return [`${file}/`];
-	}
-
-	fs.unlinkSync(filePath);
-	return [file];
+	const isDir = fs.lstatSync(filePath).isDirectory();
+	fs.rmSync(filePath, { force: true, recursive: true });
+	return isDir ? [`${file}/`] : [file];
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -112,13 +106,10 @@ export function keepFiles(dest: string, files: string[] | undefined, warn: Emit)
 	const root = path.resolve(dest);
 	const keepFileSet = new Set<string>();
 	const keepDirSet = new Set<string>();
-	let hasUserKeeps = false;
 
 	for (const file of files) {
-		const filePath = path.resolve(root, file);
-		const relativePath = path.relative(root, filePath);
-
-		if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+		const filePath = safeResolve(root, file);
+		if (!filePath) {
 			warn({
 				code: 'FILE_OUTSIDE_DEST',
 				message: `action wants to keep ${colors.bold(file)} but it is outside the destination, skipping`,
@@ -140,10 +131,9 @@ export function keepFiles(dest: string, files: string[] | undefined, warn: Emit)
 		} else {
 			keepFileSet.add(filePath);
 		}
-		hasUserKeeps = true;
 	}
 
-	if (!hasUserKeeps) {
+	if (keepFileSet.size === 0 && keepDirSet.size === 0) {
 		warn({
 			code: 'NO_FILES_MATCHED',
 			message: `no requested files were found, keeping the entire destination`,
@@ -160,13 +150,15 @@ export function keepFiles(dest: string, files: string[] | undefined, warn: Emit)
 		// degit.json is missing or not accessible
 	}
 
+	const keepDirInfo = [...keepDirSet].map((dir) => ({ dir, prefix: path.join(dir, path.sep) }));
+
 	function isKept(filePath: string): boolean {
 		if (keepFileSet.has(filePath)) {
 			return true;
 		}
 
-		for (const dir of keepDirSet) {
-			if (filePath === dir || filePath.startsWith(path.join(dir, ''))) {
+		for (const { dir, prefix } of keepDirInfo) {
+			if (filePath === dir || filePath.startsWith(prefix)) {
 				return true;
 			}
 		}

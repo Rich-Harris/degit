@@ -129,12 +129,16 @@ describe('filesystem', () => {
 
 		try {
 			fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+			fs.mkdirSync(path.join(root, 'src2'), { recursive: true });
 			fs.writeFileSync(path.join(root, 'src', 'index.ts'), 'index');
+			fs.writeFileSync(path.join(root, 'src2', 'sibling.ts'), 'sibling');
 			fs.writeFileSync(path.join(root, 'README.md'), 'readme');
 
 			const warnings = runKeepFiles(root, ['src']);
 
 			assert.equal(fs.existsSync(path.join(root, 'src', 'index.ts')), true);
+			assert.equal(fs.existsSync(path.join(root, 'src2')), false);
+			assert.equal(fs.existsSync(path.join(root, 'src2', 'sibling.ts')), false);
 			assert.equal(fs.existsSync(path.join(root, 'README.md')), false);
 			assert.deepEqual(warnings, []);
 		} finally {

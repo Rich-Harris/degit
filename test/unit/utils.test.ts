@@ -3,7 +3,13 @@ import https from 'node:https';
 import assert from 'node:assert';
 import path from 'node:path';
 import { describe, it, vi } from 'vitest';
-import { fetch, resolveBase, stashFiles, unstashFiles } from '../../src/shared/utils.js';
+import {
+	fetch,
+	resolveBase,
+	safeResolve,
+	stashFiles,
+	unstashFiles,
+} from '../../src/shared/utils.js';
 
 /* eslint-disable max-lines-per-function */
 describe('shared utils', () => {
@@ -137,6 +143,21 @@ describe('shared utils', () => {
 			createWriteStreamSpy.mockRestore();
 			getSpy.mockRestore();
 		}
+	});
+
+	it('rejects paths that resolve to the destination root when a root-like path is given', () => {
+		const root = path.resolve('/tmp/degit-safe-test');
+		assert.equal(safeResolve(root, '.'), undefined);
+		assert.equal(safeResolve(root, ''), undefined);
+		assert.equal(safeResolve(root, 'foo/..'), undefined);
+		assert.equal(safeResolve(root, 'foo'), path.join(root, 'foo'));
+	});
+
+	it('rejects absolute paths and multi-level dot-dot escapes when resolving inside the root', () => {
+		const root = path.resolve('/tmp/degit-safe-test');
+		assert.equal(safeResolve(root, path.join(root, '..', 'outside')), undefined);
+		assert.equal(safeResolve(root, 'foo/../../outside'), undefined);
+		assert.equal(safeResolve(root, 'foo'), path.join(root, 'foo'));
 	});
 });
 /* eslint-enable max-lines-per-function */

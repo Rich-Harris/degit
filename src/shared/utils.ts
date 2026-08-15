@@ -3,10 +3,8 @@ import path from 'node:path';
 import os from 'node:os';
 import https from 'node:https';
 import * as URL from 'node:url';
-import { createRequire } from 'node:module';
 import Agent from 'https-proxy-agent';
 
-const require = createRequire(import.meta.url);
 const tmpDirName = 'tmp';
 const degitConfigName = 'degit.json';
 
@@ -25,29 +23,28 @@ export class DegitError extends Error {
 	}
 }
 
-export function tryRequire(file: string) {
+export function safeResolve(root: string, file: string): string | undefined {
+	const filePath = path.resolve(root, file);
+	const relativePath = path.relative(root, filePath);
+
+	if (relativePath === '' || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+		return undefined;
+	}
+
+	return filePath;
+}
+
+/* eslint-disable security/detect-non-literal-fs-filename */
+export function tryReadJson(file: string) {
 	try {
-		// oxlint-disable-next-line security/detect-non-literal-require
-		return require(file);
+		return JSON.parse(fs.readFileSync(file, 'utf8'));
 	} catch {
 		return null;
 	}
 }
 
-/* eslint-disable security/detect-non-literal-fs-filename */
 export function mkdirp(dir: string): void {
-	const parent = path.dirname(dir);
-	if (parent === dir) {
-		return;
-	}
-
-	mkdirp(parent);
-
-	try {
-		fs.mkdirSync(dir);
-	} catch (error) {
-		if (error.code !== 'EEXIST') throw error;
-	}
+	fs.mkdirSync(dir, { recursive: true });
 }
 
 export function fetch(url: string, dest: string, proxy?: string): Promise<void> {

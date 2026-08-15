@@ -1,5 +1,11 @@
 # degit changelog
 
+## 3.7.1
+
+- Reject `remove` and `keep` directives that resolve to the destination root, preventing a `degit.json` action from deleting the whole clone.
+- Fix `--help` crash on Node 20.10 caused by `import.meta.dirname` being undefined before Node 20.11.
+- Fix interactive cache prompt crash on corrupt `access.json`.
+
 ## 3.7.0
 
 - Redownload cached tar archives when extraction fails with any tar/zlib error, not only `TAR_BAD_ARCHIVE` ([#41](https://github.com/Rich-Harris/degit/issues/41)).

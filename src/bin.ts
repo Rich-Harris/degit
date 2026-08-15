@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import colors from 'yoctocolors';
 import enquirer from 'enquirer';
 import fuzzysearch from 'fuzzysearch';
@@ -13,9 +12,7 @@ import {
 	loadAliases,
 	resolveAlias,
 } from './aliases.js';
-import { base, tryRequire } from './shared/utils.js';
-
-const dirname = import.meta.dirname;
+import { base, DegitError, tryReadJson } from './shared/utils.js';
 
 type Choice = {
 	message: string;
@@ -71,7 +68,7 @@ function parseCliArgs(argv: string[]) {
 
 function displayHelp() {
 	const help = fs
-		.readFileSync(path.join(dirname, '..', 'assets', 'help.md'), 'utf8')
+		.readFileSync(new URL('../assets/help.md', import.meta.url), 'utf8')
 		.replaceAll(/^(\s*)#+ (.+)/gmu, (_match, indent, title) => indent + colors.bold(title))
 		.replaceAll(/_([^_]+)_/gu, (_match, value) => colors.underline(value))
 		.replaceAll(/`([^`]+)`/gu, (_match, value) => colors.cyan(value));
@@ -80,18 +77,18 @@ function displayHelp() {
 }
 
 function getVersion() {
-	for (const relativePath of ['../package.json', '../../package.json']) {
-		try {
-			const url = new URL(relativePath, import.meta.url);
-			const pkg = JSON.parse(fs.readFileSync(url, 'utf8')) as { version: string };
-
-			return pkg.version;
-		} catch {
-			// try next path
-		}
+	try {
+		return (
+			JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+				version: string;
+			}
+		).version;
+	} catch (error) {
+		throw new DegitError('Could not find package.json', {
+			code: 'COULD_NOT_FIND_PACKAGE',
+			original: error,
+		});
 	}
-
-	throw new Error('Could not find package.json');
 }
 
 function getInteractiveChoices(): Choice[] {
@@ -102,8 +99,7 @@ function getInteractiveChoices(): Choice[] {
 	glob('**/access.json', { cwd: base }).forEach((file) => {
 		const normalizedFile = file.replaceAll('\\', '/');
 		const [host, user, repo] = normalizedFile.split('/');
-		const json = fs.readFileSync(`${base}/${file}`, 'utf8');
-		const logs = JSON.parse(json) as Record<string, string | number>;
+		const logs = (tryReadJson(`${base}/${file}`) as Record<string, string | number>) ?? {};
 
 		Object.entries(logs).forEach(([ref, timestamp]) => {
 			const id = `${host}:${user}/${repo}#${ref}`;
@@ -114,7 +110,7 @@ function getInteractiveChoices(): Choice[] {
 	const getChoices = (file: string): Choice[] => {
 		const normalizedFile = file.replaceAll('\\', '/');
 		const [host, user, repo] = normalizedFile.split('/');
-		const entries = Object.entries(tryRequire(`${base}/${file}`) || {});
+		const entries = Object.entries(tryReadJson(`${base}/${file}`) ?? {});
 
 		return entries.map(([ref, hash]) => ({
 			message: `${host}:${user}/${repo}#${ref}`,

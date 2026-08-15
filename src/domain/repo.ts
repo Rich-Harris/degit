@@ -1,10 +1,12 @@
 import { DegitError } from '../shared/utils.js';
 
+export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'git.sr.ht';
+
 export type Repo = {
 	mode: 'tar' | 'git';
 	name: string;
 	ref: string;
-	site: string;
+	site: GitProvider;
 	transport: 'https' | 'ssh';
 	ssh: string;
 	subdir?: string;
@@ -14,14 +16,12 @@ export type Repo = {
 
 type ArchiveContext = Pick<Repo, 'url' | 'name'>;
 
-export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'git.sr.ht';
-
-type Provider = {
-	domain: string;
-	archiveUrl(repo: ArchiveContext, hash: string): string;
-};
-
-const supported = new Set(['github', 'gitlab', 'bitbucket', 'git.sr.ht']);
+const providerDomains = new Map<GitProvider, string>([
+	['github', 'github.com'],
+	['gitlab', 'gitlab.com'],
+	['bitbucket', 'bitbucket.org'],
+	['git.sr.ht', 'git.sr.ht'],
+]);
 
 export const providerArchiveTemplates: Record<
 	GitProvider,
@@ -33,31 +33,8 @@ export const providerArchiveTemplates: Record<
 	'git.sr.ht': (repo, hash) => `${repo.url}/archive/${hash}.tar.gz`,
 };
 
-export function getProvider(site: string): Provider | undefined {
-	switch (site) {
-		case 'github':
-			return {
-				domain: 'github.com',
-				archiveUrl: providerArchiveTemplates.github,
-			};
-		case 'gitlab':
-			return {
-				domain: 'gitlab.com',
-				archiveUrl: providerArchiveTemplates.gitlab,
-			};
-		case 'bitbucket':
-			return {
-				domain: 'bitbucket.org',
-				archiveUrl: providerArchiveTemplates.bitbucket,
-			};
-		case 'git.sr.ht':
-			return {
-				domain: 'git.sr.ht',
-				archiveUrl: providerArchiveTemplates['git.sr.ht'],
-			};
-		default:
-			return undefined;
-	}
+function isGitProvider(site: string): site is GitProvider {
+	return Object.hasOwn(providerArchiveTemplates, site);
 }
 
 type ResolvedSource = {
@@ -168,14 +145,7 @@ export function parse(src: string): Repo {
 		decodedSrc,
 	);
 
-	if (!supported.has(site)) {
-		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
-			code: 'UNSUPPORTED_HOST',
-		});
-	}
-
-	const provider = getProvider(site);
-	if (!provider) {
+	if (!isGitProvider(site)) {
 		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
 			code: 'UNSUPPORTED_HOST',
 		});
@@ -193,7 +163,7 @@ export function parse(src: string): Repo {
 	let ref = refValue;
 	let subdirParts = rest;
 	if (isWebUrl) {
-		const parsed = parseWebPath(site as GitProvider, rest);
+		const parsed = parseWebPath(site, rest);
 		if (parsed) {
 			if (refValue === 'HEAD') {
 				ref = parsed.ref;
@@ -204,7 +174,7 @@ export function parse(src: string): Repo {
 
 	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
 
-	const domain = customDomain ?? provider.domain;
+	const domain = customDomain ?? providerDomains.get(site)!;
 	const url = `https://${domain}/${user}/${name}`;
 	const ssh = `ssh://git@${domain}/${user}/${name}`;
 

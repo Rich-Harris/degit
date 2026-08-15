@@ -72,7 +72,7 @@ vi.mock('isomorphic-git/http/node', () => ({
 	default: {},
 }));
 
-const { createGitClient } = await import('../../src/transports/git/client.js');
+const { defaultGitClient } = await import('../../src/transports/git/client.js');
 
 /* eslint-disable max-lines-per-function */
 describe('git client', () => {
@@ -152,7 +152,7 @@ describe('git client', () => {
 			refs: [{ oid: '0123456789abcdef0123456789abcdef01234567', ref: 'refs/heads/main' }],
 		});
 
-		const refs = await createGitClient().fetchRefs(httpsRepo);
+		const refs = await defaultGitClient.fetchRefs(httpsRepo);
 
 		assert.deepEqual(refs, [
 			{
@@ -167,7 +167,7 @@ describe('git client', () => {
 	});
 
 	it('uses the planned branch when cloning over https', async () => {
-		await createGitClient().clone(httpsRepo, '.tmp/git-client-test', 'main');
+		await defaultGitClient.clone(httpsRepo, '.tmp/git-client-test', 'main');
 
 		assert.equal(cloneMock.mock.calls.length, 1);
 		assert.deepEqual(
@@ -221,7 +221,7 @@ describe('git client', () => {
 			return child;
 		});
 
-		const refs = await createGitClient().fetchRefs(sshRepo);
+		const refs = await defaultGitClient.fetchRefs(sshRepo);
 
 		assert.equal(refs.length, 101);
 		assert.deepEqual(refs[0], {
@@ -241,7 +241,7 @@ describe('git client', () => {
 	});
 
 	it('reports a missing git binary when fetching refs over ssh', async () => {
-		await assert.rejects(createGitClient().fetchRefs(sshRepo), (error: any) => {
+		await assert.rejects(defaultGitClient.fetchRefs(sshRepo), (error: any) => {
 			assert.equal(error.code, 'GIT_NOT_FOUND');
 			assert.match(error.message, /git is not installed/u);
 			return true;
@@ -261,7 +261,7 @@ describe('git client', () => {
 		);
 
 		await assert.rejects(
-			createGitClient().clone(sshRepo, '.tmp/git-client-test'),
+			defaultGitClient.clone(sshRepo, '.tmp/git-client-test'),
 			(error: any) => {
 				assert.equal(error.code, 'GIT_NOT_FOUND');
 				assert.match(error.message, /git is not installed/u);
@@ -271,7 +271,7 @@ describe('git client', () => {
 	});
 
 	it('uses a shallow clone when cloning over ssh', async () => {
-		await createGitClient().clone(sshRepo, '.tmp/git-client-test');
+		await defaultGitClient.clone(sshRepo, '.tmp/git-client-test');
 
 		assert.equal(execFileMock.mock.calls[0][0], 'git');
 		assert.deepEqual(execFileMock.mock.calls[0][1], [
