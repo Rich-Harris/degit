@@ -21,7 +21,7 @@ export async function updateCache(
 	await writeFile(path.join(dir, 'access.json'), JSON.stringify(logs, null, '  '));
 
 	const currentHash = cache.get(repo.ref);
-	// ponytail: public commit hashes compared with ===; no timing-attack resistance needed for local cache files. Upgrade to crypto.timingSafeEqual if hashes ever become secret.
+	// Public commit hashes are not secret; direct equality is safe for local cache files.
 	// oxlint-disable-next-line security/detect-possible-timing-attacks
 	if (currentHash === hash) {
 		return;
