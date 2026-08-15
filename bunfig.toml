@@ -1,5 +1,5 @@
 [install]
-minimumReleaseAge = 1209600
+minimumReleaseAge = 604800
 exact = true
 minimumReleaseAgeExcludes = ["tar", "postcss"]
 
