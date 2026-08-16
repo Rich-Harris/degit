@@ -300,6 +300,18 @@ Remove one or more files:
 ]
 ```
 
+`files` entries support glob patterns, so you can remove a whole class of files without listing each one. Because glob patterns can match more files than intended, they are only processed when `allowGlobs` is set to `true`. Matches outside the destination are skipped.
+
+```json
+[
+	{
+		"action": "remove",
+		"files": [".github/**/*.md"],
+		"allowGlobs": true
+	}
+]
+```
+
 ## Why not just `git clone --depth 1`?
 
 A few salient differences:

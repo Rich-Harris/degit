@@ -65,7 +65,11 @@
 			"required": ["action", "files"],
 			"properties": {
 				"action": { "const": "remove" },
-				"files": { "$ref": "#/$defs/files" }
+				"files": { "$ref": "#/$defs/files" },
+				"allowGlobs": {
+					"type": "boolean",
+					"description": "When true, entries in files may contain glob patterns such as ** or *.md. Glob patterns are disabled by default because they can match more files than intended."
+				}
 			}
 		},
 		"files": {

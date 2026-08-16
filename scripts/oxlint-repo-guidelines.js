@@ -1,7 +1,7 @@
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 
-const ignoredDocDirs = new Set(['node_modules', '.git', 'dist', 'coverage', '.devin']);
+const ignoredDocDirs = new Set(['node_modules', '.git', 'dist', 'coverage', '.devin', '.agents']);
 const allowedDocs = new Set([
 	'.github/PULL_REQUEST_TEMPLATE.md',
 	'AGENTS.md',

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add `--repo-name` / `-r` flag to clone into a directory named after the repository ([#42](https://github.com/Rich-Harris/degit/issues/42)).
+- Support glob patterns in the `remove` action's `files` list behind the `allowGlobs` flag ([#148](https://github.com/Rich-Harris/degit/issues/148)).
 
 ## 3.7.1
 
