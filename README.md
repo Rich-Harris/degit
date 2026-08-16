@@ -1,7 +1,7 @@
 # degit — straightforward project scaffolding
 
 [![Known Vulnerabilities](https://snyk.io/test/npm/degit/badge.svg)](https://snyk.io/test/npm/degit)
-[![unpacked size](https://img.shields.io/npm/unpacked-size/degit)](https://www.npmjs.com/package/degit)
+[![install size](https://packagephobia.com/badge?p=degit)](https://packagephobia.com/result?p=degit)
 [![npm package version](https://badgen.net/npm/v/degit)](https://npm.im/degit)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v3.0%20adopted-ff69b4.svg)](docs/CODE_OF_CONDUCT.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
