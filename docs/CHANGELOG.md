@@ -1,5 +1,9 @@
 # degit changelog
 
+## Unreleased
+
+- Add `--repo-name` / `-r` flag to clone into a directory named after the repository ([#42](https://github.com/Rich-Harris/degit/issues/42)).
+
 ## 3.7.1
 
 - Reject `remove` and `keep` directives that resolve to the destination root, preventing a `degit.json` action from deleting the whole clone.
