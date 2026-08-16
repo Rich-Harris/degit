@@ -32,6 +32,7 @@ Download to a new folder:
 
 ```bash
 degit user/repo my-new-project
+degit -r user/repo
 ```
 
 Download only specific files:

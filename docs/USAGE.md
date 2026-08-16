@@ -103,10 +103,11 @@ If you omit the ref, `degit` resolves the repository's default branch.
 
 ### Create a new folder
 
-If `dest` is omitted, `degit` extracts into the current directory. The directory must be empty unless you use `--force`.
+If `dest` is omitted, `degit` extracts into the current directory. The directory must be empty unless you use `--force`. Use `--repo-name` or `-r` to extract into a directory named after the repository instead:
 
 ```bash
 degit user/repo my-new-project
+degit -r user/repo
 ```
 
 ### Clone a subdirectory
@@ -145,6 +146,7 @@ Missing or out-of-bounds paths are skipped with a warning; if no requested paths
 | `--cache`         | `-c`         | Only use the local cache; do not hit the network.                                                     |
 | `--force`         | `-f`         | Allow cloning into a non-empty destination directory.                                                 |
 | `--files <paths>` | `-F <paths>` | Keep only the listed files or directories.                                                            |
+| `--repo-name`     | `-r`         | Clone into a directory named after the repository.                                                    |
 | `--verbose`       | `-v`         | Print extra progress information.                                                                     |
 | `--mode <mode>`   | `-m`         | `tar` (default) or `git`. `--mode=git` is accepted for compatibility but prints a deprecation notice. |
 

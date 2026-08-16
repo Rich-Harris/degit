@@ -4,6 +4,7 @@ import enquirer from 'enquirer';
 import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
+import { parse } from './domain/repo.js';
 import degit from './index.js';
 import {
 	handleAliasSubcommand,
@@ -27,6 +28,7 @@ type CliArgs = {
 	force?: boolean;
 	help?: boolean;
 	mode?: string;
+	'repo-name'?: boolean;
 	verbose?: boolean;
 	version?: boolean;
 };
@@ -58,10 +60,11 @@ function parseCliArgs(argv: string[]) {
 			f: 'force',
 			F: 'files',
 			m: 'mode',
+			r: 'repo-name',
 			v: 'verbose',
 			V: 'version',
 		},
-		boolean: ['force', 'cache', 'verbose', 'version'],
+		boolean: ['force', 'cache', 'repo-name', 'verbose', 'version'],
 		string: ['files', 'mode'],
 	}) as CliArgs;
 }
@@ -194,7 +197,7 @@ function normalizeFiles(files: string | string[] | boolean | undefined): string[
 export async function main(argv: string[]) {
 	const args = parseCliArgs(argv);
 
-	const [src, dest = '.'] = args._;
+	const [src, positionalDest] = args._;
 
 	if (args.help) {
 		displayHelp();
@@ -227,8 +230,10 @@ export async function main(argv: string[]) {
 	}
 
 	const aliases = loadAliases();
+	const resolvedSrc = resolveAlias(aliases, src) ?? src;
+	const dest = positionalDest ?? (args['repo-name'] ? parse(resolvedSrc).name : '.');
 	const files = normalizeFiles(args.files);
-	run(resolveAlias(aliases, src) ?? src, dest, { ...args, aliases, files });
+	run(resolvedSrc, dest, { ...args, aliases, files });
 }
 
 /* eslint-enable security/detect-non-literal-fs-filename */

@@ -218,6 +218,37 @@ describe('degit bin', () => {
 		assert.equal(instance.clone.mock.calls[0][0], 'out');
 	});
 
+	it('clones into the repo name when argv passes -r without a destination', async () => {
+		await main(['node', 'bin', 'user/repo', '-r']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.equal(mockDegit.mock.calls[0][0], 'user/repo');
+		const instance = mockDegit.mock.results[0].value;
+		assert.equal(instance.clone.mock.calls[0][0], 'repo');
+	});
+
+	it('clones into the repo name when argv passes --repo-name', async () => {
+		await main(['node', 'bin', 'user/repo', '--repo-name']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.equal(mockDegit.mock.calls[0][0], 'user/repo');
+		const instance = mockDegit.mock.results[0].value;
+		assert.equal(instance.clone.mock.calls[0][0], 'repo');
+	});
+
+	it('uses the explicit destination when argv passes -r with a destination', async () => {
+		await main(['node', 'bin', 'user/repo', 'out', '-r']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		const instance = mockDegit.mock.results[0].value;
+		assert.equal(instance.clone.mock.calls[0][0], 'out');
+	});
+
+	it('clones into the resolved repo name when argv passes -r with an alias', async () => {
+		saveAlias('myRepo', 'github:user/aliased#v1.0.0');
+		await main(['node', 'bin', 'myRepo', '-r']);
+		assert.equal(mockDegit.mock.calls[0][0], 'github:user/aliased#v1.0.0');
+		const instance = mockDegit.mock.results[0].value;
+		assert.equal(instance.clone.mock.calls[0][0], 'aliased');
+	});
+
 	it('presents empty choices when the cache directory does not exist', async () => {
 		fs.rmSync(base, { force: true, recursive: true });
 

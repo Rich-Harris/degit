@@ -57,6 +57,7 @@ Options:
 `--cache`, `-c` Only use local cache (no network)
 `--force`, `-f` Allow non-empty destination directory
 `--files <paths>`, `-F <paths>` Clone only the listed files or directories (comma-separated)
+`--repo-name`, `-r` Clone into a directory named after the repository
 `--verbose`, `-v` Extra logging
 
 Without `--cache`, degit tries the network first and falls back to the local cache if the network is unreachable.
