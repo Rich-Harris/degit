@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import colors from 'yoctocolors';
+import glob from 'tiny-glob/sync.js';
 import { DegitError, degitConfigName, safeResolve, tryReadJson } from '../shared/utils.js';
 import type { Directive, EventInfo, RemoveDirective } from '../domain/types.js';
 
@@ -61,16 +62,66 @@ export function checkDirIsEmpty(
 	}
 }
 
+function isGlobPattern(file: string): boolean {
+	return /[*?{}[\]]/u.test(file);
+}
+
 export function removeFiles(dest: string, action: RemoveDirective, info: Emit, warn: Emit) {
 	const files = Array.isArray(action.files) ? action.files : [action.files];
 	const root = path.resolve(dest);
-	const removedFiles = files.flatMap((file) => removeFile(root, file, warn));
+	const removedFiles = files.flatMap((file) => {
+		if (isGlobPattern(file) && !action.allowGlobs) {
+			warn({
+				code: 'GLOB_NOT_ALLOWED',
+				message: `remove action uses glob pattern ${colors.bold(file)} but ${colors.bold('allowGlobs')} is not set, skipping`,
+			});
+			return [];
+		}
+
+		if (!safeResolve(root, file)) {
+			return removeFile(root, file, warn);
+		}
+
+		const matches = glob(file, { cwd: root, dot: true, flush: true });
+		const targets = matches.length > 0 ? matches : [file];
+
+		targets.sort(
+			(a, b) =>
+				path.normalize(b).split(path.sep).length - path.normalize(a).split(path.sep).length,
+		);
+
+		return targets.flatMap((target) => removeFile(root, target, warn));
+	});
 
 	if (removedFiles.length > 0) {
 		info({
 			code: 'REMOVED',
 			message: `removed: ${colors.bold(removedFiles.map((file) => colors.bold(file)).join(', '))}`,
 		});
+	}
+}
+
+type PathCheckResult = { ok: true } | { ok: false; missing: boolean };
+
+function checkResolvedPath(root: string, filePath: string, isSymlink: boolean): PathCheckResult {
+	if (isSymlink) {
+		try {
+			const parentReal = fs.realpathSync(path.dirname(filePath));
+			const relativePath = path.relative(root, parentReal);
+			if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+				return { ok: false, missing: false };
+			}
+			return { ok: true };
+		} catch {
+			return { ok: false, missing: true };
+		}
+	}
+
+	try {
+		const realPath = fs.realpathSync(filePath);
+		return safeResolve(root, realPath) ? { ok: true } : { ok: false, missing: false };
+	} catch {
+		return { ok: false, missing: true };
 	}
 }
 
@@ -84,7 +135,10 @@ function removeFile(root: string, file: string, warn: Emit) {
 		return [];
 	}
 
-	if (!fs.existsSync(filePath)) {
+	let stats: fs.Stats;
+	try {
+		stats = fs.lstatSync(filePath);
+	} catch {
 		warn({
 			code: 'FILE_DOES_NOT_EXIST',
 			message: `action wants to remove ${colors.bold(file)} but it does not exist`,
@@ -92,7 +146,16 @@ function removeFile(root: string, file: string, warn: Emit) {
 		return [];
 	}
 
-	const isDir = fs.lstatSync(filePath).isDirectory();
+	const check = checkResolvedPath(root, filePath, stats.isSymbolicLink());
+	if (check.ok === false) {
+		warn({
+			code: check.missing ? 'FILE_DOES_NOT_EXIST' : 'FILE_OUTSIDE_DEST',
+			message: `action wants to remove ${colors.bold(file)} but ${check.missing ? 'it does not exist' : 'it resolves outside the destination, skipping'}`,
+		});
+		return [];
+	}
+
+	const isDir = stats.isDirectory();
 	fs.rmSync(filePath, { force: true, recursive: true });
 	return isDir ? [`${file}/`] : [file];
 }

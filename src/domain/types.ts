@@ -33,7 +33,8 @@ export type InfoCode =
 	| 'FILE_EXISTS'
 	| 'PROXY'
 	| 'DOWNLOADING'
-	| 'EXTRACTING';
+	| 'EXTRACTING'
+	| 'GLOB_NOT_ALLOWED';
 
 export type DegitErrorCode =
 	| 'DEST_NOT_EMPTY'
@@ -79,6 +80,7 @@ export type Directive =
 	| {
 			action: 'remove';
 			files: string | string[];
+			allowGlobs?: boolean;
 	  };
 
 export type CloneDirective = Extract<Directive, { action: 'clone' }>;
