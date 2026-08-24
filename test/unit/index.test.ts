@@ -5,7 +5,9 @@ import path from 'node:path';
 import degit from '../../src/index.js';
 import { generateGitlabRepoCandidates, parse } from '../../src/domain/repo.js';
 import { Degit } from '../../src/core/orchestrator.js';
+import { DegitError } from '../../src/shared/utils.js';
 import { providerCases } from './index-support.js';
+import type { Directive } from '../../src/domain/types.js';
 
 const { suiteCache, suiteTmp } = vi.hoisted(() => ({
 	suiteCache: '.tmp/index-main-suite-cache',
@@ -41,6 +43,7 @@ describe('degit index', () => {
 	afterEach(() => {
 		fs.rmSync(suiteTmp, { force: true, recursive: true });
 		fs.rmSync(suiteCache, { force: true, recursive: true });
+		delete process.env.PROJECT_NAME;
 	});
 	it('exports a usable JS library when importing the built entrypoint', async () => {
 		const builtEntryPoint = path.resolve(process.cwd(), 'dist/index.js');
@@ -49,6 +52,7 @@ describe('degit index', () => {
 
 		assert.equal(typeof builtDegit, 'function');
 		assert.equal(typeof instance.clone, 'function');
+		assert.equal(typeof instance.doActions, 'function');
 		assert.equal(typeof instance.on, 'function');
 	});
 
@@ -540,6 +544,196 @@ describe('degit index', () => {
 				assert.equal(fs.existsSync(path.join(dest, 'degit.json')), false);
 			},
 		);
+	});
+
+	it('returns an instance with repo undefined and doActions as a function when called with no arguments', () => {
+		const emitter = degit();
+
+		assert.equal(emitter.repo, undefined);
+		assert.equal(typeof emitter.doActions, 'function');
+	});
+
+	function assertNoActionsCache() {
+		assert.equal(
+			fs.existsSync(suiteCache) &&
+				fs.readdirSync(suiteCache).some((name) => name.startsWith('actions-')),
+			false,
+		);
+	}
+
+	async function withDoActionsDest(callback: (dest: string) => Promise<void>) {
+		fs.mkdirSync(suiteTmp, { recursive: true });
+		const dest = fs.mkdtempSync(path.join(suiteTmp, 'doactions-'));
+		try {
+			await callback(dest);
+		} finally {
+			fs.rmSync(dest, { force: true, recursive: true });
+		}
+	}
+
+	it('rejects a missing destination when doActions has no clone directive', async () => {
+		const missingDest = path.join(suiteTmp, 'missing-dest');
+		fs.rmSync(missingDest, { force: true, recursive: true });
+
+		await assert.rejects(
+			async () =>
+				await degit().doActions(
+					[{ action: 'remove', files: ['x'] }] as Directive[],
+					missingDest,
+				),
+			(err: any) => err?.code === 'MISSING_DEST',
+		);
+	});
+
+	it('rejects a non-directory destination when doActions has no clone directive', async () => {
+		await withDoActionsDest(async (dest) => {
+			const fileDest = path.join(dest, 'not-a-dir');
+			fs.writeFileSync(fileDest, 'not a directory');
+
+			await assert.rejects(
+				async () =>
+					await degit().doActions(
+						[{ action: 'remove', files: ['x'] }] as Directive[],
+						fileDest,
+					),
+				(err: any) => err?.code === 'ENOTDIR',
+			);
+		});
+	});
+
+	it('doActions runs a remove directive when called without a source and cleans the staging directory', async () => {
+		await withDoActionsDest(async (dest) => {
+			fs.writeFileSync(path.join(dest, 'x'), 'x');
+
+			await degit().doActions([{ action: 'remove', files: ['x'] }] as Directive[], dest);
+
+			assert.equal(fs.existsSync(path.join(dest, 'x')), false);
+			assertNoActionsCache();
+		});
+	});
+
+	it('doActions runs a search_replace directive without a source when the PROJECT_NAME env var is set', async () => {
+		await withDoActionsDest(async (dest) => {
+			fs.writeFileSync(path.join(dest, 'x'), '{{project_name}}');
+
+			process.env.PROJECT_NAME = 'foo';
+
+			await degit().doActions(
+				[
+					{
+						action: 'search_replace',
+						files: ['x'],
+						pattern: '\\{\\{project_name\\}\\}',
+						replacement: 'PROJECT_NAME',
+					},
+				] as Directive[],
+				dest,
+			);
+
+			assert.equal(fs.readFileSync(path.join(dest, 'x'), 'utf8'), 'foo');
+			assertNoActionsCache();
+		});
+	});
+
+	it('clone() rejects with MISSING_SRC when called on a source-less instance', async () => {
+		await withDoActionsDest(async (dest) => {
+			await assert.rejects(
+				async () => await degit().clone(dest),
+				(err: any) => err?.code === 'MISSING_SRC',
+			);
+		});
+	});
+
+	it('rejects an empty string source with BAD_SRC when the source is an empty string', () => {
+		assert.throws(
+			() => degit(''),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
+	});
+
+	it('doActions runs a second time when called on the same source-less instance', async () => {
+		await withDoActionsDest(async (dest) => {
+			fs.writeFileSync(path.join(dest, 'x'), 'x');
+
+			const stub = vi.spyOn(Degit.prototype, 'clone').mockImplementation((target: string) => {
+				fs.writeFileSync(path.join(target, 'y'), 'y');
+				return Promise.resolve();
+			});
+
+			try {
+				const emitter = degit();
+
+				await emitter.doActions(
+					[{ action: 'clone', src: 'user/repo' }] as Directive[],
+					dest,
+				);
+
+				assert.equal(fs.existsSync(path.join(dest, 'x')), true);
+				assert.equal(fs.existsSync(path.join(dest, 'y')), true);
+
+				await emitter.doActions([{ action: 'remove', files: ['y'] }] as Directive[], dest);
+
+				assert.equal(fs.existsSync(path.join(dest, 'x')), true);
+				assert.equal(fs.existsSync(path.join(dest, 'y')), false);
+			} finally {
+				stub.mockRestore();
+			}
+		});
+	});
+
+	it('doActions restores the destination and cleans up when a clone directive fails', async () => {
+		await withDoActionsDest(async (dest) => {
+			fs.writeFileSync(path.join(dest, 'x'), 'x');
+
+			const stub = vi.spyOn(Degit.prototype, 'clone').mockImplementation(() => {
+				throw new DegitError('mock clone failure', { code: 'COULD_NOT_DOWNLOAD' });
+			});
+
+			try {
+				await assert.rejects(
+					async () =>
+						await degit().doActions(
+							[{ action: 'clone', src: 'user/repo' }] as Directive[],
+							dest,
+						),
+					(err: any) => err?.code === 'COULD_NOT_DOWNLOAD',
+				);
+
+				assert.equal(fs.existsSync(path.join(dest, 'x')), true);
+				assertNoActionsCache();
+			} finally {
+				stub.mockRestore();
+			}
+		});
+	});
+
+	it('removes a clone-created file when a remove directive targets it after a clone', async () => {
+		const stub = vi.spyOn(Degit.prototype, 'clone').mockImplementation((target: string) => {
+			fs.writeFileSync(path.join(target, 'README.md'), 'clone readme');
+			fs.writeFileSync(path.join(target, 'LICENSE'), 'clone license');
+			return Promise.resolve();
+		});
+
+		try {
+			await withDoActionsDest(async (dest) => {
+				fs.writeFileSync(path.join(dest, 'x'), 'x');
+
+				await degit().doActions(
+					[
+						{ action: 'clone', src: 'user/repo' } as Directive,
+						{ action: 'remove', files: ['LICENSE'] } as Directive,
+					],
+					dest,
+				);
+
+				assert.equal(fs.existsSync(path.join(dest, 'x')), true);
+				assert.equal(fs.existsSync(path.join(dest, 'README.md')), true);
+				assert.equal(fs.existsSync(path.join(dest, 'LICENSE')), false);
+				assertNoActionsCache();
+			});
+		} finally {
+			stub.mockRestore();
+		}
 	});
 });
 /* eslint-enable max-lines-per-function */

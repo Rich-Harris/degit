@@ -1,5 +1,17 @@
 # degit changelog
 
+## Unreleased
+
+### Added
+
+- Add `Degit#doActions(directives, dest)` so `degit.json`-style actions can run programmatically without first cloning a source repository ([#33](https://github.com/Rich-Harris/degit/issues/33)).
+
+### Changed
+
+- The `degit()` factory now accepts an optional source. `degit()` without a source is valid and defaults to `tar` mode; calling `clone()` on a source-less instance throws `MISSING_SRC`.
+- `Degit#repo` is now `Repo | undefined` to reflect the source-less state.
+- Deprecated the `DegitAction` and `RemoveAction` public type aliases; use `CloneDirective`, `RemoveDirective`, `SearchReplaceDirective`, or the `Action` union instead.
+
 ## 3.8.0
 
 - Add `--repo-name` / `-r` flag to clone into a directory named after the repository ([#42](https://github.com/Rich-Harris/degit/issues/42)).

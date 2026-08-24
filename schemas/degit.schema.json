@@ -22,6 +22,7 @@
 				"action": { "const": "clone" },
 				"src": {
 					"type": "string",
+					"minLength": 1,
 					"description": "The repository to clone, in the same format accepted by the degit CLI (e.g. user/repo)."
 				},
 				"cache": {
@@ -49,10 +50,12 @@
 				"files": { "$ref": "#/$defs/files" },
 				"pattern": {
 					"type": "string",
+					"minLength": 1,
 					"description": "A regular expression (as a string) to match within each file."
 				},
 				"replacement": {
 					"type": "string",
+					"minLength": 1,
 					"description": "The name of an environment variable whose value replaces each match."
 				}
 			}
@@ -75,8 +78,8 @@
 		"files": {
 			"description": "A single path or an array of paths, resolved relative to the destination. Paths outside the destination are skipped.",
 			"oneOf": [
-				{ "type": "string" },
-				{ "type": "array", "items": { "type": "string" }, "minItems": 1 }
+				{ "type": "string", "minLength": 1 },
+				{ "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
 			]
 		}
 	}

@@ -17,6 +17,7 @@ type ResolveBaseOptions = {
 export { degitConfigName };
 
 export class DegitError extends Error {
+	code?: string;
 	constructor(message: string, opts: Record<string, unknown> = {}) {
 		super(message);
 		Object.assign(this, opts);
@@ -32,6 +33,40 @@ export function safeResolve(root: string, file: string): string | undefined {
 	}
 
 	return filePath;
+}
+
+export function validateDestination(dest: string, allowMissing: boolean): boolean {
+	try {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		const lstat = fs.lstatSync(dest);
+		if (lstat.isSymbolicLink()) {
+			throw new DegitError(`destination is a symlink: ${dest}`, { code: 'ENOTDIR' });
+		}
+		if (!lstat.isDirectory()) {
+			throw new DegitError(`destination is not a directory: ${dest}`, { code: 'ENOTDIR' });
+		}
+		return true;
+	} catch (error) {
+		if (error instanceof DegitError) {
+			throw error;
+		}
+		const code = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
+		if (code !== 'ENOENT') {
+			throw new DegitError(
+				`could not stat destination: ${error instanceof Error ? error.message : String(error)}`,
+				{
+					code: 'COULD_NOT_STAT',
+					original: error,
+				},
+			);
+		}
+	}
+
+	if (!allowMissing) {
+		throw new DegitError(`destination does not exist: ${dest}`, { code: 'MISSING_DEST' });
+	}
+
+	return false;
 }
 
 /* eslint-disable security/detect-non-literal-fs-filename */
@@ -80,41 +115,170 @@ export function fetch(url: string, dest: string, proxy?: string): Promise<void> 
 	});
 }
 
-export function stashFiles(dir: string, dest: string): void {
+export type StashedEntry = { filePath: string; isDir: boolean };
+
+export function copyToStash(dir: string, dest: string): StashedEntry[] {
 	const tmpDir = path.join(dir, tmpDirName);
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
 	fs.rmSync(tmpDir, { force: true, recursive: true });
 	mkdirp(tmpDir);
-	fs.readdirSync(dest).forEach((file) => {
+
+	const toRemove: StashedEntry[] = [];
+
+	for (const file of fs.readdirSync(dest)) {
 		const filePath = path.join(dest, file);
 		const targetPath = path.join(tmpDir, file);
-		const isDir = fs.lstatSync(filePath).isDirectory();
-		if (isDir) {
-			fs.cpSync(filePath, targetPath, { recursive: true });
-			fs.rmSync(filePath, { force: true, recursive: true });
+
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		const lstat = fs.lstatSync(filePath);
+		const isDir = lstat.isDirectory();
+		const isSymlink = lstat.isSymbolicLink();
+
+		if (isSymlink) {
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
+			const linkTarget = fs.readlinkSync(filePath);
+			let linkTargetIsDir = false;
+			try {
+				// eslint-disable-next-line security/detect-non-literal-fs-filename
+				linkTargetIsDir = fs.statSync(filePath).isDirectory();
+			} catch {
+				// ponytail: broken or inaccessible symlinks default to 'file'; recreate as 'dir' if the target is later known to be a directory.
+			}
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
+			fs.symlinkSync(linkTarget, targetPath, linkTargetIsDir ? 'dir' : 'file');
+		} else if (isDir) {
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
+			fs.cpSync(filePath, targetPath, { recursive: true, dereference: false });
 		} else {
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
 			fs.copyFileSync(filePath, targetPath);
-			fs.unlinkSync(filePath);
 		}
-	});
+
+		toRemove.push({ filePath, isDir });
+	}
+
+	return toRemove;
 }
 
-export function unstashFiles(dir: string, dest: string): void {
+export function removeStashedFromDest(entries: StashedEntry[]): void {
+	for (const { filePath, isDir } of entries) {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		fs.rmSync(filePath, { force: true, recursive: isDir });
+	}
+}
+
+// eslint-disable-next-line max-lines-per-function
+export function unstashFiles(dir: string, dest: string, keepCloneOutput = true): void {
 	const tmpDir = path.join(dir, tmpDirName);
-	fs.readdirSync(tmpDir).forEach((filename) => {
+	const tmpFiles = new Set(fs.readdirSync(tmpDir));
+
+	if (!keepCloneOutput) {
+		for (const filename of fs.readdirSync(dest)) {
+			if (!tmpFiles.has(filename)) {
+				// eslint-disable-next-line security/detect-non-literal-fs-filename
+				fs.rmSync(path.join(dest, filename), { force: true, recursive: true });
+			}
+		}
+	}
+
+	const force = !keepCloneOutput;
+	const dirs: string[] = [];
+	const symlinks: string[] = [];
+	const files: string[] = [];
+	for (const filename of tmpFiles) {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		const lstat = fs.lstatSync(path.join(tmpDir, filename));
+		if (lstat.isDirectory()) {
+			dirs.push(filename);
+		} else if (lstat.isSymbolicLink()) {
+			symlinks.push(filename);
+		} else {
+			files.push(filename);
+		}
+	}
+
+	// ponytail: top-level classification uses O(n²) .includes() because stashes are small; switch to a Map if large stashes become a bottleneck.
+	for (const filename of [...dirs, ...symlinks, ...files]) {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		const tmpFile = path.join(tmpDir, filename);
 		const targetPath = path.join(dest, filename);
-		const isDir = fs.lstatSync(tmpFile).isDirectory();
-		if (isDir) {
-			fs.cpSync(tmpFile, targetPath, { recursive: true });
+		if (dirs.includes(filename)) {
+			removeConflictingDest(targetPath, true, false, force);
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
+			fs.cpSync(tmpFile, targetPath, { force: true, recursive: true, dereference: false });
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
 			fs.rmSync(tmpFile, { force: true, recursive: true });
+		} else if (symlinks.includes(filename)) {
+			unstashSymlink(tmpFile, targetPath, tmpDir);
 		} else {
-			if (filename !== 'degit.json') {
-				fs.copyFileSync(tmpFile, targetPath);
-			}
+			removeConflictingDest(targetPath, false, false, force);
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
+			fs.copyFileSync(tmpFile, targetPath);
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
 			fs.unlinkSync(tmpFile);
 		}
-	});
+	}
+
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
 	fs.rmSync(tmpDir, { force: true, recursive: true });
+}
+
+function unstashSymlink(tmpFile: string, targetPath: string, tmpDir: string): void {
+	removeConflictingDest(targetPath, false, true, false);
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
+	const linkTarget = fs.readlinkSync(tmpFile);
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
+	const resolvedStashTarget = path.isAbsolute(linkTarget)
+		? linkTarget
+		: path.resolve(path.dirname(tmpFile), linkTarget);
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
+	const resolvedDestTarget = path.isAbsolute(linkTarget)
+		? linkTarget
+		: path.resolve(path.dirname(targetPath), linkTarget);
+	const stashRel = path.relative(tmpDir, resolvedStashTarget);
+	const insideStash = !stashRel.startsWith('..') && !path.isAbsolute(stashRel);
+	let linkTargetIsDir = false;
+	try {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		linkTargetIsDir = fs.statSync(resolvedDestTarget).isDirectory();
+	} catch {
+		if (insideStash) {
+			try {
+				// eslint-disable-next-line security/detect-non-literal-fs-filename
+				linkTargetIsDir = fs.statSync(resolvedStashTarget).isDirectory();
+			} catch {
+				// ponytail: broken or inaccessible symlinks default to 'file'; if the target becomes resolvable, re-run unstashFiles to determine its type.
+			}
+		}
+	}
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
+	fs.symlinkSync(linkTarget, targetPath, linkTargetIsDir ? 'dir' : 'file');
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
+	fs.unlinkSync(tmpFile);
+}
+
+function removeConflictingDest(
+	targetPath: string,
+	tmpIsDir: boolean,
+	tmpIsSymlink = false,
+	force = false,
+): void {
+	let exists = false;
+	let isDir = false;
+	let isSymlink = false;
+	try {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		const stat = fs.lstatSync(targetPath);
+		isDir = stat.isDirectory();
+		isSymlink = stat.isSymbolicLink();
+		exists = true;
+	} catch {
+		// target does not exist; nothing to remove
+	}
+	if (exists && (force || isSymlink || isDir !== tmpIsDir || tmpIsSymlink)) {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		fs.rmSync(targetPath, { force: true, recursive: true });
+	}
 }
 
 export function resolveBase({
@@ -125,11 +289,9 @@ export function resolveBase({
 	if (platform === 'win32') {
 		return path.join(env.LOCALAPPDATA ?? path.join(homedir, 'AppData', 'Local'), 'degit');
 	}
-
 	if (platform === 'darwin') {
 		return path.join(homedir, 'Library', 'Caches', 'degit');
 	}
-
 	return path.join(env.XDG_CACHE_HOME ?? path.join(homedir, '.cache'), 'degit');
 }
 

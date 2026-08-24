@@ -246,6 +246,34 @@ The returned emitter exposes two event channels:
 
 Event objects include at least `message`. They may also include `code`, `dest`, `repo`, `url`, `ref`, and `subdir`.
 
+### Running actions programmatically
+
+You can run `degit.json`-style actions without first cloning a repository by omitting the source and calling `doActions`.
+
+```js
+import degit from 'degit';
+
+const emitter = degit();
+
+await emitter.doActions(
+	[
+		{ action: 'clone', src: 'user/another-repo' },
+		{ action: 'remove', files: ['LICENSE'] },
+	],
+	'path/to/dest',
+);
+```
+
+When the actions include a clone directive, `doActions` creates a temporary staging directory under the degit cache base and removes it after the actions finish. The staging directory is used to preserve the destination before each clone directive; it is not the source repository's own cache.
+
+`remove` and `search_replace` actions require the destination directory to exist before `doActions` runs. A `clone` action can create the destination if it does not yet exist. The destination must not be a symlink, even to a directory; symlink destinations are rejected with an `ENOTDIR` error.
+
+Child `clone` directives use their own source's natural mode (`tar` or `git`) rather than inheriting the parent instance's `mode` option. If you need a clone to use a particular mode, create a dedicated `Degit` instance with that source and mode and run its `clone()` method, or avoid mixing sources with different natural modes in a single `doActions` call.
+
+When a `clone` action runs into a destination that already has files, the existing files are stashed, the clone writes the repository, and then the stashed files are merged back. Stashed files overwrite clone output with the same name, so the original destination content takes precedence. A valid clone-produced `degit.json` is consumed by the child clone and removed before the merge, so the original destination's `degit.json` (if any) is the one that remains for later directives.
+
+`clone()` rejects with a `MISSING_SRC` error when called on an instance that was created without a source.
+
 ## degit.json actions
 
 After the initial clone, `degit` looks for a `degit.json` file at the top level of the destination and runs the actions it defines. A JSON Schema is available at [schemas/degit.schema.json](../schemas/degit.schema.json) for editor autocompletion and validation.

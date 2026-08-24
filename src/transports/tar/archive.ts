@@ -8,7 +8,7 @@ import type { EventInfo, FetchFn } from '../../domain/types.js';
 
 /* eslint-disable max-lines */
 
-type TarContext = {
+export type TarContext = {
 	cache?: boolean;
 	cloneWithGit(dest: string, ref?: string): Promise<void>;
 	fetch: FetchFn;
