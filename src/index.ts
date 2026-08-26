@@ -3,6 +3,7 @@ import type { ConstructorOptions } from './domain/types.js';
 
 export type {
 	Action,
+	CloneDirective,
 	DegitAction,
 	DegitErrorCode,
 	FetchFn,
@@ -10,9 +11,11 @@ export type {
 	InfoCode,
 	Options,
 	RemoveAction,
+	RemoveDirective,
+	SearchReplaceDirective,
 	ValidModes,
 } from './domain/types.js';
 
-export default function degit(src: string, opts: ConstructorOptions = {}) {
+export default function degit(src?: string, opts: ConstructorOptions = {}) {
 	return new Degit(src, opts);
 }

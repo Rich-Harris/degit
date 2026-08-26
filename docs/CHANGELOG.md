@@ -1,5 +1,9 @@
 # degit changelog
 
+## Unreleased
+
+- Add `Degit#doActions()` for programmatic `degit.json` actions and make the constructor source-optional ([#33](https://github.com/Rich-Harris/degit/issues/33)).
+
 ## 3.8.0
 
 - Add `--repo-name` / `-r` flag to clone into a directory named after the repository ([#42](https://github.com/Rich-Harris/degit/issues/42)).

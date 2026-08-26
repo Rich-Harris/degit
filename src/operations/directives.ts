@@ -1,7 +1,14 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import colors from 'yoctocolors';
-import { safeResolve, stashFiles, unstashFiles } from '../shared/utils.js';
+import {
+	DegitError,
+	copyToStash,
+	removeStashedFromDest,
+	unstashFiles,
+	validateDestination,
+} from '../shared/utils.js';
+import { removeFiles } from './filesystem.js';
+import { searchReplaceFiles } from './search-replace.js';
 import type { GitClient } from '../domain/types.js';
 import type {
 	CloneDirective,
@@ -9,182 +16,232 @@ import type {
 	Directive,
 	EventInfo,
 	FetchFn,
-	RemoveDirective,
-	SearchReplaceDirective,
 } from '../domain/types.js';
-
 type ChildDegit = {
 	clone(dest: string): Promise<void>;
 	on(eventName: 'info' | 'warn', listener: (event: EventInfo) => void): ChildDegit;
 };
-
-type DirectiveContext = {
+export type DirectiveContext = {
 	aliases?: Record<string, string>;
+	cache?: boolean;
 	fetch: FetchFn;
 	getGitClient(): Promise<GitClient>;
+	getStagingDir(): Promise<string>;
 	hasStashed: boolean;
 	info(info: EventInfo): void;
-	remove(dest: string, action: RemoveDirective): void;
+	stagingDir?: string;
+	verbose?: boolean;
 	warn(info: EventInfo): void;
 };
-
-function attachChildLoggers(child: ChildDegit) {
-	child.on('info', (event) => {
-		console.log(colors.cyan(`> ${event.message.replace('options.', '--')}`));
-	});
-
-	child.on('warn', (event) => {
-		console.warn(colors.magenta(`! ${event.message.replace('options.', '--')}`));
-	});
-}
-
-function getErrorMessage(error: unknown) {
-	return error instanceof Error ? error.message : String(error);
-}
-
+// eslint-disable-next-line max-lines-per-function
 async function cloneDirective(
 	context: DirectiveContext,
-	dir: string,
 	dest: string,
 	action: CloneDirective,
+	files: string[] | undefined,
 	createChild: (src: string, opts: ConstructorOptions) => ChildDegit,
 ) {
-	if (context.hasStashed === false) {
-		stashFiles(dir, dest);
-		context.hasStashed = true;
+	if (typeof action.src !== 'string' || action.src === '') {
+		throw new DegitError('clone directive requires a non-empty source', { code: 'BAD_SRC' });
+	}
+	const destIsDir = validateDestination(dest, true);
+	let dir: string | undefined;
+	if (destIsDir) {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
+		const destHasContents = fs.readdirSync(dest).length > 0;
+		if (destHasContents || context.hasStashed) {
+			dir = await context.getStagingDir();
+			if (context.hasStashed === false) {
+				const toRemove = copyToStash(dir, dest);
+				context.hasStashed = true;
+				removeStashedFromDest(toRemove);
+			}
+		}
 	}
 
-	const files = action.files
-		? Array.isArray(action.files)
-			? action.files
-			: [action.files]
-		: undefined;
+	if (action.cache !== undefined && typeof action.cache !== 'boolean') {
+		context.warn({ message: 'clone action cache must be a boolean, ignoring' });
+	}
+	if (action.verbose !== undefined && typeof action.verbose !== 'boolean') {
+		context.warn({ message: 'clone action verbose must be a boolean, ignoring' });
+	}
 
 	const child = createChild(action.src, {
 		aliases: context.aliases,
-		cache: action.cache,
+		cache: typeof action.cache === 'boolean' ? action.cache : context.cache,
 		fetch: context.fetch,
 		files,
 		force: true,
 		git: await context.getGitClient(),
-		verbose: action.verbose,
+		verbose: typeof action.verbose === 'boolean' ? action.verbose : context.verbose,
 	});
 
-	attachChildLoggers(child);
+	child.on('info', context.info);
+	child.on('warn', context.warn);
 
 	try {
 		await child.clone(dest);
 	} catch (error) {
-		console.error(colors.red(`! ${getErrorMessage(error)}`));
-		process.exit(1);
+		if (!destIsDir) {
+			fs.rmSync(dest, { force: true, recursive: true });
+		}
+		throw error;
+	}
+
+	if (context.hasStashed && dir) {
+		const result = tryUnstash(dir, dest);
+		if (result.ok === true) {
+			context.hasStashed = false;
+		} else {
+			throw new DegitError(`could not restore stashed files: ${result.message}`, {
+				code: 'COULD_NOT_RESTORE',
+				original: result.original,
+			});
+		}
 	}
 }
 
+function getDirectiveFiles(files: unknown): string[] | undefined {
+	if (typeof files === 'string' && files !== '') return [files];
+	if (
+		Array.isArray(files) &&
+		files.length > 0 &&
+		files.every((file) => typeof file === 'string' && file !== '')
+	) {
+		return files;
+	}
+	return undefined;
+}
+// eslint-disable-next-line max-lines-per-function
 async function runDirective(
 	context: DirectiveContext,
 	directive: Directive,
-	dir: string,
 	dest: string,
 	createChild: (src: string, opts: ConstructorOptions) => ChildDegit,
 ) {
+	const action =
+		typeof directive === 'object' && directive !== null
+			? (directive as { action?: unknown }).action
+			: undefined;
+
+	if (typeof action !== 'string') {
+		context.warn({
+			message: `unknown directive action ${colors.bold(String(action))}, skipping`,
+		});
+		return;
+	}
+
 	if (directive.action === 'clone') {
-		await cloneDirective(context, dir, dest, directive, createChild);
+		const files = getDirectiveFiles(directive.files);
+		if (directive.files !== undefined && files === undefined) {
+			context.warn({
+				message: 'clone action requires a string or array of strings for files, skipping',
+			});
+			return;
+		}
+		await cloneDirective(context, dest, directive, files, createChild);
 		return;
 	}
 
 	if (directive.action === 'search_replace') {
-		searchReplaceFiles(dest, directive, context.info, context.warn);
+		validateDestination(dest, false);
+		const files = getDirectiveFiles(directive.files);
+		if (files === undefined) {
+			context.warn({
+				message:
+					'search_replace action requires a string or array of strings for files, skipping',
+			});
+			return;
+		}
+		if (typeof directive.pattern !== 'string' || directive.pattern === '') {
+			context.warn({
+				message: 'search_replace action requires a non-empty pattern, skipping',
+			});
+			return;
+		}
+		if (typeof directive.replacement !== 'string' || directive.replacement === '') {
+			context.warn({
+				message:
+					'search_replace action requires a non-empty replacement environment variable name, skipping',
+			});
+			return;
+		}
+		searchReplaceFiles(dest, { ...directive, files }, context.info, context.warn);
 		return;
 	}
 
-	context.remove(dest, directive);
+	if (directive.action === 'remove') {
+		validateDestination(dest, false);
+		const files = getDirectiveFiles(directive.files);
+		if (files === undefined) {
+			context.warn({
+				message: 'remove action requires a string or array of strings for files, skipping',
+			});
+			return;
+		}
+		if (directive.allowGlobs !== undefined && typeof directive.allowGlobs !== 'boolean') {
+			context.warn({ message: 'remove action allowGlobs must be a boolean, ignoring' });
+		}
+		removeFiles(
+			dest,
+			{
+				...directive,
+				files,
+				allowGlobs:
+					typeof directive.allowGlobs === 'boolean' ? directive.allowGlobs : undefined,
+			},
+			context.info,
+			context.warn,
+		);
+		return;
+	}
+
+	context.warn({
+		message: `unknown directive action ${colors.bold(action)}, skipping`,
+	});
+}
+
+type UnstashResult = { ok: true } | { ok: false; message: string; original: unknown };
+
+function tryUnstash(dir: string | undefined, dest: string, keepCloneOutput = true): UnstashResult {
+	if (!dir) {
+		return { ok: true };
+	}
+	try {
+		unstashFiles(dir, dest, keepCloneOutput);
+		return { ok: true };
+	} catch (unstashError) {
+		const message = unstashError instanceof Error ? unstashError.message : String(unstashError);
+		return { ok: false, message, original: unstashError };
+	}
 }
 
 export async function applyDirectives(
 	context: DirectiveContext,
 	directives: Directive[],
-	dir: string,
 	dest: string,
 	createChild: (src: string, opts: ConstructorOptions) => ChildDegit,
 ) {
-	for (const directive of directives) {
-		// oxlint-disable-next-line eslint/no-await-in-loop
-		await runDirective(context, directive, dir, dest, createChild);
-	}
-
-	if (context.hasStashed) {
-		unstashFiles(dir, dest);
-	}
-}
-
-function searchReplaceFiles(
-	dest: string,
-	action: SearchReplaceDirective,
-	info: (info: EventInfo) => void,
-	warn: (info: EventInfo) => void,
-) {
-	/* eslint-disable security/detect-non-literal-regexp, security/detect-non-literal-fs-filename */
-	const files = Array.isArray(action.files) ? action.files : [action.files];
-	const root = path.resolve(dest);
-	const replacement = process.env[action.replacement];
-
-	if (replacement === undefined) {
-		warn({
-			message: `action wants to search_replace using env var ${colors.bold(action.replacement)} but it is not defined, skipping`,
-		});
-		return;
-	}
-
-	const pattern = new RegExp(action.pattern, 'gu');
-	const replacedFiles = files.flatMap((file) =>
-		replaceFile(root, file, pattern, replacement, warn),
-	);
-
-	if (replacedFiles.length > 0) {
-		info({
-			message: `replaced content in ${colors.bold(String(replacedFiles.length))} files: ${replacedFiles.map((file) => colors.bold(file)).join(', ')}`,
-		});
+	try {
+		for (const directive of directives) {
+			// oxlint-disable-next-line eslint/no-await-in-loop
+			await runDirective(context, directive, dest, createChild);
+		}
+	} catch (error) {
+		if (
+			context.hasStashed &&
+			!(error instanceof DegitError && error.code === 'COULD_NOT_RESTORE')
+		) {
+			const result = tryUnstash(context.stagingDir, dest, false);
+			if (result.ok === true) {
+				context.hasStashed = false;
+			} else {
+				context.warn({
+					message: `could not restore stashed files: ${result.message}`,
+					original: result.original,
+				});
+			}
+		}
+		throw error;
 	}
 }
-
-function replaceFile(
-	root: string,
-	file: string,
-	pattern: RegExp,
-	replacement: string,
-	warn: (info: EventInfo) => void,
-) {
-	const filePath = safeResolve(root, file);
-	if (!filePath) {
-		warn({
-			message: `action wants to search_replace ${colors.bold(file)} but it is outside the destination, skipping`,
-		});
-		return [];
-	}
-
-	if (!fs.existsSync(filePath)) {
-		warn({
-			message: `action wants to search_replace ${colors.bold(file)} but it does not exist`,
-		});
-		return [];
-	}
-
-	if (fs.lstatSync(filePath).isDirectory()) {
-		warn({
-			message: `action wants to search_replace ${colors.bold(file)} but it is a directory, skipping`,
-		});
-		return [];
-	}
-
-	const content = fs.readFileSync(filePath, 'utf8');
-	const nextContent = content.replace(pattern, () => replacement);
-
-	if (nextContent === content) {
-		return [];
-	}
-
-	fs.writeFileSync(filePath, nextContent);
-	return [file];
-}
-
-/* eslint-enable security/detect-non-literal-regexp, security/detect-non-literal-fs-filename */

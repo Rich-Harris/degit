@@ -209,9 +209,7 @@ export function keepFiles(dest: string, files: string[] | undefined, warn: Emit)
 		if (fs.lstatSync(directivesPath).isFile()) {
 			keepFileSet.add(directivesPath);
 		}
-	} catch {
-		// degit.json is missing or not accessible
-	}
+	} catch {}
 
 	const keepDirInfo = [...keepDirSet].map((dir) => ({ dir, prefix: path.join(dir, path.sep) }));
 

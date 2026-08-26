@@ -16,12 +16,10 @@ export async function updateCache(
 	const cache = new Map(Object.entries(cached));
 	const logs = tryReadJson(path.join(dir, 'access.json')) || {};
 	logs[repo.ref] = new Date().toISOString();
-	// Dynamic cache file paths are derived from repo/ref values within the cache root.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
 	await writeFile(path.join(dir, 'access.json'), JSON.stringify(logs, null, '  '));
 
 	const currentHash = cache.get(repo.ref);
-	// Public commit hashes are not secret; direct equality is safe for local cache files.
 	// oxlint-disable-next-line security/detect-possible-timing-attacks
 	if (currentHash === hash) {
 		return;
@@ -32,11 +30,8 @@ export async function updateCache(
 	if (currentHash && ![...cache.values()].includes(currentHash)) {
 		try {
 			await rm(path.join(dir, `${currentHash}.tar.gz`), { force: true, recursive: true });
-		} catch {
-			// Ignore cache cleanup failures.
-		}
+		} catch {}
 	}
-	// Dynamic cache file paths are derived from repo/ref values within the cache root.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
 	await writeFile(
 		path.join(dir, 'map.json'),
