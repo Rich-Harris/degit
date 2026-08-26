@@ -94,9 +94,7 @@ export type CloneDirective = Extract<Directive, { action: 'clone' }>;
 export type SearchReplaceDirective = Extract<Directive, { action: 'search_replace' }>;
 export type RemoveDirective = Extract<Directive, { action: 'remove' }>;
 
-/** @deprecated use `CloneDirective` or `Directive` instead. */
 export type DegitAction = CloneDirective;
-/** @deprecated use `RemoveDirective` or `Directive` instead. */
 export type RemoveAction = RemoveDirective;
 
 export type Options = ConstructorOptions;

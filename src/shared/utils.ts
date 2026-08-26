@@ -141,9 +141,7 @@ export function copyToStash(dir: string, dest: string): StashedEntry[] {
 			try {
 				// eslint-disable-next-line security/detect-non-literal-fs-filename
 				linkTargetIsDir = fs.statSync(filePath).isDirectory();
-			} catch {
-				// ponytail: broken or inaccessible symlinks default to 'file'; recreate as 'dir' if the target is later known to be a directory.
-			}
+			} catch {}
 			// eslint-disable-next-line security/detect-non-literal-fs-filename
 			fs.symlinkSync(linkTarget, targetPath, linkTargetIsDir ? 'dir' : 'file');
 		} else if (isDir) {
@@ -197,7 +195,6 @@ export function unstashFiles(dir: string, dest: string, keepCloneOutput = true):
 		}
 	}
 
-	// ponytail: top-level classification uses O(n²) .includes() because stashes are small; switch to a Map if large stashes become a bottleneck.
 	for (const filename of [...dirs, ...symlinks, ...files]) {
 		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		const tmpFile = path.join(tmpDir, filename);
@@ -246,9 +243,7 @@ function unstashSymlink(tmpFile: string, targetPath: string, tmpDir: string): vo
 			try {
 				// eslint-disable-next-line security/detect-non-literal-fs-filename
 				linkTargetIsDir = fs.statSync(resolvedStashTarget).isDirectory();
-			} catch {
-				// ponytail: broken or inaccessible symlinks default to 'file'; if the target becomes resolvable, re-run unstashFiles to determine its type.
-			}
+			} catch {}
 		}
 	}
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -272,9 +267,7 @@ function removeConflictingDest(
 		isDir = stat.isDirectory();
 		isSymlink = stat.isSymbolicLink();
 		exists = true;
-	} catch {
-		// target does not exist; nothing to remove
-	}
+	} catch {}
 	if (exists && (force || isSymlink || isDir !== tmpIsDir || tmpIsSymlink)) {
 		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		fs.rmSync(targetPath, { force: true, recursive: true });

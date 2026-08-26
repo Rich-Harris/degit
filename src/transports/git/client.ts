@@ -81,10 +81,7 @@ async function fetchRefsWithIsomorphicGit(repo: Repo) {
 		if (normalizedRefs.length > 0) {
 			return normalizedRefs;
 		}
-	} catch {
-		// Fall through to the protocol v1 capability path for hosts that reject
-		// protocol v2 discovery or omit refs from the v2 response.
-	}
+	} catch {}
 
 	try {
 		const remote = await git.getRemoteInfo2({
@@ -97,10 +94,7 @@ async function fetchRefsWithIsomorphicGit(repo: Repo) {
 		if (normalizedRefs.length > 0) {
 			return normalizedRefs;
 		}
-	} catch {
-		// Fall back to the git CLI for providers that reject protocol v1 discovery
-		// or present an HTTPS trust chain that is not usable through isomorphic-git.
-	}
+	} catch {}
 
 	return fetchRefsWithGitCli(repo);
 }

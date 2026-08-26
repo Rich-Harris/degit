@@ -133,9 +133,7 @@ async function ensureArchiveFile(context: TarContext, source: ArchiveSource) {
 			message: `${source.file} already exists locally`,
 		});
 		return;
-	} catch {
-		// Missing files and permission-denied paths are both treated as absent.
-	}
+	} catch {}
 
 	mkdirp(path.dirname(source.file));
 
@@ -225,9 +223,7 @@ async function withArchiveRetry(
 
 		try {
 			await rm(source.file, { force: true, recursive: true });
-		} catch {
-			// Ignore cleanup failures and continue with a fresh download.
-		}
+		} catch {}
 
 		await context.fetch(source.url, source.file, context.proxy);
 		await operation();
@@ -261,7 +257,6 @@ export async function cloneWithTar(context: TarContext, dir: string, dest: strin
 }
 
 async function hasGitLfsPointers(dir: string): Promise<boolean> {
-	// Paths are discovered from extracted archive contents under a controlled temp dir.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
 	const entries = await readdir(dir, { withFileTypes: true });
 	const checks = entries.map(async (entry) => {
@@ -275,7 +270,6 @@ async function hasGitLfsPointers(dir: string): Promise<boolean> {
 			return false;
 		}
 
-		// Paths are discovered from extracted archive contents under a controlled temp dir.
 		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		const contents = await readFile(entryPath, 'utf8');
 		return (
@@ -289,14 +283,12 @@ async function hasGitLfsPointers(dir: string): Promise<boolean> {
 }
 
 async function copyExtractedFiles(sourceDir: string, destDir: string) {
-	// Paths are discovered from extracted archive contents under a controlled temp dir.
 	// eslint-disable-next-line security/detect-non-literal-fs-filename
 	const entries = await readdir(sourceDir, { withFileTypes: true });
 	await Promise.all(
 		entries.map(async (entry) => {
 			const sourcePath = path.join(sourceDir, entry.name);
 			const destinationPath = path.join(destDir, entry.name);
-			// cp() overwrites existing files the same way the old copy behavior did for this path.
 			await cp(sourcePath, destinationPath, { recursive: true });
 		}),
 	);
