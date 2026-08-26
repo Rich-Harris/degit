@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add `Degit#doActions()` for running `degit.json` actions programmatically, make the constructor source optional, and introduce the new `Action` and `*Directive` public types in favor of the old aliases ([#33](https://github.com/Rich-Harris/degit/issues/33)).
+- Add `Degit#doActions()` for programmatic `degit.json` actions and make the constructor source-optional ([#33](https://github.com/Rich-Harris/degit/issues/33)).
 
 ## 3.8.0
 
