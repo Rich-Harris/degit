@@ -1,0 +1,23 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version from tag
+        id: tag_name
+        run: echo "current_version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+        shell: bash
+      - uses: actions/checkout@v4
+      - uses: mindsers/changelog-reader-action@v2
+        id: log
+        with:
+          version: ${{ steps.tag_name.outputs.current_version }}
+          path: ./docs/CHANGELOG.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.log.outputs.changes }}
