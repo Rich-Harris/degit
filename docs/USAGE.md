@@ -94,6 +94,8 @@ degit git@git.sr.ht:user/repo
 ```bash
 degit https://gist.github.com/<id>
 degit https://gist.github.com/<user>/<id>
+degit https://gist.github.com/<id>.git
+degit https://gist.github.com/<user>/<id>.git
 degit git@gist.github.com:<id>.git
 degit ssh://git@gist.github.com/<id>
 ```

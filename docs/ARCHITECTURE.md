@@ -149,7 +149,7 @@ Purpose: Preserves existing destination files while `degit.json` directives run,
 
 The tool talks to a small set of external systems:
 
-GitHub, GitLab, Bitbucket, and Sourcehut: Used to resolve repository refs and download archive tarballs over HTTPS, or to clone over SSH when tarball fetches fail.
+GitHub, GitLab, Bitbucket, Sourcehut, and Gist: Used to resolve repository refs and download archive tarballs over HTTPS, or to clone over SSH when tarball fetches fail.
 
 Git backend: A native in-process git library is used for SSH ref resolution and fallback cloning.
 
@@ -217,4 +217,4 @@ Directive: An entry in `degit.json` that runs after the initial clone. Current d
 
 Cache root: The local storage location resolved from the platform cache directory used for downloaded archives and metadata.
 
-Provider: A supported hosting service whose repository URL format degit understands: GitHub, GitLab, Bitbucket, or Sourcehut.
+Provider: A supported hosting service whose repository URL format degit understands: GitHub, GitLab, Bitbucket, Sourcehut, or Gist.
