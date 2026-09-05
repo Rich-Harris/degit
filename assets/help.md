@@ -35,14 +35,14 @@ https://git.sr.ht/user/repo
 
 ## Gist repos
 
+gist:<id>
+gist:<user>/<id>
 https://gist.github.com/<id>
 https://gist.github.com/<user>/<id>
 https://gist.github.com/<id>.git
 https://gist.github.com/<user>/<id>.git
 git@gist.github.com:<id>.git
 ssh://git@gist.github.com/<id>
-
-The `gist:` shorthand is not supported.
 
 You can append a #ref to any of the above:
 

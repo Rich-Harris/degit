@@ -92,6 +92,8 @@ degit git@git.sr.ht:user/repo
 #### Gist
 
 ```bash
+degit gist:<id>
+degit gist:<user>/<id>
 degit https://gist.github.com/<id>
 degit https://gist.github.com/<user>/<id>
 degit https://gist.github.com/<id>.git
@@ -99,8 +101,6 @@ degit https://gist.github.com/<user>/<id>.git
 degit git@gist.github.com:<id>.git
 degit ssh://git@gist.github.com/<id>
 ```
-
-The `gist:` shorthand is not supported; use a full HTTPS or SSH URL.
 
 ### Specify a tag, branch, or commit
 

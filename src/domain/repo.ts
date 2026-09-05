@@ -68,12 +68,6 @@ function resolveSource(source: string, src: string): ResolvedSource {
 	let isWebUrl = false;
 	let remainder = source;
 
-	if (source.startsWith('gist:'))
-		throw new DegitError(
-			'degit does not support the gist: shorthand; use a full URL or SSH address',
-			{ code: 'BAD_SRC' },
-		);
-
 	if (source.startsWith('https://') || source.startsWith('http://')) {
 		const parsed = new URL(source);
 		site = parsed.hostname.replace(/\.(com|org)$/u, '');
