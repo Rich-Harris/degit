@@ -14,14 +14,15 @@ function createProviderCase({ build, domain, publicSrc, redirectUrl, site, user 
 	const name = 'degit-test-repo';
 	const privateName = `${name}-private`;
 	const url = `https://${domain}/${user}/${name}`;
+	const built = build({ domain, name, privateName, site, url, user });
 	return {
-		...build({ domain, name, privateName, site, url, user }),
+		...built,
 		name,
 		privateName,
 		publicSrc,
 		redirectUrl,
 		site,
-		url,
+		url: built.url ?? url,
 		user,
 	};
 }
@@ -101,6 +102,27 @@ export const providerCases = [
 			lsRemote: `git ls-remote -- ${url}`,
 			ssh: `ssh://git@${domain}/${user}/${name}`,
 		}),
+	}),
+	createProviderCase({
+		domain: 'gist.github.com',
+		publicSrc: 'https://gist.github.com/Rich-Harris/degit-test-repo',
+		redirectUrl: 'https://gist.github.com/forbidden',
+		site: 'gist',
+		user: 'Rich-Harris',
+		build: ({ name, site, user }) => {
+			const gistUrl = `https://gist.github.com/${name}.git`;
+			const gistSsh = `ssh://git@gist.github.com/${name}.git`;
+			return {
+				archiveRoot: `${name}-${refsHash}`,
+				archiveUrl: (hash) =>
+					providerArchiveTemplates[site as GitProvider]({ url: gistUrl, name }, hash),
+				gitSrc: `git@gist.github.com:${name}.git`,
+				lsRemote: `git ls-remote -- ${gistUrl}`,
+				ssh: gistSsh,
+				url: gistUrl,
+				user,
+			};
+		},
 	}),
 ];
 

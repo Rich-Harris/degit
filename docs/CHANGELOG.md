@@ -1,5 +1,9 @@
 # degit changelog
 
+## [Unreleased]
+
+- Add GitHub Gist support for HTTPS and SSH URL forms ([#21](https://github.com/Rich-Harris/degit/issues/21)).
+
 ## [3.9.0]
 
 - Add `Degit#doActions()` for programmatic `degit.json` actions and make the constructor source-optional ([#33](https://github.com/Rich-Harris/degit/issues/33)).

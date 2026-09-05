@@ -38,6 +38,11 @@ const publicRepos: IntegrationRepo[] = [
 		gitUrl: 'https://git.sr.ht/~showyourcode/public',
 		site: 'git.sr.ht',
 	},
+	{
+		expectedFile: 'README.md',
+		site: 'gist',
+		src: 'https://gist.github.com/mbostock/3883098',
+	},
 ];
 
 describe('public integration suite', () => {

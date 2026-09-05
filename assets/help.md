@@ -33,6 +33,15 @@ git.sr.ht/user/repo
 git@git.sr.ht:user/repo
 https://git.sr.ht/user/repo
 
+## Gist repos
+
+https://gist.github.com/<id>
+https://gist.github.com/<user>/<id>
+git@gist.github.com:<id>.git
+ssh://git@gist.github.com/<id>
+
+The `gist:` shorthand is not supported.
+
 You can append a #ref to any of the above:
 
 ## Branches (defaults to the repository's default branch)

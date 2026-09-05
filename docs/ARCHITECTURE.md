@@ -107,7 +107,7 @@ Deployment: Internal implementation detail, not exposed as a separate package.
 
 Name: Repository providers
 
-Description: Encodes provider-specific rules for GitHub, GitLab, Bitbucket, and Sourcehut. Each provider maps a parsed repository to the correct archive URL and SSH URL shape.
+Description: Encodes provider-specific rules for GitHub, GitLab, Bitbucket, Sourcehut, and Gist. Each provider maps a parsed repository to the correct archive URL and SSH URL shape.
 
 Technologies: TypeScript data mapping and URL construction
 
@@ -135,7 +135,7 @@ Type: Filesystem cache under the platform-appropriate user cache directory
 
 Purpose: Stores downloaded tarballs and provider metadata so repeated clones can avoid refetching the same commit archive.
 
-Key Schemas/Collections: Per-provider directories such as `github/<user>/<repo>/`, plus cache files like `<hash>.tar.gz`, `map.json`, and `access.json`.
+Key Schemas/Collections: Per-provider directories such as `github/<user>/<repo>/` and `gist/<user>/<id>/`, plus cache files like `<hash>.tar.gz`, `map.json`, and `access.json`.
 
 ### 4.2. Temporary Stash
 
