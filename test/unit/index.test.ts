@@ -67,6 +67,138 @@ describe('degit index', () => {
 			assert.equal(repo.transport, 'https');
 		});
 	});
+	it('parses a bare gist HTTPS URL with a placeholder user when the URL contains only a gist id', () => {
+		const { repo } = degit('https://gist.github.com/abc123def456');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'gist');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+		assert.equal(repo.transport, 'https');
+	});
+	it('parses an owner-scoped gist HTTPS URL when the URL contains an owner and a gist id', () => {
+		const { repo } = degit('https://gist.github.com/owner/abc123def456');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'owner');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+	});
+	it('strips the .git suffix from a gist URL and still builds an id-only endpoint when the bare URL ends with .git', () => {
+		const { repo } = degit('https://gist.github.com/abc123def456.git');
+
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+	});
+	it('strips the .git suffix from an owner-scoped gist URL when the owner URL ends with .git', () => {
+		const { repo } = degit('https://gist.github.com/owner/abc123def456.git');
+
+		assert.equal(repo.user, 'owner');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+	});
+	it('parses an scp-like gist SSH URL when the source uses git@gist.github.com syntax', () => {
+		const { repo } = degit('git@gist.github.com:abc123def456.git');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'gist');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.transport, 'ssh');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+	});
+	it('parses an scp-like gist SSH URL when the source is owner-scoped', () => {
+		const { repo } = degit('git@gist.github.com:owner/abc123def456.git');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'owner');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.transport, 'ssh');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+	});
+	it('parses an explicit ssh:// gist URL when the source uses ssh transport', () => {
+		const { repo } = degit('ssh://git@gist.github.com/abc123def456');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'gist');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.transport, 'ssh');
+		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+	});
+	it('parses an explicit ssh:// gist URL when the source is owner-scoped', () => {
+		const { repo } = degit('ssh://git@gist.github.com/owner/abc123def456');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'owner');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.transport, 'ssh');
+		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+	});
+	it('throws BAD_SRC when a gist URL contains trailing segments beyond the id', () => {
+		assert.throws(
+			() => degit('https://gist.github.com/abc123def456/extra/more'),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
+	});
+	it('throws BAD_SRC when an owner-scoped gist URL contains trailing segments', () => {
+		assert.throws(
+			() => degit('https://gist.github.com/owner/abc123def456/extra'),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
+	});
+	it('parses the gist: shorthand with a placeholder user when the source is a bare gist id', () => {
+		const { repo } = degit('gist:abc123def456');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'gist');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+		assert.equal(repo.transport, 'https');
+	});
+	it('parses the gist: shorthand when the source is owner-scoped', () => {
+		const { repo } = degit('gist:owner/abc123def456');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'owner');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+	});
+	it('parses the gist: shorthand #ref suffix when the source appends a ref', () => {
+		const { repo } = degit('gist:abc123def456#v1');
+
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.ref, 'v1');
+	});
+	it('parses the owner-scoped gist: shorthand #ref suffix when the source appends a ref', () => {
+		const { repo } = degit('gist:owner/abc123def456#v1');
+
+		assert.equal(repo.user, 'owner');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.ref, 'v1');
+	});
+	it('throws BAD_SRC for the gist: shorthand when the id is empty', () => {
+		assert.throws(
+			() => degit('gist:'),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
+	});
+	it('throws BAD_SRC for the gist: shorthand when the source has more than two segments', () => {
+		assert.throws(
+			() => degit('gist:owner/abc123def456/extra'),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
+	});
+	it('throws BAD_SRC when the gist path is empty', () => {
+		assert.throws(
+			() => degit('https://gist.github.com/'),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
+	});
 	it('parses gitlab:// prefix with custom domain when host is explicit', () => {
 		const repo = parse('gitlab://git.example.com/user/repo');
 

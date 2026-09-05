@@ -14,7 +14,7 @@ npx degit@latest user/repo my-project
 npx degit@latest user/repo#branch my-project
 ```
 
-Sources can be GitHub (`user/repo`, `github:user/repo`, or a GitHub URL), GitLab (`gitlab:user/repo`, a GitLab URL, or `gitlab://host/user/repo`), Bitbucket (`bitbucket:user/repo` or URL), or Sourcehut (`git.sr.ht/user/repo`, SSH form, or URL). A `#ref` can name a branch, tag, or commit. A source may include a subdirectory path.
+Sources can be GitHub (`user/repo`, `github:user/repo`, or a GitHub URL), GitLab (`gitlab:user/repo`, a GitLab URL, or `gitlab://host/user/repo`), Bitbucket (`bitbucket:user/repo` or URL), Sourcehut (`git.sr.ht/user/repo`, SSH form, or URL), or Gist (`https://gist.github.com/<id>`, `https://gist.github.com/<user>/<id>`, `git@gist.github.com:<id>.git`, or `ssh://git@gist.github.com/<id>`). A `#ref` can name a branch, tag, or commit. A source may include a subdirectory path.
 
 - The destination defaults to the current directory and must be empty. Do not suggest `--force` unless the user explicitly wants to overwrite its contents.
 - Use `--cache` to require a cached copy (no network). Without `--cache`, degit tries the network first and falls back to the cached copy if the network is unreachable. Use `--verbose` to diagnose failures. `--mode=git` still works but is unnecessary; tar snapshots are the default.

@@ -107,7 +107,7 @@ Deployment: Internal implementation detail, not exposed as a separate package.
 
 Name: Repository providers
 
-Description: Encodes provider-specific rules for GitHub, GitLab, Bitbucket, and Sourcehut. Each provider maps a parsed repository to the correct archive URL and SSH URL shape.
+Description: Encodes provider-specific rules for GitHub, GitLab, Bitbucket, Sourcehut, and Gist. Each provider maps a parsed repository to the correct archive URL and SSH URL shape.
 
 Technologies: TypeScript data mapping and URL construction
 
@@ -135,7 +135,7 @@ Type: Filesystem cache under the platform-appropriate user cache directory
 
 Purpose: Stores downloaded tarballs and provider metadata so repeated clones can avoid refetching the same commit archive.
 
-Key Schemas/Collections: Per-provider directories such as `github/<user>/<repo>/`, plus cache files like `<hash>.tar.gz`, `map.json`, and `access.json`.
+Key Schemas/Collections: Per-provider directories such as `github/<user>/<repo>/` and `gist/<user>/<id>/`, plus cache files like `<hash>.tar.gz`, `map.json`, and `access.json`.
 
 ### 4.2. Temporary Stash
 
@@ -149,7 +149,7 @@ Purpose: Preserves existing destination files while `degit.json` directives run,
 
 The tool talks to a small set of external systems:
 
-GitHub, GitLab, Bitbucket, and Sourcehut: Used to resolve repository refs and download archive tarballs over HTTPS, or to clone over SSH when tarball fetches fail.
+GitHub, GitLab, Bitbucket, Sourcehut, and Gist: Used to resolve repository refs and download archive tarballs over HTTPS, or to clone over SSH when tarball fetches fail.
 
 Git backend: A native in-process git library is used for SSH ref resolution and fallback cloning.
 
@@ -217,4 +217,4 @@ Directive: An entry in `degit.json` that runs after the initial clone. Current d
 
 Cache root: The local storage location resolved from the platform cache directory used for downloaded archives and metadata.
 
-Provider: A supported hosting service whose repository URL format degit understands: GitHub, GitLab, Bitbucket, or Sourcehut.
+Provider: A supported hosting service whose repository URL format degit understands: GitHub, GitLab, Bitbucket, Sourcehut, or Gist.

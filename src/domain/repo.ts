@@ -1,6 +1,6 @@
 import { DegitError } from '../shared/utils.js';
 
-export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'git.sr.ht';
+export type GitProvider = 'github' | 'gitlab' | 'bitbucket' | 'git.sr.ht' | 'gist';
 
 export type Repo = {
 	mode: 'tar' | 'git';
@@ -21,6 +21,7 @@ const providerDomains = new Map<GitProvider, string>([
 	['gitlab', 'gitlab.com'],
 	['bitbucket', 'bitbucket.org'],
 	['git.sr.ht', 'git.sr.ht'],
+	['gist', 'gist.github.com'],
 ]);
 
 export const providerArchiveTemplates: Record<
@@ -31,6 +32,7 @@ export const providerArchiveTemplates: Record<
 	gitlab: (repo, hash) => `${repo.url}/-/archive/${hash}/${repo.name}-${hash}.tar.gz`,
 	bitbucket: (repo, hash) => `${repo.url}/get/${hash}.tar.gz`,
 	'git.sr.ht': (repo, hash) => `${repo.url}/archive/${hash}.tar.gz`,
+	gist: (_repo, hash) => `https://codeload.github.com/gist/${_repo.name}/tar.gz/${hash}`,
 };
 
 function isGitProvider(site: string): site is GitProvider {
@@ -99,6 +101,8 @@ function resolveSource(source: string, src: string): ResolvedSource {
 		}
 	}
 
+	if (site === 'gist.github') site = 'gist';
+
 	return { remainder, site, transport, isWebUrl };
 }
 
@@ -134,7 +138,41 @@ function parseWebPath(
 			if (i === -1) return undefined;
 			return { ref: segments[i + 1], subdir: segments.slice(i + 2) };
 		}
+		case 'gist': {
+			return undefined;
+		}
 	}
+}
+
+function parseGist(
+	src: string,
+	segments: string[],
+	refValue: string,
+	transport: Repo['transport'],
+): Repo {
+	if (segments.length > 2) {
+		throw new DegitError(`could not parse ${src}`, { code: 'BAD_SRC' });
+	}
+
+	const rawId = segments.length === 1 ? segments[0] : segments[1];
+
+	if (!rawId) throw new DegitError(`could not parse ${src}`, { code: 'BAD_SRC' });
+
+	const id = rawId.replace(/\.git$/u, '');
+	const user = segments.length === 1 ? 'gist' : segments[0];
+	const url = `https://gist.github.com/${id}.git`;
+	const ssh = `ssh://git@gist.github.com/${id}.git`;
+
+	return {
+		mode: 'tar',
+		name: id,
+		ref: refValue,
+		site: 'gist',
+		ssh,
+		transport,
+		url,
+		user,
+	};
 }
 
 export function parse(src: string): Repo {
@@ -146,12 +184,16 @@ export function parse(src: string): Repo {
 	);
 
 	if (!isGitProvider(site)) {
-		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut and BitBucket`, {
+		throw new DegitError(`degit supports GitHub, GitLab, Sourcehut, BitBucket and Gist`, {
 			code: 'UNSUPPORTED_HOST',
 		});
 	}
 
-	const [user, rawName, ...rest] = remainder.split('/').filter(Boolean);
+	const segments = remainder.split('/').filter(Boolean);
+
+	if (site === 'gist') return parseGist(src, segments, refValue, transport);
+
+	const [user, rawName, ...rest] = segments;
 	if (!user || !rawName) {
 		throw new DegitError(`could not parse ${src}`, {
 			code: 'BAD_SRC',

@@ -48,7 +48,7 @@ degit <src>[#ref] [<dest>] [options]
 
 ### Supported sources
 
-`degit` supports GitHub, GitLab, Bitbucket, and Sourcehut.
+`degit` supports GitHub, GitLab, Bitbucket, Sourcehut, and Gist.
 
 #### GitHub
 
@@ -87,6 +87,19 @@ degit git@bitbucket.org:user/repo
 degit git.sr.ht/user/repo
 degit https://git.sr.ht/user/repo
 degit git@git.sr.ht:user/repo
+```
+
+#### Gist
+
+```bash
+degit gist:<id>
+degit gist:<user>/<id>
+degit https://gist.github.com/<id>
+degit https://gist.github.com/<user>/<id>
+degit https://gist.github.com/<id>.git
+degit https://gist.github.com/<user>/<id>.git
+degit git@gist.github.com:<id>.git
+degit ssh://git@gist.github.com/<id>
 ```
 
 ### Specify a tag, branch, or commit

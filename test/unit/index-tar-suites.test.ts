@@ -197,7 +197,7 @@ const cacheRedownloadCases: CacheRedownloadCase[] = [
 	},
 	{
 		name: 'redownloads the tarball for a subdirectory when the cached archive is a truncated gzip',
-		providerFilter: () => true,
+		providerFilter: (test) => test.site !== 'gist',
 		src: (test) => `${test.publicSrc}/packages/app`,
 		cacheContent: truncatedGzip,
 		assert: (test, dest, fetch) => assertSubdirRedownload(dest, test, fetch),
@@ -301,49 +301,53 @@ describe('degit index tar suites', () => {
 		);
 	});
 
-	providerCases.forEach((test) => {
-		it(`extracts a nested subdirectory when cloning a nested path for ${test.site}`, async () => {
-			const dest = `${suiteTmp}/test-repo`;
-			clearArchiveCache(suiteCache, test);
-			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
-			const fetch = createCopyFetch(archiveFile);
-			const gitMock = createMockGit({
-				[`fetchRefs ${test.url}`]: gitRefs,
-			});
+	providerCases
+		.filter((test) => test.site !== 'gist')
+		.forEach((test) => {
+			it(`extracts a nested subdirectory when cloning a nested path for ${test.site}`, async () => {
+				const dest = `${suiteTmp}/test-repo`;
+				clearArchiveCache(suiteCache, test);
+				const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
+				const fetch = createCopyFetch(archiveFile);
+				const gitMock = createMockGit({
+					[`fetchRefs ${test.url}`]: gitRefs,
+				});
 
-			await degit(`${test.publicSrc}/packages/app`, {
-				git: gitMock.fn,
-				fetch: fetch.fn,
-			}).clone(dest);
+				await degit(`${test.publicSrc}/packages/app`, {
+					git: gitMock.fn,
+					fetch: fetch.fn,
+				}).clone(dest);
 
-			compareDirToExpected(dest, {
-				'index.js': 'export default 1\n',
-				lib: '',
-				'lib/nested.txt': 'nested\n',
+				compareDirToExpected(dest, {
+					'index.js': 'export default 1\n',
+					lib: '',
+					'lib/nested.txt': 'nested\n',
+				});
+				assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
 			});
-			assert.equal(fetch.calls[0].url, test.archiveUrl(refsHash));
 		});
-	});
 
-	providerCases.forEach((test) => {
-		it(`throws MISSING_SUBDIR when the requested subdirectory does not exist for ${test.site}`, async () => {
-			const dest = `${suiteTmp}/missing-subdir`;
-			clearArchiveCache(suiteCache, test);
-			const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
-			const fetch = createCopyFetch(archiveFile);
-			const gitMock = createMockGit({
-				[`fetchRefs ${test.url}`]: gitRefs,
+	providerCases
+		.filter((test) => test.site !== 'gist')
+		.forEach((test) => {
+			it(`throws MISSING_SUBDIR when the requested subdirectory does not exist for ${test.site}`, async () => {
+				const dest = `${suiteTmp}/missing-subdir`;
+				clearArchiveCache(suiteCache, test);
+				const archiveFile = await createArchiveFixture(test.archiveRoot, suiteTmp);
+				const fetch = createCopyFetch(archiveFile);
+				const gitMock = createMockGit({
+					[`fetchRefs ${test.url}`]: gitRefs,
+				});
+
+				await assert.rejects(
+					async () =>
+						await degit(`${test.publicSrc}/does-not-exist`, {
+							git: gitMock.fn,
+							fetch: fetch.fn,
+						}).clone(dest),
+					(err: any) => err?.code === 'MISSING_SUBDIR',
+				);
 			});
-
-			await assert.rejects(
-				async () =>
-					await degit(`${test.publicSrc}/does-not-exist`, {
-						git: gitMock.fn,
-						fetch: fetch.fn,
-					}).clone(dest),
-				(err: any) => err?.code === 'MISSING_SUBDIR',
-			);
 		});
-	});
 });
 /* eslint-enable max-lines-per-function */

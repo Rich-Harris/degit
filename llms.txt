@@ -4,7 +4,7 @@
 
 Important notes:
 
-- degit supports GitHub, GitLab, Bitbucket, and Sourcehut; private repositories are handled automatically with SSH fallback.
+- degit supports GitHub, GitLab, Bitbucket, Sourcehut, and Gist; private repositories are handled automatically with SSH fallback.
 - Public HTTPS sources do not need a local `git` binary, but SSH/private sources still require one.
 - Post-download transformations can be declared in a top-level `degit.json` file using `clone`, `search_replace`, and `remove` actions.
 - Development of this repository requires Bun 1.3.14; end users can install the published package with npm.
