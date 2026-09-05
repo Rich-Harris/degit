@@ -1,8 +1,8 @@
 # degit changelog
 
-## [Unreleased]
+## [3.10.0]
 
-- Add GitHub Gist support for HTTPS and SSH URL forms ([#21](https://github.com/Rich-Harris/degit/issues/21)).
+- Add GitHub Gist support: `gist:` shorthand, HTTPS and SSH URL forms ([#21](https://github.com/Rich-Harris/degit/issues/21)).
 
 ## [3.9.0]
 
@@ -253,6 +253,7 @@
 
 - First release
 
+[3.10.0]: https://github.com/Rich-Harris/degit/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/Rich-Harris/degit/compare/v3.8.0...v3.9.0
 [3.8.0]: https://github.com/Rich-Harris/degit/compare/v3.7.1...v3.8.0
 [3.7.1]: https://github.com/Rich-Harris/degit/compare/v3.7.0...v3.7.1
