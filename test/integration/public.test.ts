@@ -41,7 +41,7 @@ const publicRepos: IntegrationRepo[] = [
 	{
 		expectedFile: 'README.md',
 		site: 'gist',
-		src: 'https://gist.github.com/mbostock/3883098',
+		src: 'https://gist.github.com/mbostock/3883098#e499dec5b34a08710a6332aa660585027cc0d9b8',
 	},
 ];
 

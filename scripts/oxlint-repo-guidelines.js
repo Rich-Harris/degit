@@ -4,9 +4,6 @@ import path from 'node:path';
 const ignoredDocDirs = new Set(['node_modules', '.git', 'dist', 'coverage', '.devin', '.agents']);
 const allowedDocs = new Set([
 	'.github/PULL_REQUEST_TEMPLATE.md',
-	'0 - EXPLORE.md',
-	'1 - ALTERNATIVES.md',
-	'2 - PLAN.md',
 	'AGENTS.md',
 	'LICENSE.md',
 	'README.md',

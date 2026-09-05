@@ -101,7 +101,7 @@ function resolveSource(source: string, src: string): ResolvedSource {
 		}
 	}
 
-	if (site === 'gist.github' || site === 'gist.github.com') site = 'gist';
+	if (site === 'gist.github') site = 'gist';
 
 	return { remainder, site, transport, isWebUrl };
 }
@@ -150,14 +150,16 @@ function parseGist(
 	refValue: string,
 	transport: Repo['transport'],
 ): Repo {
+	if (segments.length > 2) {
+		throw new DegitError(`could not parse ${src}`, { code: 'BAD_SRC' });
+	}
+
 	const rawId = segments.length === 1 ? segments[0] : segments[1];
 
 	if (!rawId) throw new DegitError(`could not parse ${src}`, { code: 'BAD_SRC' });
 
 	const id = rawId.replace(/\.git$/u, '');
 	const user = segments.length === 1 ? 'gist' : segments[0];
-	const subdirParts = segments.slice(2);
-	const subdir = subdirParts.length > 0 ? `/${subdirParts.join('/')}` : undefined;
 	const url = `https://gist.github.com/${id}.git`;
 	const ssh = `ssh://git@gist.github.com/${id}.git`;
 
@@ -167,7 +169,6 @@ function parseGist(
 		ref: refValue,
 		site: 'gist',
 		ssh,
-		subdir,
 		transport,
 		url,
 		user,

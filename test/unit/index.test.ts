@@ -108,6 +108,15 @@ describe('degit index', () => {
 		assert.equal(repo.transport, 'ssh');
 		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
 	});
+	it('parses an scp-like gist SSH URL when the source is owner-scoped', () => {
+		const { repo } = degit('git@gist.github.com:owner/abc123def456.git');
+
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'owner');
+		assert.equal(repo.name, 'abc123def456');
+		assert.equal(repo.transport, 'ssh');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+	});
 	it('parses an explicit ssh:// gist URL when the source uses ssh transport', () => {
 		const { repo } = degit('ssh://git@gist.github.com/abc123def456');
 
@@ -118,12 +127,27 @@ describe('degit index', () => {
 		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
 		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
 	});
-	it('preserves extra gist path segments as the subdirectory when the URL contains trailing segments', () => {
-		const { repo } = degit('https://gist.github.com/owner/abc123def456/extra');
+	it('parses an explicit ssh:// gist URL when the source is owner-scoped', () => {
+		const { repo } = degit('ssh://git@gist.github.com/owner/abc123def456');
 
+		assert.equal(repo.site, 'gist');
+		assert.equal(repo.user, 'owner');
 		assert.equal(repo.name, 'abc123def456');
-		assert.equal(repo.subdir, '/extra');
+		assert.equal(repo.transport, 'ssh');
 		assert.equal(repo.url, 'https://gist.github.com/abc123def456.git');
+		assert.equal(repo.ssh, 'ssh://git@gist.github.com/abc123def456.git');
+	});
+	it('throws BAD_SRC when a gist URL contains trailing segments beyond the id', () => {
+		assert.throws(
+			() => degit('https://gist.github.com/abc123def456/extra/more'),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
+	});
+	it('throws BAD_SRC when an owner-scoped gist URL contains trailing segments', () => {
+		assert.throws(
+			() => degit('https://gist.github.com/owner/abc123def456/extra'),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
 	});
 	it('parses the gist: shorthand with a placeholder user when the source is a bare gist id', () => {
 		const { repo } = degit('gist:abc123def456');
@@ -160,6 +184,12 @@ describe('degit index', () => {
 	it('throws BAD_SRC for the gist: shorthand when the id is empty', () => {
 		assert.throws(
 			() => degit('gist:'),
+			(err: any) => err?.code === 'BAD_SRC',
+		);
+	});
+	it('throws BAD_SRC for the gist: shorthand when the source has more than two segments', () => {
+		assert.throws(
+			() => degit('gist:owner/abc123def456/extra'),
 			(err: any) => err?.code === 'BAD_SRC',
 		);
 	});
