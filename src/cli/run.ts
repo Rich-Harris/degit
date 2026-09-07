@@ -2,7 +2,7 @@ import colors from 'yoctocolors';
 import degit from '../index.js';
 import { startSpinner } from '../shared/spinner.js';
 
-export type RunArgs = {
+type RunArgs = {
 	aliases?: Record<string, string>;
 	cache?: boolean;
 	files?: string[];
