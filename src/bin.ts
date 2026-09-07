@@ -5,7 +5,6 @@ import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
 import glob from 'tiny-glob/sync.js';
 import { parse } from './domain/repo.js';
-import degit from './index.js';
 import {
 	handleAliasSubcommand,
 	handleListSubcommand,
@@ -13,6 +12,7 @@ import {
 	loadAliases,
 	resolveAlias,
 } from './aliases.js';
+import { run } from './cli/run.js';
 import { base, DegitError, tryReadJson } from './shared/utils.js';
 
 type Choice = {
@@ -41,15 +41,6 @@ type PromptResult = {
 
 type ForceResult = {
 	force: boolean;
-};
-
-type RunArgs = {
-	aliases?: Record<string, string>;
-	cache?: boolean;
-	files?: string[];
-	force?: boolean;
-	mode?: string;
-	verbose?: boolean;
 };
 
 /* eslint-disable security/detect-non-literal-fs-filename */
@@ -178,6 +169,7 @@ async function handleInteractiveClone() {
 	run(options.src, options.dest, {
 		cache: options.cache,
 		force: true,
+		interactive: true,
 	});
 }
 
@@ -237,56 +229,7 @@ export async function main(argv: string[]) {
 }
 
 /* eslint-enable security/detect-non-literal-fs-filename */
-export function run(src: string, dest: string, args: RunArgs) {
-	const d = degit(src, args as Parameters<typeof degit>[1]);
-
-	d.on('info', (event) => {
-		console.log(colors.cyan(`> ${event.message.replace('options.', '--')}`));
-	});
-
-	d.on('warn', (event) => {
-		console.warn(colors.magenta(`! ${event.message.replace('options.', '--')}`));
-	});
-
-	d.clone(dest).catch((error: Error) => {
-		console.error(colors.red(`! ${error.message.replace('options.', '--')}`));
-		if (args.verbose) {
-			const detail = getCloneErrorDetail(error);
-
-			if (detail) {
-				console.error(detail);
-			}
-		}
-		process.exit(1);
-	});
-}
-
-function getCloneErrorDetail(error: unknown): string | undefined {
-	if (!error || typeof error !== 'object') {
-		return undefined;
-	}
-
-	const nestedError =
-		'original' in error ? error.original : 'cause' in error ? error.cause : undefined;
-
-	if (!nestedError) {
-		return undefined;
-	}
-
-	if (nestedError instanceof Error) {
-		return nestedError.stack || nestedError.message;
-	}
-
-	if (typeof nestedError === 'string') {
-		return nestedError;
-	}
-
-	try {
-		return JSON.stringify(nestedError);
-	} catch {
-		return String(nestedError);
-	}
-}
+export { run };
 
 if (!process.env.VITEST) {
 	try {

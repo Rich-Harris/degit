@@ -33,6 +33,11 @@ function cloneSuccessMessage(user: string, name: string, ref: string, dest: stri
 	return `cloned ${colors.bold(`${user}/${name}`)}#${colors.bold(ref)}${destination}`;
 }
 
+function cloneStartMessage(user: string, name: string, ref: string, dest: string) {
+	const destination = dest === '.' ? '' : ` to ${dest}`;
+	return `cloning ${colors.bold(`${user}/${name}`)}#${colors.bold(ref)}${destination}`;
+}
+
 export class Degit extends EventEmitter {
 	aliases: Record<string, string>;
 	cache?: boolean;
@@ -103,6 +108,12 @@ export class Degit extends EventEmitter {
 		}
 
 		checkDirIsEmpty(dest, this.force, this.info, this.verboseInfo);
+		this.info({
+			code: 'CLONING',
+			dest,
+			message: cloneStartMessage(this.repo.user, this.repo.name, this.repo.ref, dest),
+			repo: this.repo,
+		});
 		await this.cloneToDestination(dest);
 		keepFiles(dest, this.files, this.warn);
 		this.info({
