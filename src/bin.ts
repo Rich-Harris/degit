@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+/* oxlint-disable import/max-dependencies */
 import fs from 'node:fs';
 import colors from 'yoctocolors';
 import enquirer from 'enquirer';
@@ -13,6 +15,7 @@ import {
 	loadAliases,
 	resolveAlias,
 } from './aliases.js';
+import { startSpinner } from './shared/spinner.js';
 import { base, DegitError, tryReadJson } from './shared/utils.js';
 
 type Choice = {
@@ -48,6 +51,7 @@ type RunArgs = {
 	cache?: boolean;
 	files?: string[];
 	force?: boolean;
+	interactive?: boolean;
 	mode?: string;
 	verbose?: boolean;
 };
@@ -178,6 +182,7 @@ async function handleInteractiveClone() {
 	run(options.src, options.dest, {
 		cache: options.cache,
 		force: true,
+		interactive: true,
 	});
 }
 
@@ -238,27 +243,38 @@ export async function main(argv: string[]) {
 
 /* eslint-enable security/detect-non-literal-fs-filename */
 export function run(src: string, dest: string, args: RunArgs) {
-	const d = degit(src, args as Parameters<typeof degit>[1]);
+	const { interactive, ...degitArgs } = args;
+	const d = degit(src, degitArgs as Parameters<typeof degit>[1]);
+	const spinner = interactive ? startSpinner() : null;
 
 	d.on('info', (event) => {
+		if (event.code === 'SUCCESS') {
+			spinner?.stop();
+		} else {
+			spinner?.clear();
+		}
 		console.log(colors.cyan(`> ${event.message.replace('options.', '--')}`));
 	});
 
 	d.on('warn', (event) => {
+		spinner?.clear();
 		console.warn(colors.magenta(`! ${event.message.replace('options.', '--')}`));
 	});
 
-	d.clone(dest).catch((error: Error) => {
-		console.error(colors.red(`! ${error.message.replace('options.', '--')}`));
-		if (args.verbose) {
-			const detail = getCloneErrorDetail(error);
+	d.clone(dest)
+		.then(() => spinner?.stop())
+		.catch((error: Error) => {
+			spinner?.stop();
+			console.error(colors.red(`! ${error.message.replace('options.', '--')}`));
+			if (args.verbose) {
+				const detail = getCloneErrorDetail(error);
 
-			if (detail) {
-				console.error(detail);
+				if (detail) {
+					console.error(detail);
+				}
 			}
-		}
-		process.exit(1);
-	});
+			process.exit(1);
+		});
 }
 
 function getCloneErrorDetail(error: unknown): string | undefined {

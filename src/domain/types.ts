@@ -22,6 +22,7 @@ export type ConstructorOptions = {
 
 export type InfoCode =
 	| 'SUCCESS'
+	| 'CLONING'
 	| 'FILE_DOES_NOT_EXIST'
 	| 'FILE_OUTSIDE_DEST'
 	| 'NO_FILES_MATCHED'
