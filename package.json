@@ -57,7 +57,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "25.6.0",
-		"@vitest/coverage-v8": "4.1.8",
+		"@vitest/coverage-v8": "4.1.11",
 		"enquirer": "2.3.6",
 		"eslint-plugin-security": "4.0.0",
 		"fuzzysearch": "1.0.3",
@@ -65,7 +65,7 @@
 		"husky": "9.1.7",
 		"isomorphic-git": "1.38.1",
 		"jscpd": "4.0.9",
-		"knip": "6.11.0",
+		"knip": "6.34.0",
 		"lint-staged": "10.5.4",
 		"mri": "1.1.6",
 		"oxfmt": "0.47.0",
@@ -75,7 +75,7 @@
 		"tsdown": "0.21.10",
 		"typescript": "6.0.3",
 		"vite": "8.0.16",
-		"vitest": "4.1.8",
+		"vitest": "4.1.11",
 		"yoctocolors": "2.1.2"
 	},
 	"overrides": {
