@@ -43,6 +43,7 @@
 		"knip:ci": "knip",
 		"perf": "nub perf/bench.ts",
 		"prepare": "husky",
+		"verify-docs": "node scripts/verify-docs.js",
 		"format": "oxfmt --write .",
 		"format:ci": "oxfmt --check .",
 		"duplicates:ci": "jscpd --gitignore --reporters console --threshold 5 tsdown.config.ts vitest.config.ts src test",

@@ -201,6 +201,8 @@ Use `type(scope): subject` on the first line: imperative, lowercase subject afte
 
 Add a body after a blank line when the motivation or trade-offs are not obvious from the diff. Use a `BREAKING CHANGE:` footer (or `!` after the type/scope per the spec) when you introduce incompatible API or behavior changes.
 
+A `commit-msg` hook (`scripts/verify-docs.js`) requires `feat`, `fix`, `perf`, or `revert` commits that change `src/` to also update docs: at least one human-facing file (`docs/*.md`, `README.md`, `assets/help.md`) and at least one agent-facing file (`AGENTS.md`, `llms.txt`, `skills/*/SKILL.md`). When docs are genuinely not required, opt out per set with `[skip-human-docs]` or `[skip-agent-docs]` in the message, or `[skip-docs]` for both.
+
 Reference related issue or pull request numbers in the subject or body when it helps future readers.
 
 ## Join The Project Team

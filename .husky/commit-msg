@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+node scripts/verify-docs.js "$1"
