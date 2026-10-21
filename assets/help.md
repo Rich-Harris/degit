@@ -70,6 +70,8 @@ Options:
 `--files <paths>`, `-F <paths>` Clone only the listed files or directories (comma-separated)
 `--repo-name`, `-r` Clone into a directory named after the repository
 `--verbose`, `-v` Extra logging
+`--no-actions` Skip `degit.json` actions after cloning
+`--allow-env <names>` Restrict `search_replace` to the listed environment variables (comma-separated; a bare flag allows none)
 
 Without `--cache`, degit tries the network first and falls back to the local cache if the network is unreachable.
 
@@ -88,6 +90,6 @@ Private repositories are handled automatically: degit uses the tarball path by d
 
 `--mode=git` is still accepted for compatibility. `--mode=tar` is the default path and does not need special handling.
 
-Actions can also be defined in a top-level `degit.json` file. Supported actions are `clone`, `search_replace`, and `remove`. `search_replace` only touches explicitly listed files, resolves them relative to the destination, and uses the named environment variable as the replacement value.
+Actions can also be defined in a top-level `degit.json` file. Supported actions are `clone`, `search_replace`, and `remove`. `search_replace` only touches explicitly listed files, resolves them relative to the destination, and uses the named environment variable as the replacement value. Since a downloaded `degit.json` runs automatically, use `--no-actions` to skip it and `--allow-env` to control which environment variables `search_replace` may read.
 
 See https://github.com/Rich-Harris/degit for more information

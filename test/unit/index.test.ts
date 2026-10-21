@@ -7,7 +7,7 @@ import { generateGitlabRepoCandidates, parse } from '../../src/domain/repo.js';
 import { Degit } from '../../src/core/orchestrator.js';
 import { DegitError } from '../../src/shared/utils.js';
 import { providerCases } from './index-support.js';
-import type { Directive } from '../../src/domain/types.js';
+import type { ConstructorOptions, Directive } from '../../src/domain/types.js';
 
 const { suiteCache, suiteTmp } = vi.hoisted(() => ({
 	suiteCache: '.tmp/index-main-suite-cache',
@@ -624,6 +624,7 @@ describe('degit index', () => {
 		files: string[],
 		setup: (target: string) => void,
 		assertions: (dest: string) => void,
+		opts: ConstructorOptions = {},
 	) {
 		fs.mkdirSync(suiteTmp, { recursive: true });
 		const dest = fs.mkdtempSync(path.join(suiteTmp, 'files-'));
@@ -635,7 +636,7 @@ describe('degit index', () => {
 			});
 
 		try {
-			await degit('Rich-Harris/degit-test-repo', { force: true, files }).clone(dest);
+			await degit('Rich-Harris/degit-test-repo', { force: true, files, ...opts }).clone(dest);
 			assertions(dest);
 		} finally {
 			stub.mockRestore();
@@ -675,6 +676,49 @@ describe('degit index', () => {
 				assert.equal(fs.existsSync(path.join(dest, 'package.json')), false);
 				assert.equal(fs.existsSync(path.join(dest, 'degit.json')), false);
 			},
+		);
+	});
+
+	it('rejects a self-referential clone directive when degit.json clones its own source', async () => {
+		fs.mkdirSync(suiteTmp, { recursive: true });
+		const dest = fs.mkdtempSync(path.join(suiteTmp, 'cycle-'));
+		const stub = vi
+			.spyOn(Degit.prototype as any, 'cloneToDestination')
+			.mockImplementation((target: string) => {
+				fs.writeFileSync(
+					path.join(target, 'degit.json'),
+					JSON.stringify([{ action: 'clone', src: 'Rich-Harris/degit-test-repo' }]),
+				);
+				return Promise.resolve();
+			});
+
+		try {
+			await assert.rejects(
+				degit('Rich-Harris/degit-test-repo', { force: true }).clone(dest),
+				(err: any) => err?.code === 'CLONE_CYCLE',
+			);
+		} finally {
+			stub.mockRestore();
+			fs.rmSync(suiteTmp, { force: true, recursive: true });
+		}
+	});
+
+	it('skips degit.json actions when actions is false', async () => {
+		await withCloneFiles(
+			['README.md', 'package.json'],
+			(target) => {
+				fs.writeFileSync(path.join(target, 'README.md'), 'readme');
+				fs.writeFileSync(path.join(target, 'package.json'), '{}');
+				fs.writeFileSync(
+					path.join(target, 'degit.json'),
+					JSON.stringify([{ action: 'remove', files: 'package.json' }]),
+				);
+			},
+			(dest) => {
+				assert.equal(fs.existsSync(path.join(dest, 'README.md')), true);
+				assert.equal(fs.existsSync(path.join(dest, 'package.json')), true);
+			},
+			{ actions: false },
 		);
 	});
 

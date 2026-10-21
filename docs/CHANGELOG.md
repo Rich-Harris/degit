@@ -1,5 +1,13 @@
 # degit changelog
 
+## [3.11.0]
+
+- Add `--no-actions` flag and `actions` option to skip `degit.json` actions after cloning.
+- Add `--allow-env` flag and `allowEnv` option to restrict which environment variables `search_replace` may read.
+- Detect `clone` directive cycles and fail with `CLONE_CYCLE` instead of looping forever; log an info line when `degit.json` actions are applied or skipped.
+- Warn when `search_replace` reads an environment variable whose name looks like a secret.
+- Warn when a directive lists more than 1,000 files.
+
 ## [3.10.1]
 
 - Download failures now reject with a `DegitError` (an `Error` with `code`) instead of a plain object.
@@ -262,6 +270,8 @@
 
 - First release
 
+[3.11.0]: https://github.com/Rich-Harris/degit/compare/v3.10.1...v3.11.0
+[3.10.1]: https://github.com/Rich-Harris/degit/compare/v3.10.0...v3.10.1
 [3.10.0]: https://github.com/Rich-Harris/degit/compare/v3.9.0...v3.10.0
 [3.9.0]: https://github.com/Rich-Harris/degit/compare/v3.8.0...v3.9.0
 [3.8.0]: https://github.com/Rich-Harris/degit/compare/v3.7.1...v3.8.0

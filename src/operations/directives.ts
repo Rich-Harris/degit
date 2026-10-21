@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import colors from 'yoctocolors';
+import { resolveAlias } from '../aliases.js';
+import { parse, repoKey } from '../domain/repo.js';
 import {
 	DegitError,
 	copyToStash,
@@ -18,13 +20,16 @@ import type {
 	FetchFn,
 } from '../domain/types.js';
 const MAX_DIRECTIVE_DEPTH = 5;
+const MAX_DIRECTIVE_FILES = 1000;
 
 type ChildDegit = {
 	clone(dest: string): Promise<void>;
 	on(eventName: 'info' | 'warn', listener: (event: EventInfo) => void): ChildDegit;
 };
 export type DirectiveContext = {
+	actions?: boolean;
 	aliases?: Record<string, string>;
+	allowEnv?: string[];
 	cache?: boolean;
 	depth?: number;
 	fetch: FetchFn;
@@ -32,6 +37,7 @@ export type DirectiveContext = {
 	getStagingDir(): Promise<string>;
 	hasStashed: boolean;
 	info(info: EventInfo): void;
+	srcChain?: string[];
 	stagingDir?: string;
 	verbose?: boolean;
 	warn(info: EventInfo): void;
@@ -46,6 +52,12 @@ async function cloneDirective(
 ) {
 	if (typeof action.src !== 'string' || action.src === '') {
 		throw new DegitError('clone directive requires a non-empty source', { code: 'BAD_SRC' });
+	}
+	const key = repoKey(parse(resolveAlias(context.aliases ?? {}, action.src) ?? action.src));
+	if (context.srcChain?.includes(key)) {
+		throw new DegitError(`clone directive source ${action.src} is already in the clone chain`, {
+			code: 'CLONE_CYCLE',
+		});
 	}
 	const destIsDir = validateDestination(dest, true);
 	let dir: string | undefined;
@@ -76,13 +88,16 @@ async function cloneDirective(
 	}
 
 	const child = createChild(action.src, {
+		actions: context.actions,
 		aliases: context.aliases,
+		allowEnv: context.allowEnv,
 		cache: typeof action.cache === 'boolean' ? action.cache : context.cache,
 		depth: (context.depth ?? 0) + 1,
 		fetch: context.fetch,
 		files,
 		force: true,
 		git: await context.getGitClient(),
+		srcChain: context.srcChain,
 		verbose: typeof action.verbose === 'boolean' ? action.verbose : context.verbose,
 	});
 
@@ -111,16 +126,21 @@ async function cloneDirective(
 	}
 }
 
-function getDirectiveFiles(files: unknown): string[] | undefined {
-	if (typeof files === 'string' && files !== '') return [files];
-	if (
-		Array.isArray(files) &&
-		files.length > 0 &&
-		files.every((file) => typeof file === 'string' && file !== '')
-	) {
-		return files;
+function getDirectiveFiles(files: unknown, warn: (info: EventInfo) => void): string[] | undefined {
+	const list =
+		typeof files === 'string' && files !== ''
+			? [files]
+			: Array.isArray(files) &&
+				  files.length > 0 &&
+				  files.every((file) => typeof file === 'string' && file !== '')
+				? files
+				: undefined;
+	if (list !== undefined && list.length > MAX_DIRECTIVE_FILES) {
+		warn({
+			message: `directive lists ${list.length} files; actions on many files may be slow`,
+		});
 	}
-	return undefined;
+	return list;
 }
 // eslint-disable-next-line max-lines-per-function
 async function runDirective(
@@ -142,7 +162,7 @@ async function runDirective(
 	}
 
 	if (directive.action === 'clone') {
-		const files = getDirectiveFiles(directive.files);
+		const files = getDirectiveFiles(directive.files, context.warn);
 		if (directive.files !== undefined && files === undefined) {
 			context.warn({
 				message: 'clone action requires a string or array of strings for files, skipping',
@@ -155,7 +175,7 @@ async function runDirective(
 
 	if (directive.action === 'search_replace') {
 		validateDestination(dest, false);
-		const files = getDirectiveFiles(directive.files);
+		const files = getDirectiveFiles(directive.files, context.warn);
 		if (files === undefined) {
 			context.warn({
 				message:
@@ -176,13 +196,19 @@ async function runDirective(
 			});
 			return;
 		}
-		searchReplaceFiles(dest, { ...directive, files }, context.info, context.warn);
+		searchReplaceFiles(
+			dest,
+			{ ...directive, files },
+			context.allowEnv,
+			context.info,
+			context.warn,
+		);
 		return;
 	}
 
 	if (directive.action === 'remove') {
 		validateDestination(dest, false);
-		const files = getDirectiveFiles(directive.files);
+		const files = getDirectiveFiles(directive.files, context.warn);
 		if (files === undefined) {
 			context.warn({
 				message: 'remove action requires a string or array of strings for files, skipping',

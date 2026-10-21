@@ -10,7 +10,9 @@ export const validModes = new Set(['tar', 'git']);
 export type FetchFn = (url: string, dest: string, proxy?: string) => Promise<void>;
 
 export type ConstructorOptions = {
+	actions?: boolean;
 	aliases?: Record<string, string>;
+	allowEnv?: string[];
 	cache?: boolean;
 	depth?: number;
 	fetch?: FetchFn;
@@ -18,6 +20,7 @@ export type ConstructorOptions = {
 	force?: boolean;
 	git?: GitClient;
 	mode?: 'tar' | 'git';
+	srcChain?: string[];
 	verbose?: boolean;
 };
 
@@ -51,7 +54,8 @@ export type DegitErrorCode =
 	| 'MISSING_DEST'
 	| 'ENOTDIR'
 	| 'COULD_NOT_STAT'
-	| 'COULD_NOT_RESTORE';
+	| 'COULD_NOT_RESTORE'
+	| 'CLONE_CYCLE';
 
 export type EventInfo = {
 	code?: InfoCode | DegitErrorCode;

@@ -360,6 +360,24 @@ describe('degit bin', () => {
 		assert.equal(mockDegit.mock.calls[0][1].files, undefined);
 	});
 
+	it('forwards actions false when argv passes --no-actions', async () => {
+		await main(['node', 'bin', 'a/b', 'dest', '--no-actions']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.equal((mockDegit.mock.calls[0][1] as any).actions, false);
+	});
+
+	it('forwards --allow-env as a string array when argv passes a comma-separated list', async () => {
+		await main(['node', 'bin', 'a/b', 'dest', '--allow-env', 'A,B']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.deepEqual((mockDegit.mock.calls[0][1] as any).allowEnv, ['A', 'B']);
+	});
+
+	it('forwards an empty allow-list when argv passes a bare --allow-env', async () => {
+		await main(['node', 'bin', 'a/b', 'dest', '--allow-env']);
+		assert.equal(mockDegit.mock.calls.length, 1);
+		assert.deepEqual((mockDegit.mock.calls[0][1] as any).allowEnv, []);
+	});
+
 	it('exits with status 1 when the clone promise rejects', async () => {
 		const err = Object.assign(new Error('clone failed'), { original: 'nested failure' });
 

@@ -175,6 +175,10 @@ function parseGist(
 	};
 }
 
+export function repoKey(repo: Repo): string {
+	return `${new URL(repo.url).host}/${repo.user}/${repo.name}${repo.subdir ?? ''}#${repo.ref}`;
+}
+
 export function parse(src: string): Repo {
 	const decodedSrc = decodeURIComponent(src);
 	const [source, refValue = 'HEAD'] = decodedSrc.split('#', 2);

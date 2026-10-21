@@ -22,5 +22,6 @@ Sources can be GitHub (`user/repo`, `github:user/repo`, or a GitHub URL), GitLab
 - Private repositories are handled automatically, with SSH fallback when needed. SSH/private use requires `git` on `PATH` and working repository credentials.
 - For reusable shortcuts, use `degit alias <repo> <name>`, then `degit <name>`; use `degit ls` and `degit unalias <name>` to manage aliases.
 - If a template needs post-download changes, explain that its top-level `degit.json` can use `clone`, `search_replace`, and `remove` actions. `search_replace` uses a named environment variable for its replacement value.
+- A downloaded `degit.json` runs automatically and is template-controlled. For untrusted templates, prefer `--no-actions` to skip actions, or `--allow-env <names>` to limit which environment variables `search_replace` may read.
 
 If source, ref, destination, or whether the destination is empty is unknown, ask before giving a potentially destructive command.

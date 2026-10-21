@@ -23,6 +23,8 @@ type Choice = {
 
 type CliArgs = {
 	_: string[];
+	'allow-env'?: string | string[];
+	actions?: boolean;
 	cache?: boolean;
 	files?: string | string[] | boolean;
 	force?: boolean;
@@ -44,7 +46,9 @@ type ForceResult = {
 };
 
 type RunArgs = {
+	actions?: boolean;
 	aliases?: Record<string, string>;
+	allowEnv?: string[];
 	cache?: boolean;
 	files?: string[];
 	force?: boolean;
@@ -64,8 +68,8 @@ function parseCliArgs(argv: string[]) {
 			v: 'verbose',
 			V: 'version',
 		},
-		boolean: ['force', 'cache', 'repo-name', 'verbose', 'version'],
-		string: ['files', 'mode'],
+		boolean: ['force', 'cache', 'repo-name', 'verbose', 'version', 'actions'],
+		string: ['files', 'mode', 'allow-env'],
 	}) as CliArgs;
 }
 
@@ -181,17 +185,15 @@ async function handleInteractiveClone() {
 	});
 }
 
-function normalizeFiles(files: string | string[] | boolean | undefined): string[] | undefined {
-	if (typeof files !== 'string' && !Array.isArray(files)) {
-		return undefined;
+function normalizeList(value: string | string[] | boolean | undefined): string[] {
+	if (value === undefined || typeof value === 'boolean') {
+		return [];
 	}
-
-	const list = Array.isArray(files) ? files : [files];
-	const result = list
-		.flatMap((file) => file.split(','))
-		.map((file) => file.trim())
+	const list = Array.isArray(value) ? value : [value];
+	return list
+		.flatMap((entry) => entry.split(','))
+		.map((entry) => entry.trim())
 		.filter(Boolean);
-	return result.length > 0 ? result : undefined;
 }
 
 export async function main(argv: string[]) {
@@ -232,8 +234,10 @@ export async function main(argv: string[]) {
 	const aliases = loadAliases();
 	const resolvedSrc = resolveAlias(aliases, src) ?? src;
 	const dest = positionalDest ?? (args['repo-name'] ? parse(resolvedSrc).name : '.');
-	const files = normalizeFiles(args.files);
-	run(resolvedSrc, dest, { ...args, aliases, files });
+	const fileList = normalizeList(args.files);
+	const files = fileList.length > 0 ? fileList : undefined;
+	const allowEnv = args['allow-env'] === undefined ? undefined : normalizeList(args['allow-env']);
+	run(resolvedSrc, dest, { ...args, aliases, files, allowEnv });
 }
 
 /* eslint-enable security/detect-non-literal-fs-filename */
@@ -262,24 +266,14 @@ export function run(src: string, dest: string, args: RunArgs) {
 }
 
 function getCloneErrorDetail(error: unknown): string | undefined {
-	if (!error || typeof error !== 'object') {
-		return undefined;
-	}
+	if (!error || typeof error !== 'object') return undefined;
 
 	const nestedError =
 		'original' in error ? error.original : 'cause' in error ? error.cause : undefined;
 
-	if (!nestedError) {
-		return undefined;
-	}
-
-	if (nestedError instanceof Error) {
-		return nestedError.stack || nestedError.message;
-	}
-
-	if (typeof nestedError === 'string') {
-		return nestedError;
-	}
+	if (!nestedError) return undefined;
+	if (nestedError instanceof Error) return nestedError.stack || nestedError.message;
+	if (typeof nestedError === 'string') return nestedError;
 
 	try {
 		return JSON.stringify(nestedError);

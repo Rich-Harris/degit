@@ -6,7 +6,7 @@ Important notes:
 
 - degit supports GitHub, GitLab, Bitbucket, Sourcehut, and Gist; private repositories are handled automatically with SSH fallback.
 - Public HTTPS sources do not need a local `git` binary, but SSH/private sources still require one.
-- Post-download transformations can be declared in a top-level `degit.json` file using `clone`, `search_replace`, and `remove` actions.
+- Post-download transformations can be declared in a top-level `degit.json` file using `clone`, `search_replace`, and `remove` actions. Actions run automatically; `--no-actions` skips them and `--allow-env <names>` restricts `search_replace` environment variables.
 - Development of this repository uses Nub (npm-compatible toolchain); end users can install the published package with npm.
 
 ## User docs
