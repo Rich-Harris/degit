@@ -39,9 +39,9 @@
 		"lint": "oxlint --fix .",
 		"lint:ci": "oxlint .",
 		"typecheck": "tsc --noEmit",
-		"audit": "bun audit",
+		"audit": "nub audit",
 		"knip:ci": "knip",
-		"perf": "bun perf/bench.ts",
+		"perf": "nub perf/bench.ts",
 		"prepare": "husky",
 		"format": "oxfmt --write .",
 		"format:ci": "oxfmt --check .",
@@ -50,10 +50,10 @@
 		"build": "tsdown --config tsdown.config.ts",
 		"test": "vitest run --exclude test/integration/private.test.ts",
 		"test:integration": "vitest run test/integration",
-		"test:integration:release": "bun test/integration/release.ts",
+		"test:integration:release": "nub test/integration/release.ts",
 		"test:coverage": "vitest run --coverage",
-		"pretest": "bun run build",
-		"prepublishOnly": "bun run test"
+		"pretest": "nub run build",
+		"prepublishOnly": "nub run test"
 	},
 	"devDependencies": {
 		"@types/node": "25.6.0",
@@ -94,8 +94,15 @@
 			"git add"
 		]
 	},
+	"devEngines": {
+		"packageManager": {
+			"name": "npm",
+			"version": "^12.2.0",
+			"onFail": "warn"
+		}
+	},
 	"engines": {
 		"node": ">=20.0.0"
 	},
-	"packageManager": "bun@1.3.14"
+	"packageManager": "npm@12.2.0+sha512.66c2632a94e796649738b2d7894d710c2cc2e1696893823066687f6b0d8a52e5f2b54eeaeaa32ffdc513ecca1e49ff794a5c2ec3f9515d879f1b3182b291cf35"
 }

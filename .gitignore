@@ -12,8 +12,6 @@ coverage
 dist
 node_modules
 
-bun-debug.log*
-bun.lockb
 
 .vscode/settings.json
 .devin

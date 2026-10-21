@@ -45,9 +45,7 @@ jobs:
         steps:
             - uses: actions/checkout@v5
 
-            - uses: oven-sh/setup-bun@v2
-              with:
-                  bun-version: 1.3.14
+            - uses: nubjs/setup-nub@v0
 
             - name: Use Node.js LTS
               uses: actions/setup-node@v5
@@ -55,13 +53,13 @@ jobs:
                   node-version: lts/*
                   registry-url: https://registry.npmjs.org
 
-            - run: bun --version
+            - run: nub --version
 
-            - run: bun install --frozen-lockfile
+            - run: nub ci
 
-            - run: bun run build
+            - run: nub run build
 
-            - run: bun run test
+            - run: nub run test
 
             - run: npm i -g npm@latest
 

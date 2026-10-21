@@ -35,7 +35,7 @@ Important notes:
 ## Tests
 
 - [test/unit](https://github.com/Rich-Harris/degit/tree/master/test/unit): Unit tests.
-- [test/integration](https://github.com/Rich-Harris/degit/tree/master/test/integration): Public and private integration tests; run with `bun run test` or `bun run test:integration`.
+- [test/integration](https://github.com/Rich-Harris/degit/tree/master/test/integration): Public and private integration tests; run with `nub run test` or `nub run test:integration`.
 
 ## Optional
 

@@ -137,39 +137,39 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Rich-H
 Prerequisites:
 
 - Node.js **20** or later (see `engines` in `package.json`)
-- [Bun](https://bun.sh) **1.3.14** (same version as CI; see [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), [.github/workflows/security.yml](.github/workflows/security.yml), and [.github/workflows/integration.yml](.github/workflows/integration.yml))
+- [Nub](https://nubjs.com) (manages Node and the package manager, same setup as CI; see [.github/workflows/quality.yml](.github/workflows/quality.yml), [.github/workflows/verification.yml](.github/workflows/verification.yml), [.github/workflows/security.yml](.github/workflows/security.yml), and [.github/workflows/integration.yml](.github/workflows/integration.yml))
 
 Clone the repository, install dependencies, and build:
 
 ```bash
 git clone https://github.com/Rich-Harris/degit.git
 cd degit
-bun install
-bun run build
+nub install
+nub run build
 ```
 
 Before opening a pull request, run the same checks CI runs:
 
 ```bash
-bun run build
-bun run test
-bun run perf:ci
-bun run format:ci
-bun run lint:ci
-bun run duplicates:ci
-bun run knip:ci
-bun run audit
+nub run build
+nub run test
+nub run perf:ci
+nub run format:ci
+nub run lint:ci
+nub run duplicates:ci
+nub run knip:ci
+nub run audit
 ```
 
-`bun run test` runs the test suite with [Vitest](https://vitest.dev/) and excludes `test/integration/private.test.ts`. The `pretest` script builds first.
+`nub run test` runs the test suite with [Vitest](https://vitest.dev/) and excludes `test/integration/private.test.ts`. The `pretest` script builds first.
 
-`bun run perf:ci` runs the fixture-backed performance gate that PRs use to catch clone regressions.
+`nub run perf:ci` runs the fixture-backed performance gate that PRs use to catch clone regressions.
 
-`bun run test:integration` runs the integration suite in `test/integration`.
+`nub run test:integration` runs the integration suite in `test/integration`.
 
-`bun run audit` runs the dependency audit that also backs [.github/workflows/security.yml](.github/workflows/security.yml).
+`nub run audit` runs the dependency audit that also backs [.github/workflows/security.yml](.github/workflows/security.yml).
 
-The scheduled integration workflow in [.github/workflows/integration.yml](.github/workflows/integration.yml) runs `bun run test:integration`. The PR performance workflow in [.github/workflows/performance.yml](.github/workflows/performance.yml) runs `bun run perf:ci` on Ubuntu. When the `SSH_PRIVATE_KEY` repository secret is available, the integration workflow also includes built-in SSH-backed private fixtures for [YogliB/degit-test](https://github.com/YogliB/degit-test) and the automatic fallback path.
+The scheduled integration workflow in [.github/workflows/integration.yml](.github/workflows/integration.yml) runs `nub run test:integration`. The PR performance workflow in [.github/workflows/performance.yml](.github/workflows/performance.yml) runs `nub run perf:ci` on Ubuntu. When the `SSH_PRIVATE_KEY` repository secret is available, the integration workflow also includes built-in SSH-backed private fixtures for [YogliB/degit-test](https://github.com/YogliB/degit-test) and the automatic fallback path.
 
 A small proof-of-concept docs-sync workflow also runs on PRs that change `src/**/*.ts` and `assets/help.md`, using OpenRouter through Claude Code Action. It expects `OPENROUTER_API_KEY` and `OPENROUTER_ANTHROPIC_BASE_URL` repository secrets.
 
@@ -189,7 +189,7 @@ Documentation lives in the repository root (`README.md`, `AGENTS.md`, `LICENSE.m
 
 If you are restructuring large sections or changing how features are presented, open an issue first so maintainers can agree on direction before you invest significant time.
 
-Markdown and JSON touched by your change are formatted with Oxfmt on commit via lint-staged, and the repo also runs dedicated lint and format CI workflows on pull requests; run `bun run lint:ci` and `bun run format:ci` locally if you want to catch issues early.
+Markdown and JSON touched by your change are formatted with Oxfmt on commit via lint-staged, and the repo also runs dedicated lint and format CI workflows on pull requests; run `nub run lint:ci` and `nub run format:ci` locally if you want to catch issues early.
 
 ## Styleguides
 

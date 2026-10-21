@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-bun run typecheck
+nub run typecheck

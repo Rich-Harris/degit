@@ -25,11 +25,9 @@ jobs:
         steps:
             - uses: actions/checkout@v5
 
-            - uses: oven-sh/setup-bun@v2
-              with:
-                  bun-version: 1.3.14
+            - uses: nubjs/setup-nub@v0
 
-            - run: bun --version
+            - run: nub --version
 
             - name: Use Node.js LTS
               uses: actions/setup-node@v5
@@ -49,6 +47,6 @@ jobs:
                   mkdir -p ~/.ssh
                   ssh-keyscan github.com gitlab.com bitbucket.org git.sr.ht >> ~/.ssh/known_hosts
 
-            - run: bun install --frozen-lockfile
+            - run: nub ci
 
-            - run: bun run test:integration:release
+            - run: nub run test:integration:release

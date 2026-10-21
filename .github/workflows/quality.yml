@@ -13,20 +13,18 @@ jobs:
         steps:
             - uses: actions/checkout@v5
 
-            - uses: oven-sh/setup-bun@v2
-              with:
-                  bun-version: 1.3.14
+            - uses: nubjs/setup-nub@v0
 
-            - run: bun --version
+            - run: nub --version
 
             - name: Use Node.js LTS
               uses: actions/setup-node@v5
               with:
                   node-version: lts/*
 
-            - run: bun install --frozen-lockfile
-            - run: bun run lint:ci
-            - run: bun run format:ci
-            - run: bun run duplicates:ci
-            - run: bun run knip:ci
-            - run: bun run typecheck
+            - run: nub ci
+            - run: nub run lint:ci
+            - run: nub run format:ci
+            - run: nub run duplicates:ci
+            - run: nub run knip:ci
+            - run: nub run typecheck

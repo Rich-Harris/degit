@@ -121,7 +121,7 @@ Description: Validates provider parsing, tar and git modes, caching behavior, di
 
 Technologies: Vitest, Node test fixtures, tar archive generation, mock `fetch` and `exec` helpers
 
-Deployment: Run locally and in CI; `test/integration/public.test.ts` and `test/integration/private.test.ts` run directly through `bun run test:integration`, and the private fixtures are included only when `SSH_PRIVATE_KEY` is provided in CI or the local shell.
+Deployment: Run locally and in CI; `test/integration/public.test.ts` and `test/integration/private.test.ts` run directly through `nub run test:integration`, and the private fixtures are included only when `SSH_PRIVATE_KEY` is provided in CI or the local shell.
 
 ## 4. Data Stores
 
@@ -163,7 +163,7 @@ Cloud Provider: None for application runtime. The project is a locally executed 
 
 Key Services Used: GitHub Actions for CI, npm for package publishing, and the local filesystem for cache and build artifacts.
 
-CI/CD Pipeline: GitHub Actions. `quality.yml` runs lint, format, duplication, and dead-code checks; `verification.yml` runs build and tests; `security.yml` runs `bun audit` and CodeQL; `publish.yml` builds, tests, and publishes tagged releases.
+CI/CD Pipeline: GitHub Actions. `quality.yml` runs lint, format, duplication, and dead-code checks; `verification.yml` runs build and tests; `security.yml` runs `nub audit` and CodeQL; `publish.yml` builds, tests, and publishes tagged releases.
 
 Monitoring & Logging: No dedicated observability stack. Errors and status messages are surfaced directly through the CLI and test output.
 
@@ -183,9 +183,9 @@ The clone flow also relies on path-safe extraction via the tar library and does 
 
 ## 8. Development & Testing Environment
 
-Local Setup Instructions: See `../README.md` and `CONTRIBUTING.md`. The expected workflow is `bun install`, `bun run build`, and then the relevant tests or checks.
+Local Setup Instructions: See `../README.md` and `CONTRIBUTING.md`. The expected workflow is `nub install`, `nub run build`, and then the relevant tests or checks.
 
-Testing Frameworks: Vitest for unit and integration tests. `test/integration/private.test.ts` runs directly under `bun run test:integration`, includes private SSH-backed integration repos when `SSH_PRIVATE_KEY` is set, and can add more when configured through CI secrets.
+Testing Frameworks: Vitest for unit and integration tests. `test/integration/private.test.ts` runs directly under `nub run test:integration`, includes private SSH-backed integration repos when `SSH_PRIVATE_KEY` is set, and can add more when configured through CI secrets.
 
 Code Quality Tools: Oxlint, Oxfmt, Knip, and jscpd. The repository also uses Husky and lint-staged for pre-commit checks.
 

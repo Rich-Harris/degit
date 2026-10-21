@@ -14,7 +14,7 @@
 
 How you verified this (commands, scenarios, or N/A):
 
-- [ ] Automated tests (`bun run test`)
+- [ ] Automated tests (`nub run test`)
 - [ ] Manual / CLI check if user-facing behavior changed
 - [ ] CI passes
 

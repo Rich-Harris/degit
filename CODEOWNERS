@@ -4,7 +4,7 @@
 # Security-sensitive paths that should always get explicit review attention.
 /.github/workflows/ @YogliB
 /package.json @YogliB
-/bunfig.toml @YogliB
+/.npmrc @YogliB
 /AGENTS.md @YogliB
 /README.md @YogliB
 /CONTRIBUTING.md @YogliB

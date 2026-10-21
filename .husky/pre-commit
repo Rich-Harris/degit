@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-bunx lint-staged
+nub exec lint-staged
