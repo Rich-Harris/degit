@@ -8,16 +8,38 @@ import type { EventInfo, SearchReplaceDirective } from '../domain/types.js';
 const MAX_SEARCH_REPLACE_BYTES = 10 * 1024 * 1024;
 const SEARCH_REPLACE_TIMEOUT_MS = 1000;
 const SEARCH_REPLACE_SCRIPT = new vm.Script('text.replace(pattern, () => replacement)');
+const SECRET_ENV_PARTS = new Set([
+	'AUTH',
+	'CERT',
+	'CREDENTIAL',
+	'CREDENTIALS',
+	'KEY',
+	'PASS',
+	'PASSWORD',
+	'PASSWD',
+	'PRIVATE',
+	'PWD',
+	'SECRET',
+	'TOKEN',
+]);
 
-export function searchReplaceFiles(
-	dest: string,
+function looksLikeSecret(name: string): boolean {
+	return name.split(/[^A-Za-z]+/u).some((part) => SECRET_ENV_PARTS.has(part.toUpperCase()));
+}
+
+function resolveReplacement(
 	action: SearchReplaceDirective,
+	allowEnv: string[] | undefined,
 	info: (info: EventInfo) => void,
 	warn: (info: EventInfo) => void,
 ) {
-	/* eslint-disable security/detect-non-literal-regexp, security/detect-non-literal-fs-filename */
-	const files = Array.isArray(action.files) ? action.files : [action.files];
-	const root = path.resolve(dest);
+	if (allowEnv !== undefined && !allowEnv.includes(action.replacement)) {
+		warn({
+			message: `action wants to search_replace using env var ${colors.bold(action.replacement)} but it is not in --allow-env, skipping`,
+		});
+		return;
+	}
+
 	const replacement = process.env[action.replacement];
 
 	if (replacement === undefined) {
@@ -30,6 +52,31 @@ export function searchReplaceFiles(
 	info({
 		message: `search_replace reading env var ${colors.bold(action.replacement)}`,
 	});
+
+	if (looksLikeSecret(action.replacement)) {
+		warn({
+			message: `search_replace is writing env var ${colors.bold(action.replacement)} into files; the name looks like a secret`,
+		});
+	}
+
+	return replacement;
+}
+
+export function searchReplaceFiles(
+	dest: string,
+	action: SearchReplaceDirective,
+	allowEnv: string[] | undefined,
+	info: (info: EventInfo) => void,
+	warn: (info: EventInfo) => void,
+) {
+	/* eslint-disable security/detect-non-literal-regexp, security/detect-non-literal-fs-filename */
+	const files = Array.isArray(action.files) ? action.files : [action.files];
+	const root = path.resolve(dest);
+	const replacement = resolveReplacement(action, allowEnv, info, warn);
+
+	if (replacement === undefined) {
+		return;
+	}
 
 	let pattern: RegExp;
 	try {

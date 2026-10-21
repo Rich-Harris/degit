@@ -401,7 +401,13 @@ describe('directives', () => {
 	it('inherits parent options when a clone directive builds a child', async () => {
 		await withCloneDirective('clone-options-', async ({ dest, context, createChild }) => {
 			fs.mkdirSync(dest, { recursive: true });
-			Object.assign(context, { cache: false, verbose: true });
+			Object.assign(context, {
+				actions: false,
+				allowEnv: ['PROJECT_NAME'],
+				cache: false,
+				srcChain: ['github.com/user/parent#HEAD'],
+				verbose: true,
+			});
 
 			await applyDirectives(
 				context,
@@ -411,16 +417,122 @@ describe('directives', () => {
 			);
 
 			const options = createChild.mock.calls[0][1] as {
+				actions?: boolean;
+				allowEnv?: string[];
 				cache?: boolean;
 				mode?: string;
+				srcChain?: string[];
 				verbose?: boolean;
 				force?: boolean;
 			};
+			assert.equal(options.actions, false);
+			assert.deepEqual(options.allowEnv, ['PROJECT_NAME']);
 			assert.equal(options.cache, false);
 			assert.equal(options.mode, undefined);
+			assert.deepEqual(options.srcChain, ['github.com/user/parent#HEAD']);
 			assert.equal(options.verbose, true);
 			assert.equal(options.force, true);
 		});
+	});
+
+	it('rejects a clone directive when its source is already in the clone chain', async () => {
+		await withCloneDirective(
+			'clone-cycle-',
+			async ({ dest, context, createChild, childClone }) => {
+				context.srcChain = ['github.com/user/repo#HEAD'];
+
+				await assert.rejects(
+					applyDirectives(
+						context,
+						[{ action: 'clone', src: 'user/repo' }],
+						dest,
+						createChild,
+					),
+					(err: any) => err?.code === 'CLONE_CYCLE',
+				);
+
+				assert.equal(childClone.mock.calls.length, 0);
+			},
+		);
+	});
+
+	it('rejects a clone directive when an aliased source resolves into the clone chain', async () => {
+		await withCloneDirective(
+			'clone-cycle-alias-',
+			async ({ dest, context, createChild, childClone }) => {
+				context.aliases = { myRepo: 'github:user/repo#HEAD' };
+				context.srcChain = ['github.com/user/repo#HEAD'];
+
+				await assert.rejects(
+					applyDirectives(
+						context,
+						[{ action: 'clone', src: 'myRepo' }],
+						dest,
+						createChild,
+					),
+					(err: any) => err?.code === 'CLONE_CYCLE',
+				);
+
+				assert.equal(childClone.mock.calls.length, 0);
+			},
+		);
+	});
+
+	it('allows a clone directive when its source differs only by ref from the chain', async () => {
+		await withCloneDirective(
+			'clone-chain-ok-',
+			async ({ dest, context, createChild, childClone }) => {
+				context.srcChain = ['github.com/user/repo#main'];
+
+				await applyDirectives(
+					context,
+					[{ action: 'clone', src: 'user/repo#dev' }],
+					dest,
+					createChild,
+				);
+
+				assert.equal(childClone.mock.calls.length, 1);
+			},
+		);
+	});
+
+	it('allows a clone directive when the same repo path lives on a different GitLab host', async () => {
+		await withCloneDirective(
+			'clone-chain-host-',
+			async ({ dest, context, createChild, childClone }) => {
+				context.srcChain = ['a.example/team/template#HEAD'];
+
+				await applyDirectives(
+					context,
+					[{ action: 'clone', src: 'gitlab://b.example/team/template' }],
+					dest,
+					createChild,
+				);
+
+				assert.equal(childClone.mock.calls.length, 1);
+			},
+		);
+	});
+
+	it('rejects a clone directive when the same GitLab host and path is already in the chain', async () => {
+		await withCloneDirective(
+			'clone-cycle-host-',
+			async ({ dest, context, createChild, childClone }) => {
+				context.srcChain = ['b.example/team/template#HEAD'];
+
+				await assert.rejects(
+					applyDirectives(
+						context,
+						[{ action: 'clone', src: 'gitlab://b.example/team/template' }],
+						dest,
+						createChild,
+					),
+					(err: any) => err?.code === 'CLONE_CYCLE',
+				);
+
+				assert.equal(childClone.mock.calls.length, 0);
+			},
+		);
 	});
 
 	it('does not stash when the destination does not exist', async () => {
@@ -688,6 +800,105 @@ describe('directives', () => {
 				assertNoStash(root, context);
 			},
 		);
+	});
+
+	it('warns and skips search_replace when the env var is not in the allow-list', async () => {
+		await withSearchReplace(async ({ context, createChild, dest, warnings }) => {
+			fs.writeFileSync(path.join(dest, 'a.txt'), '{{project_name}}\n');
+			Object.assign(context, { allowEnv: ['OTHER_VAR'] });
+			process.env.PROJECT_NAME = 'degit';
+
+			await applyDirectives(
+				context,
+				[
+					{
+						action: 'search_replace',
+						files: 'a.txt',
+						pattern: '\\{\\{project_name\\}\\}',
+						replacement: 'PROJECT_NAME',
+					},
+				],
+				dest,
+				createChild,
+			);
+
+			assert.equal(fs.readFileSync(path.join(dest, 'a.txt'), 'utf8'), '{{project_name}}\n');
+			assert.equal(warnings.length, 1);
+			assert.match(warnings[0], /not in --allow-env/u);
+			assert.match(warnings[0], /PROJECT_NAME/u);
+		});
+	});
+
+	it('runs search_replace when the env var is in the allow-list', async () => {
+		await withSearchReplace(async ({ context, createChild, dest, warnings }) => {
+			fs.writeFileSync(path.join(dest, 'a.txt'), '{{project_name}}\n');
+			Object.assign(context, { allowEnv: ['PROJECT_NAME'] });
+			process.env.PROJECT_NAME = 'degit';
+
+			await applyDirectives(
+				context,
+				[
+					{
+						action: 'search_replace',
+						files: 'a.txt',
+						pattern: '\\{\\{project_name\\}\\}',
+						replacement: 'PROJECT_NAME',
+					},
+				],
+				dest,
+				createChild,
+			);
+
+			assert.equal(fs.readFileSync(path.join(dest, 'a.txt'), 'utf8'), 'degit\n');
+			assert.deepEqual(warnings, []);
+		});
+	});
+
+	it('warns when search_replace reads an env var whose name looks like a secret', async () => {
+		await withSearchReplace(async ({ context, createChild, dest, warnings }) => {
+			fs.writeFileSync(path.join(dest, 'a.txt'), 'x\n');
+			process.env.UNIT_TEST_NPM_TOKEN = 'shh';
+
+			try {
+				await applyDirectives(
+					context,
+					[
+						{
+							action: 'search_replace',
+							files: 'a.txt',
+							pattern: 'x',
+							replacement: 'UNIT_TEST_NPM_TOKEN',
+						},
+					],
+					dest,
+					createChild,
+				);
+			} finally {
+				delete process.env.UNIT_TEST_NPM_TOKEN;
+			}
+
+			assert.equal(warnings.length, 1);
+			assert.match(warnings[0], /looks like a secret/u);
+			assert.match(warnings[0], /UNIT_TEST_NPM_TOKEN/u);
+		});
+	});
+
+	it('warns when a directive lists more than one thousand files', async () => {
+		await withSearchReplace(async ({ context, createChild, dest, warnings }) => {
+			await applyDirectives(
+				context,
+				[
+					{
+						action: 'remove',
+						files: Array.from({ length: 1001 }, (_v, i) => `f${i}`),
+					},
+				],
+				dest,
+				createChild,
+			);
+
+			assert.match(warnings[0], /lists 1001 files/u);
+		});
 	});
 });
 /* eslint-enable max-lines-per-function */

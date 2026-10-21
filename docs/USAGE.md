@@ -152,16 +152,18 @@ Missing or out-of-bounds paths are skipped with a warning; if no requested paths
 
 ### Options
 
-| Option            | Short        | Description                                                                                           |
-| ----------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
-| `--help`          | `-h`         | Show help text.                                                                                       |
-| `--version`       | `-V`         | Show the version.                                                                                     |
-| `--cache`         | `-c`         | Only use the local cache; do not hit the network.                                                     |
-| `--force`         | `-f`         | Allow cloning into a non-empty destination directory.                                                 |
-| `--files <paths>` | `-F <paths>` | Keep only the listed files or directories.                                                            |
-| `--repo-name`     | `-r`         | Clone into a directory named after the repository.                                                    |
-| `--verbose`       | `-v`         | Print extra progress information.                                                                     |
-| `--mode <mode>`   | `-m`         | `tar` (default) or `git`. `--mode=git` is accepted for compatibility but prints a deprecation notice. |
+| Option                | Short        | Description                                                                                               |
+| --------------------- | ------------ | --------------------------------------------------------------------------------------------------------- |
+| `--help`              | `-h`         | Show help text.                                                                                           |
+| `--version`           | `-V`         | Show the version.                                                                                         |
+| `--cache`             | `-c`         | Only use the local cache; do not hit the network.                                                         |
+| `--force`             | `-f`         | Allow cloning into a non-empty destination directory.                                                     |
+| `--files <paths>`     | `-F <paths>` | Keep only the listed files or directories.                                                                |
+| `--repo-name`         | `-r`         | Clone into a directory named after the repository.                                                        |
+| `--verbose`           | `-v`         | Print extra progress information.                                                                         |
+| `--no-actions`        |              | Skip `degit.json` actions after cloning.                                                                  |
+| `--allow-env <names>` |              | Restrict `search_replace` to the listed environment variables (comma-separated; a bare flag allows none). |
+| `--mode <mode>`       | `-m`         | `tar` (default) or `git`. `--mode=git` is accepted for compatibility but prints a deprecation notice.     |
 
 Run `degit --help` to see the published help text.
 
@@ -239,16 +241,18 @@ console.log('done');
 
 ### Constructor options
 
-| Option    | Type                     | Description                                                      |
-| --------- | ------------------------ | ---------------------------------------------------------------- |
-| `aliases` | `Record<string, string>` | Alias map used when resolving `src`.                             |
-| `cache`   | `boolean`                | Only use local cache; do not hit the network.                    |
-| `fetch`   | `FetchFn`                | Custom `(url, dest, proxy?) => Promise<void>` download function. |
-| `files`   | `string[]`               | Keep only the listed files or directories.                       |
-| `force`   | `boolean`                | Allow cloning into a non-empty destination.                      |
-| `git`     | `GitClient`              | Custom git client for ref resolution and fallback cloning.       |
-| `mode`    | `'tar' \| 'git'`         | Clone mode. `tar` is the default.                                |
-| `verbose` | `boolean`                | Print extra progress information.                                |
+| Option     | Type                     | Description                                                            |
+| ---------- | ------------------------ | ---------------------------------------------------------------------- |
+| `actions`  | `boolean`                | Run `degit.json` actions after cloning. Defaults to `true`.            |
+| `aliases`  | `Record<string, string>` | Alias map used when resolving `src`.                                   |
+| `allowEnv` | `string[]`               | Environment variable names `search_replace` may read. Unset means all. |
+| `cache`    | `boolean`                | Only use local cache; do not hit the network.                          |
+| `fetch`    | `FetchFn`                | Custom `(url, dest, proxy?) => Promise<void>` download function.       |
+| `files`    | `string[]`               | Keep only the listed files or directories.                             |
+| `force`    | `boolean`                | Allow cloning into a non-empty destination.                            |
+| `git`      | `GitClient`              | Custom git client for ref resolution and fallback cloning.             |
+| `mode`     | `'tar' \| 'git'`         | Clone mode. `tar` is the default.                                      |
+| `verbose`  | `boolean`                | Print extra progress information.                                      |
 
 ### Events
 
@@ -288,6 +292,13 @@ Rules:
 ## degit.json actions
 
 After the initial clone, `degit` looks for a `degit.json` file at the top level of the destination and runs the actions it defines. A JSON Schema is available at [schemas/degit.schema.json](../schemas/degit.schema.json) for editor autocompletion and validation.
+
+Because a downloaded `degit.json` is fully controlled by the template, `degit` ships trust controls:
+
+- `--no-actions` (or `actions: false` in the API) skips actions entirely and prints how many were skipped. Calling `doActions` programmatically is not affected — that call is already explicit.
+- `--allow-env <names>` (or `allowEnv`) restricts which environment variables `search_replace` may read. A bare `--allow-env` allows none.
+- `clone` directives that would recurse into a source already in the clone chain fail with `CLONE_CYCLE` instead of looping forever. Deep nesting also warns past five levels.
+- `search_replace` warns when it reads an environment variable whose name looks like a secret, and every read is logged.
 
 ### clone
 

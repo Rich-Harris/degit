@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import colors from 'yoctocolors';
 import { resolveAlias } from '../aliases.js';
-import { generateGitlabRepoCandidates, parse, type Repo } from '../domain/repo.js';
+import { generateGitlabRepoCandidates, parse, repoKey, type Repo } from '../domain/repo.js';
 import { applyDirectives, type DirectiveContext } from '../operations/directives.js';
 import {
 	checkDirIsEmpty,
@@ -34,12 +34,15 @@ function cloneSuccessMessage(user: string, name: string, ref: string, dest: stri
 }
 
 export class Degit extends EventEmitter {
+	actions?: boolean;
 	aliases: Record<string, string>;
+	allowEnv?: string[];
 	cache?: boolean;
 	depth?: number;
 	files?: string[];
 	force?: boolean;
 	mode: ValidModes;
+	srcChain?: string[];
 	verbose?: boolean;
 	proxy?: string;
 	repo?: Repo;
@@ -47,6 +50,7 @@ export class Degit extends EventEmitter {
 	git?: GitClient;
 	gitClientPromise?: Promise<GitClient>;
 	private src?: string;
+	private srcKey?: string;
 
 	constructor(src?: string, opts: ConstructorOptions = {}) {
 		super();
@@ -55,11 +59,14 @@ export class Degit extends EventEmitter {
 			throw new Error(`Valid modes are ${[...validModes].join(', ')}`);
 		}
 
+		this.actions = opts.actions;
 		this.aliases = opts.aliases ?? {};
+		this.allowEnv = opts.allowEnv;
 		this.cache = opts.cache;
 		this.depth = opts.depth;
 		this.files = opts.files;
 		this.force = opts.force;
+		this.srcChain = opts.srcChain;
 		this.verbose = opts.verbose;
 		this.proxy = process.env.https_proxy;
 
@@ -72,6 +79,7 @@ export class Degit extends EventEmitter {
 			}
 			this.src = resolved;
 			this.repo = parse(resolved);
+			this.srcKey = repoKey(this.repo);
 			this.mode = opts.mode ?? this.repo.mode;
 			this.repo = { ...this.repo, mode: this.mode };
 		}
@@ -312,9 +320,21 @@ export class Degit extends EventEmitter {
 	}
 	private async runDirectives(dest: string) {
 		const directives = this.getDirectives(dest);
-		if (directives) {
-			await this.doActions(directives, dest);
+		if (!directives || directives.length === 0) {
+			return;
 		}
+		if (this.actions === false) {
+			this.info({
+				message: `skipping ${directives.length} actions from degit.json (--no-actions)`,
+			});
+			return;
+		}
+		this.info({
+			message: `applying ${directives.length} actions from degit.json (use --no-actions to skip)`,
+		});
+		const srcChain =
+			this.srcKey === undefined ? this.srcChain : [...(this.srcChain ?? []), this.srcKey];
+		await this.runActions(directives, dest, srcChain);
 	}
 	private async getActionsStagingDir(): Promise<string> {
 		// eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -323,11 +343,21 @@ export class Degit extends EventEmitter {
 	}
 
 	async doActions(directives: Action[], dest: string): Promise<void> {
+		await this.runActions(directives, dest, this.srcChain);
+	}
+
+	private async runActions(
+		directives: Action[],
+		dest: string,
+		srcChain: string[] | undefined,
+	): Promise<void> {
 		if (!Array.isArray(directives)) {
 			throw new DegitError('directives must be an array', { code: 'BAD_DIRECTIVES' });
 		}
 		const context: DirectiveContext = {
+			actions: this.actions,
 			aliases: this.aliases,
+			allowEnv: this.allowEnv,
 			cache: this.cache,
 			depth: this.depth,
 			fetch: this.fetch,
@@ -335,6 +365,7 @@ export class Degit extends EventEmitter {
 			getStagingDir: async () => (context.stagingDir ??= await this.getActionsStagingDir()),
 			hasStashed: false,
 			info: this.info,
+			srcChain,
 			verbose: this.verbose,
 			warn: this.warn,
 		};
