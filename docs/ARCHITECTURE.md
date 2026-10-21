@@ -81,7 +81,7 @@ Description: Parses command-line arguments, renders help text, and provides an i
 
 Technologies: TypeScript, `mri`, `enquirer`, `fuzzysearch`, `yoctocolors`
 
-Deployment: Built into the published `degit` executable and run locally via Node 20+ or Bun during development.
+Deployment: Built into the published `degit` executable and run locally via Node 20+ through Nub during development.
 
 ### 3.2. Core Degit Library
 
@@ -167,7 +167,7 @@ CI/CD Pipeline: GitHub Actions. `quality.yml` runs lint, format, duplication, an
 
 Monitoring & Logging: No dedicated observability stack. Errors and status messages are surfaced directly through the CLI and test output.
 
-Build and release use tsdown to emit `dist/` ESM output and type declarations. Development and CI both use Bun 1.3.14, while the published package targets Node 20+.
+Build and release use tsdown to emit `dist/` ESM output and type declarations. Development and CI both use Nub with an npm-standard `package-lock.json`, while the published package targets Node 20+.
 
 ## 7. Security Considerations
 

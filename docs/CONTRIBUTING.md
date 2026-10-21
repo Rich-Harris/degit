@@ -153,7 +153,7 @@ Before opening a pull request, run the same checks CI runs:
 ```bash
 nub run build
 nub run test
-nub run perf:ci
+nub run perf
 nub run format:ci
 nub run lint:ci
 nub run duplicates:ci
@@ -163,13 +163,13 @@ nub run audit
 
 `nub run test` runs the test suite with [Vitest](https://vitest.dev/) and excludes `test/integration/private.test.ts`. The `pretest` script builds first.
 
-`nub run perf:ci` runs the fixture-backed performance gate that PRs use to catch clone regressions.
+`nub run perf` runs the fixture-backed performance gate that PRs use to catch clone regressions.
 
 `nub run test:integration` runs the integration suite in `test/integration`.
 
 `nub run audit` runs the dependency audit that also backs [.github/workflows/security.yml](.github/workflows/security.yml).
 
-The scheduled integration workflow in [.github/workflows/integration.yml](.github/workflows/integration.yml) runs `nub run test:integration`. The PR performance workflow in [.github/workflows/performance.yml](.github/workflows/performance.yml) runs `nub run perf:ci` on Ubuntu. When the `SSH_PRIVATE_KEY` repository secret is available, the integration workflow also includes built-in SSH-backed private fixtures for [YogliB/degit-test](https://github.com/YogliB/degit-test) and the automatic fallback path.
+The scheduled integration workflow in [.github/workflows/integration.yml](.github/workflows/integration.yml) runs `nub run test:integration`. The PR performance workflow in [.github/workflows/performance.yml](.github/workflows/performance.yml) runs `nub run perf` on Ubuntu. When the `SSH_PRIVATE_KEY` repository secret is available, the integration workflow also includes built-in SSH-backed private fixtures for [YogliB/degit-test](https://github.com/YogliB/degit-test) and the automatic fallback path.
 
 A small proof-of-concept docs-sync workflow also runs on PRs that change `src/**/*.ts` and `assets/help.md`, using OpenRouter through Claude Code Action. It expects `OPENROUTER_API_KEY` and `OPENROUTER_ANTHROPIC_BASE_URL` repository secrets.
 

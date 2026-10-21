@@ -1,5 +1,9 @@
 # degit changelog
 
+## [Unreleased]
+
+- Download failures now reject with a `DegitError` (an `Error` with `code`) instead of a plain object.
+
 ## [3.10.1]
 
 - Log the name of each environment variable read by `search_replace` directives.
