@@ -1,11 +1,8 @@
 # degit changelog
 
-## [Unreleased]
-
-- Download failures now reject with a `DegitError` (an `Error` with `code`) instead of a plain object.
-
 ## [3.10.1]
 
+- Download failures now reject with a `DegitError` (an `Error` with `code`) instead of a plain object.
 - Log the name of each environment variable read by `search_replace` directives.
 - Bound `search_replace` regex execution with a 1s timeout and skip files larger than 10MB.
 - Cap HTTP redirects at 5 when downloading archives, require a `Location` header, and refuse non-HTTPS redirect targets.
