@@ -42,6 +42,20 @@ type CloneDirectiveCtx = {
 	childClone: ReturnType<typeof vi.fn>;
 };
 
+type SearchReplaceCtx = { root: string; dest: string } & ReturnType<typeof makeDispatcher>;
+
+async function withSearchReplace<T>(run: (ctx: SearchReplaceCtx) => Promise<T>): Promise<T> {
+	const root = makeTempWorkspace('search-replace-');
+	const dest = path.join(root, 'dest');
+	const dispatcher = makeDispatcher();
+	fs.mkdirSync(dest, { recursive: true });
+	try {
+		return await run({ root, dest, ...dispatcher });
+	} finally {
+		fs.rmSync(root, { force: true, recursive: true });
+	}
+}
+
 async function withCloneDirective<T>(
 	prefix: string,
 	run: (ctx: CloneDirectiveCtx) => Promise<T>,
@@ -188,12 +202,7 @@ describe('directives', () => {
 	});
 
 	it('warns and skips files larger than 10MB when the file exceeds the size cap', async () => {
-		const root = makeTempWorkspace('search-replace-');
-		const dest = path.join(root, 'dest');
-		const { context, createChild, warnings } = makeDispatcher();
-
-		try {
-			fs.mkdirSync(dest, { recursive: true });
+		await withSearchReplace(async ({ context, createChild, dest, warnings }) => {
 			const big = path.join(dest, 'big.txt');
 			const handle = fs.openSync(big, 'w');
 			fs.ftruncateSync(handle, 11 * 1024 * 1024);
@@ -217,18 +226,11 @@ describe('directives', () => {
 			assert.equal(warnings.length, 1);
 			assert.match(warnings[0], /too large for search_replace, skipping/u);
 			assert.match(warnings[0], /big\.txt/u);
-		} finally {
-			fs.rmSync(root, { force: true, recursive: true });
-		}
+		});
 	});
 
 	it('warns and skips files when the pattern causes catastrophic backtracking', async () => {
-		const root = makeTempWorkspace('search-replace-');
-		const dest = path.join(root, 'dest');
-		const { context, createChild, warnings } = makeDispatcher();
-
-		try {
-			fs.mkdirSync(dest, { recursive: true });
+		await withSearchReplace(async ({ context, createChild, dest, warnings }) => {
 			fs.writeFileSync(path.join(dest, 'evil.txt'), `${'a'.repeat(35)}!`);
 			process.env.PROJECT_NAME = 'degit';
 
@@ -252,18 +254,11 @@ describe('directives', () => {
 				fs.readFileSync(path.join(dest, 'evil.txt'), 'utf8'),
 				`${'a'.repeat(35)}!`,
 			);
-		} finally {
-			fs.rmSync(root, { force: true, recursive: true });
-		}
+		});
 	}, 15_000);
 
 	it('warns and skips missing files when the target path does not exist', async () => {
-		const root = makeTempWorkspace('search-replace-');
-		const dest = path.join(root, 'dest');
-		const { context, createChild, warnings } = makeDispatcher();
-
-		try {
-			fs.mkdirSync(dest, { recursive: true });
+		await withSearchReplace(async ({ context, createChild, dest, warnings }) => {
 			process.env.PROJECT_NAME = 'degit';
 
 			await applyDirectives(
@@ -283,9 +278,7 @@ describe('directives', () => {
 			assert.equal(warnings.length, 1);
 			assert.match(warnings[0], /does not exist/u);
 			assert.match(warnings[0], /missing\.txt/u);
-		} finally {
-			fs.rmSync(root, { force: true, recursive: true });
-		}
+		});
 	});
 
 	it('warns and skips paths outside the destination when the target escapes the destination', async () => {
@@ -324,12 +317,7 @@ describe('directives', () => {
 	});
 
 	it('runs search_replace directives through the directive dispatcher when applyDirectives receives search_replace', async () => {
-		const root = makeTempWorkspace('search-replace-');
-		const dest = path.join(root, 'dest');
-		const { context, createChild, infos, warnings } = makeDispatcher();
-
-		try {
-			fs.mkdirSync(dest, { recursive: true });
+		await withSearchReplace(async ({ context, createChild, dest, infos, warnings }) => {
 			fs.writeFileSync(path.join(dest, 'package.json'), '{"name":"{{project_name}}"}\n');
 			process.env.PROJECT_NAME = 'degit';
 
@@ -354,9 +342,7 @@ describe('directives', () => {
 			assert.equal(createChild.mock.calls.length, 0);
 			assert.equal(infos.length, 2);
 			assert.equal(warnings.length, 0);
-		} finally {
-			fs.rmSync(root, { force: true, recursive: true });
-		}
+		});
 	});
 
 	function runCloneDirective(files: string | string[]): Promise<string[] | undefined> {
