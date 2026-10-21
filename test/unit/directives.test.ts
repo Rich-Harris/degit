@@ -249,7 +249,7 @@ describe('directives', () => {
 			);
 
 			assert.equal(warnings.length, 1);
-			assert.match(warnings[0], /timed out on .*evil\.txt, skipping/u);
+			assert.match(warnings[0], /timed out on .*evil\.txt.*, skipping/u);
 			assert.equal(
 				fs.readFileSync(path.join(dest, 'evil.txt'), 'utf8'),
 				`${'a'.repeat(35)}!`,

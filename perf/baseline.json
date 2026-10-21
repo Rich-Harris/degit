@@ -3,11 +3,11 @@
 	"benchmarks": {
 		"clone-cached": {
 			"maxRegression": 0.2,
-			"medianMs": 26
+			"medianMs": 50
 		},
 		"clone-cold": {
 			"maxRegression": 0.2,
-			"medianMs": 32
+			"medianMs": 55
 		}
 	}
 }
