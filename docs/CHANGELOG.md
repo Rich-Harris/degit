@@ -1,5 +1,13 @@
 # degit changelog
 
+## [3.10.1]
+
+- Log the name of each environment variable read by `search_replace` directives.
+- Bound `search_replace` regex execution with a 1s timeout and skip files larger than 10MB.
+- Cap HTTP redirects at 5 when downloading archives, require a `Location` header, and refuse non-HTTPS redirect targets.
+- Warn when `clone` directives nest deeper than 5 levels.
+- Fix proxied archive downloads to URLs with a non-default port sending the port inside the `hostname` field.
+
 ## [3.10.0]
 
 - Add GitHub Gist support: `gist:` shorthand, HTTPS and SSH URL forms ([#21](https://github.com/Rich-Harris/degit/issues/21)).

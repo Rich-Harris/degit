@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -82,17 +83,12 @@ export function mkdirp(dir: string): void {
 	fs.mkdirSync(dir, { recursive: true });
 }
 
-export function fetch(url: string, dest: string, proxy?: string): Promise<void> {
+export function fetch(url: string, dest: string, proxy?: string, redirectsLeft = 5): Promise<void> {
 	return new Promise((fulfil, reject) => {
 		let options: string | import('node:http').RequestOptions = url;
 
 		if (proxy) {
-			const parsedUrl = URL.parse(url);
-			options = {
-				agent: Agent(proxy) as unknown as import('node:http').Agent,
-				hostname: parsedUrl.host,
-				path: parsedUrl.path,
-			};
+			options = proxyOptions(url, proxy);
 		}
 
 		https
@@ -103,7 +99,25 @@ export function fetch(url: string, dest: string, proxy?: string): Promise<void> 
 					reject({ code, message: response.statusMessage });
 				} else if (code >= 300) {
 					response.resume();
-					fetch(response.headers.location, dest, proxy).then(fulfil, reject);
+					const location = response.headers.location;
+					if (!location) {
+						reject(new Error('redirect response without Location header'));
+						return;
+					}
+					if (redirectsLeft <= 0) {
+						reject(new Error('too many redirects'));
+						return;
+					}
+					try {
+						const next = new URL.URL(location, url);
+						if (next.protocol !== 'https:') {
+							reject(new Error(`refusing redirect to non-https URL: ${next.href}`));
+							return;
+						}
+						fetch(next.href, dest, proxy, redirectsLeft - 1).then(fulfil, reject);
+					} catch (error) {
+						reject(error);
+					}
 				} else {
 					response
 						.pipe(fs.createWriteStream(dest))
@@ -113,6 +127,16 @@ export function fetch(url: string, dest: string, proxy?: string): Promise<void> 
 			})
 			.on('error', reject);
 	});
+}
+
+function proxyOptions(url: string, proxy: string): import('node:http').RequestOptions {
+	const parsedUrl = URL.parse(url);
+	return {
+		agent: Agent(proxy) as unknown as import('node:http').Agent,
+		hostname: parsedUrl.hostname,
+		path: parsedUrl.path,
+		port: parsedUrl.port,
+	};
 }
 
 export type StashedEntry = { filePath: string; isDir: boolean };

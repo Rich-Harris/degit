@@ -17,6 +17,8 @@ import type {
 	EventInfo,
 	FetchFn,
 } from '../domain/types.js';
+const MAX_DIRECTIVE_DEPTH = 5;
+
 type ChildDegit = {
 	clone(dest: string): Promise<void>;
 	on(eventName: 'info' | 'warn', listener: (event: EventInfo) => void): ChildDegit;
@@ -24,6 +26,7 @@ type ChildDegit = {
 export type DirectiveContext = {
 	aliases?: Record<string, string>;
 	cache?: boolean;
+	depth?: number;
 	fetch: FetchFn;
 	getGitClient(): Promise<GitClient>;
 	getStagingDir(): Promise<string>;
@@ -66,9 +69,16 @@ async function cloneDirective(
 		context.warn({ message: 'clone action verbose must be a boolean, ignoring' });
 	}
 
+	if ((context.depth ?? 0) >= MAX_DIRECTIVE_DEPTH) {
+		context.warn({
+			message: `clone directive nesting depth ${context.depth} reached ${MAX_DIRECTIVE_DEPTH}, continuing`,
+		});
+	}
+
 	const child = createChild(action.src, {
 		aliases: context.aliases,
 		cache: typeof action.cache === 'boolean' ? action.cache : context.cache,
+		depth: (context.depth ?? 0) + 1,
 		fetch: context.fetch,
 		files,
 		force: true,

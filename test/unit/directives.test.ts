@@ -2,7 +2,7 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { afterEach, describe, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyDirectives, type DirectiveContext } from '../../src/operations/directives.js';
 import type { Directive } from '../../src/domain/types.js';
 
@@ -148,13 +148,114 @@ describe('directives', () => {
 				fs.readFileSync(path.join(dest, 'README.md'), 'utf8'),
 				'hello degit\ndegit!\n',
 			);
-			assert.equal(infos.length, 1);
-			assert.match(infos[0], /replaced content in .*README\.md/u);
+			assert.equal(infos.length, 2);
+			assert.match(infos[0], /reading env var.*PROJECT_NAME/u);
+			assert.match(infos[1], /replaced content in .*README\.md/u);
 			assert.deepEqual(warnings, []);
 		} finally {
 			fs.rmSync(root, { force: true, recursive: true });
 		}
 	});
+
+	it('emits an info event naming the env var when the replacement is defined', async () => {
+		const root = makeTempWorkspace('search-replace-');
+		const dest = path.join(root, 'dest');
+		const { context, createChild, infos } = makeDispatcher();
+
+		try {
+			fs.mkdirSync(dest, { recursive: true });
+			fs.writeFileSync(path.join(dest, 'a.txt'), 'x\n');
+			process.env.PROJECT_NAME = 'degit';
+
+			await applyDirectives(
+				context,
+				[
+					{
+						action: 'search_replace',
+						files: 'a.txt',
+						pattern: 'x',
+						replacement: 'PROJECT_NAME',
+					},
+				],
+				dest,
+				createChild,
+			);
+
+			assert.match(infos[0], /search_replace reading env var.*PROJECT_NAME/u);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('warns and skips files larger than 10MB when the file exceeds the size cap', async () => {
+		const root = makeTempWorkspace('search-replace-');
+		const dest = path.join(root, 'dest');
+		const { context, createChild, warnings } = makeDispatcher();
+
+		try {
+			fs.mkdirSync(dest, { recursive: true });
+			const big = path.join(dest, 'big.txt');
+			const handle = fs.openSync(big, 'w');
+			fs.ftruncateSync(handle, 11 * 1024 * 1024);
+			fs.closeSync(handle);
+			process.env.PROJECT_NAME = 'degit';
+
+			await applyDirectives(
+				context,
+				[
+					{
+						action: 'search_replace',
+						files: 'big.txt',
+						pattern: 'x',
+						replacement: 'PROJECT_NAME',
+					},
+				],
+				dest,
+				createChild,
+			);
+
+			assert.equal(warnings.length, 1);
+			assert.match(warnings[0], /too large for search_replace, skipping/u);
+			assert.match(warnings[0], /big\.txt/u);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('warns and skips files when the pattern causes catastrophic backtracking', async () => {
+		const root = makeTempWorkspace('search-replace-');
+		const dest = path.join(root, 'dest');
+		const { context, createChild, warnings } = makeDispatcher();
+
+		try {
+			fs.mkdirSync(dest, { recursive: true });
+			fs.writeFileSync(path.join(dest, 'evil.txt'), `${'a'.repeat(35)}!`);
+			process.env.PROJECT_NAME = 'degit';
+
+			await applyDirectives(
+				context,
+				[
+					{
+						action: 'search_replace',
+						files: 'evil.txt',
+						pattern: '(a+)+$',
+						replacement: 'PROJECT_NAME',
+					},
+				],
+				dest,
+				createChild,
+			);
+
+			assert.equal(warnings.length, 1);
+			assert.match(warnings[0], /timed out on .*evil\.txt, skipping/u);
+			assert.equal(
+				fs.readFileSync(path.join(dest, 'evil.txt'), 'utf8'),
+				`${'a'.repeat(35)}!`,
+			);
+		} finally {
+			fs.rmSync(root, { force: true, recursive: true });
+		}
+	}, 15_000);
 
 	it('warns and skips missing files when the target path does not exist', async () => {
 		const root = makeTempWorkspace('search-replace-');
@@ -251,7 +352,7 @@ describe('directives', () => {
 				'{"name":"degit"}\n',
 			);
 			assert.equal(createChild.mock.calls.length, 0);
-			assert.equal(infos.length, 1);
+			assert.equal(infos.length, 2);
 			assert.equal(warnings.length, 0);
 		} finally {
 			fs.rmSync(root, { force: true, recursive: true });
@@ -287,6 +388,28 @@ describe('directives', () => {
 	it('passes a single files value as an array when the clone directive uses a string', async () => {
 		const files = await runCloneDirective('README.md');
 		assert.deepEqual(files, ['README.md']);
+	});
+
+	it('warns and continues cloning when directive nesting depth reaches five', async () => {
+		await withCloneDirective(
+			'clone-depth-',
+			async ({ dest, context, createChild, childClone }) => {
+				context.depth = 5;
+
+				await applyDirectives(
+					context,
+					[{ action: 'clone', src: 'user/repo' }],
+					dest,
+					createChild,
+				);
+
+				expect(context.warn).toHaveBeenCalledWith({
+					message: 'clone directive nesting depth 5 reached 5, continuing',
+				});
+				assert.equal(createChild.mock.calls[0][1].depth, 6);
+				assert.equal(childClone.mock.calls.length, 1);
+			},
+		);
 	});
 
 	it('inherits parent options when a clone directive builds a child', async () => {

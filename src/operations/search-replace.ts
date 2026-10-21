@@ -1,8 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import colors from 'yoctocolors';
 import { safeResolve } from '../shared/utils.js';
 import type { EventInfo, SearchReplaceDirective } from '../domain/types.js';
+
+const MAX_SEARCH_REPLACE_BYTES = 10 * 1024 * 1024;
+const SEARCH_REPLACE_TIMEOUT_MS = 1000;
+const SEARCH_REPLACE_SCRIPT = new vm.Script('text.replace(pattern, () => replacement)');
 
 export function searchReplaceFiles(
 	dest: string,
@@ -21,6 +26,10 @@ export function searchReplaceFiles(
 		});
 		return;
 	}
+
+	info({
+		message: `search_replace reading env var ${colors.bold(action.replacement)}`,
+	});
 
 	let pattern: RegExp;
 	try {
@@ -59,27 +68,24 @@ function replaceFile(
 	}
 
 	try {
-		const realPath = fs.realpathSync(filePath);
-		if (!safeResolve(root, realPath)) {
-			warn({
-				message: `action wants to search_replace ${colors.bold(file)} but it is outside the destination, skipping`,
-			});
-			return [];
-		}
-		if (fs.statSync(realPath).isDirectory()) {
-			warn({
-				message: `action wants to search_replace ${colors.bold(file)} but it is a directory, skipping`,
-			});
+		const realPath = resolveWritableFile(root, file, filePath, warn);
+		if (!realPath) {
 			return [];
 		}
 		const content = fs.readFileSync(realPath, 'utf8');
-		const nextContent = content.replace(pattern, () => replacement);
+		const nextContent = runReplace(content, pattern, replacement);
 		if (nextContent === content) {
 			return [];
 		}
 		fs.writeFileSync(realPath, nextContent);
 		return [file];
 	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
+			warn({
+				message: `search_replace pattern timed out on ${colors.bold(file)}, skipping`,
+			});
+			return [];
+		}
 		if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
 			warn({
 				message: `action wants to search_replace ${colors.bold(file)} but it does not exist`,
@@ -88,5 +94,41 @@ function replaceFile(
 		}
 		throw error;
 	}
-	/* eslint-enable security/detect-non-literal-regexp, security/detect-non-literal-fs-filename */
 }
+
+function resolveWritableFile(
+	root: string,
+	file: string,
+	filePath: string,
+	warn: (info: EventInfo) => void,
+) {
+	const realPath = fs.realpathSync(filePath);
+	if (!safeResolve(root, realPath)) {
+		warn({
+			message: `action wants to search_replace ${colors.bold(file)} but it is outside the destination, skipping`,
+		});
+		return;
+	}
+	const stats = fs.statSync(realPath);
+	if (stats.isDirectory()) {
+		warn({
+			message: `action wants to search_replace ${colors.bold(file)} but it is a directory, skipping`,
+		});
+		return;
+	}
+	if (stats.size > MAX_SEARCH_REPLACE_BYTES) {
+		warn({
+			message: `action wants to search_replace ${colors.bold(file)} but it is too large for search_replace, skipping`,
+		});
+		return;
+	}
+	return realPath;
+}
+
+function runReplace(content: string, pattern: RegExp, replacement: string) {
+	return SEARCH_REPLACE_SCRIPT.runInNewContext(
+		{ pattern, replacement, text: content },
+		{ timeout: SEARCH_REPLACE_TIMEOUT_MS },
+	) as string;
+}
+/* eslint-enable security/detect-non-literal-regexp, security/detect-non-literal-fs-filename */

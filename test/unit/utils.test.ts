@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import fs from 'node:fs';
 import https from 'node:https';
 import assert from 'node:assert';
@@ -131,7 +132,7 @@ describe('shared utils', () => {
 		} as never);
 
 		const response1 = {
-			headers: { location: 'https://example.com/archive.tar.gz' },
+			headers: { location: './redirected.tar.gz' },
 			pipe: vi.fn<(...args: any[]) => any>(),
 			resume: vi.fn<(...args: any[]) => any>(),
 			statusCode: 302,
@@ -166,11 +167,66 @@ describe('shared utils', () => {
 			assert.equal(response1.resume.mock.calls.length, 1);
 			assert.equal(response2.resume.mock.calls.length, 0);
 			assert.equal(getSpy.mock.calls.length, 2);
+			assert.equal(getSpy.mock.calls[1][0], 'https://example.com/redirected.tar.gz');
 		} finally {
 			createWriteStreamSpy.mockRestore();
 			getSpy.mockRestore();
 		}
 	});
+
+	for (const { calls, error, location, trigger } of [
+		{
+			calls: 6,
+			error: 'too many redirects',
+			location: 'https://example.com/loop',
+			trigger: 'redirects loop beyond five hops',
+		},
+		{
+			calls: 1,
+			error: 'redirect response without Location header',
+			location: undefined,
+			trigger: 'a redirect has no Location header',
+		},
+		{
+			calls: 1,
+			error: 'refusing redirect to non-https URL: http://example.com/archive.tar.gz',
+			location: 'http://example.com/archive.tar.gz',
+			trigger: 'a redirect targets HTTP',
+		},
+		{
+			calls: 1,
+			error: 'Invalid URL',
+			location: 'https://[invalid',
+			trigger: 'a redirect target is malformed',
+		},
+	]) {
+		it(`rejects the fetch when ${trigger}`, async () => {
+			const response = {
+				headers: { location },
+				resume: vi.fn<() => void>(),
+				statusCode: 302,
+			};
+			const getSpy = vi.spyOn(https, 'get').mockImplementation(((options, callback) => {
+				queueMicrotask(() => callback(response as never));
+				return {
+					on() {
+						return this;
+					},
+				};
+			}) as never);
+
+			try {
+				await assert.rejects(
+					fetch('https://example.com/loop', '/tmp/degit-fetch-test.tar.gz'),
+					{ message: error },
+				);
+				assert.equal(getSpy.mock.calls.length, calls);
+				assert.equal(response.resume.mock.calls.length, calls);
+			} finally {
+				getSpy.mockRestore();
+			}
+		});
+	}
 
 	it('rejects paths that resolve to the destination root when a root-like path is given', () => {
 		const root = path.resolve('/tmp/degit-safe-test');

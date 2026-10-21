@@ -36,6 +36,7 @@ function cloneSuccessMessage(user: string, name: string, ref: string, dest: stri
 export class Degit extends EventEmitter {
 	aliases: Record<string, string>;
 	cache?: boolean;
+	depth?: number;
 	files?: string[];
 	force?: boolean;
 	mode: ValidModes;
@@ -56,6 +57,7 @@ export class Degit extends EventEmitter {
 
 		this.aliases = opts.aliases ?? {};
 		this.cache = opts.cache;
+		this.depth = opts.depth;
 		this.files = opts.files;
 		this.force = opts.force;
 		this.verbose = opts.verbose;
@@ -327,6 +329,7 @@ export class Degit extends EventEmitter {
 		const context: DirectiveContext = {
 			aliases: this.aliases,
 			cache: this.cache,
+			depth: this.depth,
 			fetch: this.fetch,
 			getGitClient: () => this.getGitClient(),
 			getStagingDir: async () => (context.stagingDir ??= await this.getActionsStagingDir()),

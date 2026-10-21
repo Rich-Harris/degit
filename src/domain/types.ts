@@ -12,6 +12,7 @@ export type FetchFn = (url: string, dest: string, proxy?: string) => Promise<voi
 export type ConstructorOptions = {
 	aliases?: Record<string, string>;
 	cache?: boolean;
+	depth?: number;
 	fetch?: FetchFn;
 	files?: string[];
 	force?: boolean;
