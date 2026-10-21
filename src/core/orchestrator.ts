@@ -358,8 +358,8 @@ export class Degit extends EventEmitter {
 			}
 		}
 	}
-}
 
-export interface Degit {
-	on(eventName: 'info' | 'warn', listener: (info: EventInfo) => void): this;
+	on(eventName: 'info' | 'warn', listener: (info: EventInfo) => void): this {
+		return super.on(eventName, listener);
+	}
 }

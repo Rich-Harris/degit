@@ -96,7 +96,7 @@ export function fetch(url: string, dest: string, proxy?: string, redirectsLeft =
 				const code = response.statusCode;
 				if (code >= 400) {
 					response.resume();
-					reject({ code, message: response.statusMessage });
+					reject(new DegitError(response.statusMessage, { code }));
 				} else if (code >= 300) {
 					response.resume();
 					const location = response.headers.location;
